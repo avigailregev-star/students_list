@@ -4,27 +4,58 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 
 const items = [
-  { href: '/', label: 'ראשי', icon: '🏠' },
-  { href: '/groups/new', label: 'הוסף', icon: '➕' },
-  { href: '/reports', label: 'דוחות', icon: '📊' },
+  {
+    href: '/',
+    label: 'ראשי',
+    icon: (active: boolean) => (
+      <svg width="22" height="22" viewBox="0 0 24 24" fill={active ? '#14b8a6' : 'none'} stroke={active ? '#14b8a6' : '#9ca3af'} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+        <polyline points="9 22 9 12 15 12 15 22" />
+      </svg>
+    ),
+  },
+  {
+    href: '/groups/new',
+    label: 'הוסף',
+    icon: (active: boolean) => (
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={active ? '#14b8a6' : '#9ca3af'} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+        <circle cx="12" cy="12" r="9" />
+        <line x1="12" y1="8" x2="12" y2="16" />
+        <line x1="8" y1="12" x2="16" y2="12" />
+      </svg>
+    ),
+  },
+  {
+    href: '/reports',
+    label: 'דוחות',
+    icon: (active: boolean) => (
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={active ? '#14b8a6' : '#9ca3af'} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+        <line x1="18" y1="20" x2="18" y2="10" />
+        <line x1="12" y1="20" x2="12" y2="4" />
+        <line x1="6" y1="20" x2="6" y2="14" />
+      </svg>
+    ),
+  },
 ]
 
 export default function BottomNav() {
   const pathname = usePathname()
   return (
-    <nav className="fixed bottom-0 right-0 left-0 bg-white border-t border-gray-100 flex justify-around py-2 pb-safe z-50">
+    <nav className="fixed bottom-0 right-0 left-0 bg-white border-t border-gray-100 flex justify-around px-2 py-2 pb-safe z-50">
       {items.map(item => {
         const active = pathname === item.href
         return (
           <Link
             key={item.href}
             href={item.href}
-            className={`flex flex-col items-center gap-0.5 px-6 py-1 rounded-xl transition-colors ${
-              active ? 'text-indigo-600' : 'text-gray-400 hover:text-gray-600'
+            className={`flex flex-col items-center gap-0.5 px-5 py-1.5 rounded-2xl transition-colors ${
+              active ? 'bg-teal-50' : ''
             }`}
           >
-            <span className="text-xl">{item.icon}</span>
-            <span className="text-[10px] font-semibold">{item.label}</span>
+            {item.icon(active)}
+            <span className={`text-[10px] font-bold ${active ? 'text-teal-500' : 'text-gray-400'}`}>
+              {item.label}
+            </span>
           </Link>
         )
       })}

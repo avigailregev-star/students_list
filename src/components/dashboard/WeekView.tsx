@@ -9,7 +9,7 @@ interface Props {
   allSlots: LessonSlot[]
 }
 
-const WORK_DAYS = [0, 1, 2, 3, 4] // Sun–Thu (Israel work week)
+const WORK_DAYS = [0, 1, 2, 3, 4]
 
 export default function WeekView({ allSlots }: Props) {
   const today = new Date()
@@ -22,7 +22,6 @@ export default function WeekView({ allSlots }: Props) {
       arr.push(slot)
       map.set(slot.dayOfWeek, arr)
     }
-    // Sort within each day
     for (const [key, arr] of map) {
       map.set(key, arr.sort((a, b) => a.startTime.localeCompare(b.startTime)))
     }
@@ -30,20 +29,20 @@ export default function WeekView({ allSlots }: Props) {
   }, [allSlots])
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex flex-col gap-5">
       {WORK_DAYS.map(day => {
         const slots = byDay.get(day) ?? []
         if (slots.length === 0) return null
         const isToday = today.getDay() === day
         return (
           <div key={day}>
-            <div className={`flex items-center gap-2 mb-2`}>
-              <span className={`text-xs font-bold tracking-wide uppercase ${
-                isToday ? 'text-indigo-600' : 'text-gray-400'
+            <div className="flex items-center gap-2 mb-2.5">
+              <span className={`text-xs font-bold tracking-widest uppercase ${
+                isToday ? 'text-teal-500' : 'text-gray-400'
               }`}>
                 {DAYS_HE[day]}
               </span>
-              {isToday && <span className="w-1.5 h-1.5 rounded-full bg-indigo-600 inline-block" />}
+              {isToday && <span className="w-1.5 h-1.5 rounded-full bg-teal-500 inline-block" />}
               <div className="flex-1 h-px bg-gray-100" />
             </div>
             <div className="flex flex-col gap-2">
@@ -58,7 +57,7 @@ export default function WeekView({ allSlots }: Props) {
         )
       })}
       {allSlots.length === 0 && (
-        <div className="text-center py-10 text-gray-400 text-sm">
+        <div className="text-center py-16 text-gray-400 text-sm">
           אין שיעורים השבוע
         </div>
       )}

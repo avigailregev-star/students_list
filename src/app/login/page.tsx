@@ -32,7 +32,7 @@ export default function LoginPage() {
             email,
           })
           if (insertError) throw insertError
-          setMessage('נרשמת בהצלחה! בדוק את המייל שלך לאישור.')
+          setMessage('נרשמת בהצלחה!')
         }
       } else {
         const { error } = await supabase.auth.signInWithPassword({ email, password })
@@ -55,89 +55,92 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center p-4">
-      <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm p-8">
-        <div className="text-center mb-8">
-          <div className="text-4xl mb-3">🎵</div>
-          <h1 className="text-2xl font-bold text-gray-900">מעקב נוכחות</h1>
-          <p className="text-gray-500 text-sm mt-1">
-            {isSignUp ? 'צרי חשבון חדש' : 'ברוכה השבה'}
-          </p>
+    <div className="min-h-screen bg-gray-50 flex flex-col">
+      {/* Teal header area */}
+      <div className="bg-gradient-to-bl from-teal-400 to-teal-600 rounded-b-[48px] px-6 pt-16 pb-12 text-white text-center shadow-lg shadow-teal-200">
+        <div className="w-16 h-16 bg-white/20 rounded-3xl flex items-center justify-center mx-auto mb-4">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M9 18V5l12-2v13" />
+            <circle cx="6" cy="18" r="3" />
+            <circle cx="18" cy="16" r="3" />
+          </svg>
         </div>
+        <h1 className="text-3xl font-bold">מעקב נוכחות</h1>
+        <p className="text-teal-100 mt-1 text-sm">
+          {isSignUp ? 'צרי חשבון חדש' : 'ברוכה השבה'}
+        </p>
+      </div>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          {isSignUp && (
+      {/* Form card */}
+      <div className="flex-1 px-5 pt-8 pb-10 max-w-sm mx-auto w-full">
+        <div className="bg-white rounded-3xl shadow-sm p-6">
+          <form onSubmit={handleSubmit} className="space-y-4">
+            {isSignUp && (
+              <div>
+                <label className="block text-sm font-semibold text-gray-600 mb-1.5">שם מלא</label>
+                <input
+                  type="text"
+                  value={name}
+                  onChange={e => setName(e.target.value)}
+                  required={isSignUp}
+                  placeholder="שם ושם משפחה"
+                  className="w-full px-4 py-3 bg-gray-50 border border-gray-100 rounded-2xl text-sm text-gray-800 placeholder:text-gray-400 focus:outline-none focus:border-teal-300 focus:ring-2 focus:ring-teal-100 transition-all"
+                />
+              </div>
+            )}
+
             <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-1">
-                שם מלא
-              </label>
+              <label className="block text-sm font-semibold text-gray-600 mb-1.5">אימייל</label>
               <input
-                type="text"
-                value={name}
-                onChange={e => setName(e.target.value)}
-                required={isSignUp}
-                placeholder="שם ושם משפחה"
-                className="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-indigo-400 transition-colors"
+                type="email"
+                value={email}
+                onChange={e => setEmail(e.target.value)}
+                required
+                placeholder="your@email.com"
+                className="w-full px-4 py-3 bg-gray-50 border border-gray-100 rounded-2xl text-sm text-gray-800 placeholder:text-gray-400 focus:outline-none focus:border-teal-300 focus:ring-2 focus:ring-teal-100 transition-all"
+                dir="ltr"
               />
             </div>
-          )}
 
-          <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-1">
-              אימייל
-            </label>
-            <input
-              type="email"
-              value={email}
-              onChange={e => setEmail(e.target.value)}
-              required
-              placeholder="your@email.com"
-              className="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-indigo-400 transition-colors"
-              dir="ltr"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-1">
-              סיסמה
-            </label>
-            <input
-              type="password"
-              value={password}
-              onChange={e => setPassword(e.target.value)}
-              required
-              placeholder="לפחות 6 תווים"
-              className="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-indigo-400 transition-colors"
-              dir="ltr"
-            />
-          </div>
-
-          {error && (
-            <div className="bg-red-50 border border-red-200 text-red-700 text-sm px-4 py-3 rounded-xl">
-              {error}
+            <div>
+              <label className="block text-sm font-semibold text-gray-600 mb-1.5">סיסמה</label>
+              <input
+                type="password"
+                value={password}
+                onChange={e => setPassword(e.target.value)}
+                required
+                placeholder="לפחות 6 תווים"
+                className="w-full px-4 py-3 bg-gray-50 border border-gray-100 rounded-2xl text-sm text-gray-800 placeholder:text-gray-400 focus:outline-none focus:border-teal-300 focus:ring-2 focus:ring-teal-100 transition-all"
+                dir="ltr"
+              />
             </div>
-          )}
 
-          {message && (
-            <div className="bg-green-50 border border-green-200 text-green-700 text-sm px-4 py-3 rounded-xl">
-              {message}
-            </div>
-          )}
+            {error && (
+              <div className="bg-red-50 border border-red-100 text-red-600 text-sm px-4 py-3 rounded-2xl">
+                {error}
+              </div>
+            )}
+            {message && (
+              <div className="bg-teal-50 border border-teal-100 text-teal-700 text-sm px-4 py-3 rounded-2xl">
+                {message}
+              </div>
+            )}
 
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full bg-gradient-to-l from-indigo-500 to-purple-600 text-white py-3 rounded-xl font-semibold text-sm hover:opacity-90 transition-opacity disabled:opacity-60"
-          >
-            {loading ? 'אנא המתן...' : isSignUp ? 'הרשמה' : 'כניסה'}
-          </button>
-        </form>
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full bg-teal-500 hover:bg-teal-600 text-white py-3.5 rounded-2xl font-bold text-sm transition-colors disabled:opacity-60 shadow-sm shadow-teal-200 mt-2"
+            >
+              {loading ? 'אנא המתן...' : isSignUp ? 'הרשמה' : 'כניסה'}
+            </button>
+          </form>
+        </div>
 
-        <p className="text-center text-sm text-gray-500 mt-6">
+        <p className="text-center text-sm text-gray-500 mt-5">
           {isSignUp ? 'יש לך חשבון?' : 'אין לך חשבון?'}{' '}
           <button
             onClick={() => { setIsSignUp(!isSignUp); setError(null); setMessage(null) }}
-            className="text-indigo-600 font-semibold hover:underline"
+            className="text-teal-600 font-bold hover:underline"
           >
             {isSignUp ? 'כניסה' : 'הרשמה'}
           </button>

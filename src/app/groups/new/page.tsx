@@ -32,90 +32,93 @@ export default function NewGroupPage() {
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
       {/* Header */}
-      <div className="bg-gradient-to-l from-indigo-500 to-purple-600 text-white px-4 py-5">
+      <div className="bg-gradient-to-bl from-teal-400 to-teal-600 text-white rounded-b-[36px] shadow-lg shadow-teal-200 px-5 pt-8 pb-6">
         <div className="flex items-center gap-3">
           <button
             onClick={() => router.back()}
-            className="w-8 h-8 rounded-lg bg-white/20 flex items-center justify-center text-lg"
+            className="w-9 h-9 rounded-2xl bg-white/20 flex items-center justify-center shrink-0"
           >
-            ←
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <polyline points="15 18 9 12 15 6" />
+            </svg>
           </button>
-          <h1 className="text-lg font-bold">הוסף קבוצה חדשה</h1>
+          <h1 className="text-xl font-bold">קבוצה חדשה</h1>
         </div>
       </div>
 
       {/* Form */}
-      <form onSubmit={handleSubmit} className="flex-1 px-4 py-5 pb-10 space-y-5 max-w-md mx-auto w-full">
+      <form onSubmit={handleSubmit} className="flex-1 px-4 py-5 pb-10 space-y-4 max-w-md mx-auto w-full">
 
         {/* Name */}
-        <div>
-          <label className="block text-sm font-semibold text-gray-700 mb-1">שם הקבוצה / תלמיד</label>
+        <div className="bg-white rounded-2xl p-4 shadow-sm">
+          <label className="block text-sm font-semibold text-gray-600 mb-2">שם הקבוצה / תלמיד</label>
           <input
             name="name"
             required
             placeholder="לדוגמה: גיטרה מתחילים"
-            className="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-indigo-400"
+            className="w-full px-4 py-2.5 bg-gray-50 border border-gray-100 rounded-xl text-sm focus:outline-none focus:border-teal-300 focus:ring-2 focus:ring-teal-100 transition-all"
           />
         </div>
 
         {/* Lesson type toggle */}
-        <div>
-          <label className="block text-sm font-semibold text-gray-700 mb-2">סוג שיעור</label>
-          <div className="flex rounded-xl overflow-hidden border border-gray-200">
+        <div className="bg-white rounded-2xl p-4 shadow-sm">
+          <label className="block text-sm font-semibold text-gray-600 mb-2.5">סוג שיעור</label>
+          <div className="flex rounded-2xl overflow-hidden bg-gray-50 p-1 gap-1">
             <button
               type="button"
               onClick={() => setLessonType('group')}
-              className={`flex-1 py-2.5 text-sm font-semibold transition-colors ${
+              className={`flex-1 py-2.5 text-sm font-bold rounded-xl transition-all ${
                 lessonType === 'group'
-                  ? 'bg-indigo-600 text-white'
-                  : 'bg-white text-gray-500 hover:bg-gray-50'
+                  ? 'bg-teal-500 text-white shadow-sm'
+                  : 'text-gray-500 hover:text-gray-700'
               }`}
             >
-              👥 קבוצה
+              קבוצה
             </button>
             <button
               type="button"
               onClick={() => setLessonType('individual')}
-              className={`flex-1 py-2.5 text-sm font-semibold transition-colors ${
+              className={`flex-1 py-2.5 text-sm font-bold rounded-xl transition-all ${
                 lessonType === 'individual'
-                  ? 'bg-pink-500 text-white'
-                  : 'bg-white text-gray-500 hover:bg-gray-50'
+                  ? 'bg-violet-500 text-white shadow-sm'
+                  : 'text-gray-500 hover:text-gray-700'
               }`}
             >
-              🎵 יחיד
+              יחיד
             </button>
           </div>
         </div>
 
-        {/* Schedule 1 */}
-        <SchedulePicker index={1} required label="מועד שיעור" />
+        {/* Schedule */}
+        <div className="bg-white rounded-2xl p-4 shadow-sm space-y-3">
+          <SchedulePicker index={1} required label="מועד שיעור" />
 
-        {/* Schedule 2 (optional) */}
-        {hasSecondSlot ? (
-          <div>
-            <SchedulePicker index={2} label="מועד שיעור 2 (אופציונלי)" />
+          {hasSecondSlot ? (
+            <div>
+              <SchedulePicker index={2} label="מועד שיעור 2 (אופציונלי)" />
+              <button
+                type="button"
+                onClick={() => setHasSecondSlot(false)}
+                className="text-xs text-gray-400 mt-1.5 hover:text-red-500 transition-colors"
+              >
+                הסר מועד שני
+              </button>
+            </div>
+          ) : (
             <button
               type="button"
-              onClick={() => setHasSecondSlot(false)}
-              className="text-xs text-gray-400 mt-1 hover:text-red-500"
+              onClick={() => setHasSecondSlot(true)}
+              className="text-sm text-teal-600 font-bold hover:text-teal-700 transition-colors"
             >
-              הסר מועד שני
+              + הוסף מועד שני
             </button>
-          </div>
-        ) : (
-          <button
-            type="button"
-            onClick={() => setHasSecondSlot(true)}
-            className="text-sm text-indigo-600 font-semibold hover:underline"
-          >
-            ＋ הוסף מועד שני
-          </button>
-        )}
+          )}
+        </div>
 
         {/* Mangan toggle */}
-        <div className="flex items-center justify-between py-3 border-t border-gray-100">
+        <div className="bg-white rounded-2xl p-4 shadow-sm flex items-center justify-between">
           <div>
-            <p className="text-sm font-semibold text-gray-700">🏫 בית ספר מנגן</p>
+            <p className="text-sm font-semibold text-gray-800">בית ספר מנגן</p>
             <p className="text-xs text-gray-400 mt-0.5">שיעור במסגרת בית ספר מנגן</p>
           </div>
           <button
@@ -124,7 +127,7 @@ export default function NewGroupPage() {
             aria-checked={isMangan}
             onClick={() => setIsMangan(!isMangan)}
             className={`relative w-12 h-6 rounded-full transition-colors ${
-              isMangan ? 'bg-indigo-600' : 'bg-gray-200'
+              isMangan ? 'bg-teal-500' : 'bg-gray-200'
             }`}
           >
             <span className={`absolute top-0.5 w-5 h-5 bg-white rounded-full shadow transition-all ${
@@ -135,39 +138,38 @@ export default function NewGroupPage() {
 
         {/* Mangan conditional fields */}
         {isMangan && (
-          <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 space-y-3">
-            <p className="text-xs font-bold text-amber-700">📋 פרטי בית הספר</p>
+          <div className="bg-amber-50 border border-amber-100 rounded-2xl p-4 space-y-3">
+            <p className="text-xs font-bold text-amber-600 uppercase tracking-wide">פרטי בית הספר</p>
             <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-1">שם בית הספר</label>
+              <label className="block text-sm font-semibold text-gray-600 mb-1.5">שם בית הספר</label>
               <input
                 name="school_name"
                 required={isMangan}
                 placeholder="לדוגמה: אורט גבעתיים"
-                className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-amber-400 bg-white"
+                className="w-full px-4 py-2.5 bg-white border border-amber-100 rounded-xl text-sm focus:outline-none focus:border-amber-300 focus:ring-2 focus:ring-amber-100 transition-all"
               />
             </div>
             <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-1">כיתה</label>
+              <label className="block text-sm font-semibold text-gray-600 mb-1.5">כיתה</label>
               <input
                 name="grade"
                 placeholder="לדוגמה: ה׳"
-                className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-amber-400 bg-white"
+                className="w-full px-4 py-2.5 bg-white border border-amber-100 rounded-xl text-sm focus:outline-none focus:border-amber-300 focus:ring-2 focus:ring-amber-100 transition-all"
               />
             </div>
           </div>
         )}
 
         {error && (
-          <div className="bg-red-50 border border-red-200 text-red-700 text-sm px-4 py-3 rounded-xl">
+          <div className="bg-red-50 border border-red-100 text-red-600 text-sm px-4 py-3 rounded-2xl">
             {error}
           </div>
         )}
 
-        {/* Submit */}
         <button
           type="submit"
           disabled={isPending}
-          className="w-full bg-gradient-to-l from-indigo-500 to-purple-600 text-white py-3.5 rounded-xl font-bold text-sm hover:opacity-90 transition-opacity disabled:opacity-60"
+          className="w-full bg-teal-500 hover:bg-teal-600 text-white py-3.5 rounded-2xl font-bold text-sm transition-colors disabled:opacity-60 shadow-sm shadow-teal-200"
         >
           {isPending ? 'שומר...' : 'שמור קבוצה'}
         </button>

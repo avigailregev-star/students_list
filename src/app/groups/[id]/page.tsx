@@ -29,36 +29,42 @@ export default async function GroupDetailPage({ params }: Props) {
   const typedGroup = group as Group & { group_schedules: GroupSchedule[] }
   const students = await getStudentsByGroup(id)
 
+  const headerColor = typedGroup.lesson_type === 'group'
+    ? 'from-teal-400 to-teal-600 shadow-teal-200'
+    : 'from-violet-400 to-violet-600 shadow-violet-200'
+
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col pb-6">
       {/* Header */}
-      <div className="bg-gradient-to-l from-indigo-500 to-purple-600 text-white px-4 py-5">
-        <div className="flex items-start gap-3 mb-3">
+      <div className={`bg-gradient-to-bl ${headerColor} text-white rounded-b-[36px] shadow-lg px-5 pt-8 pb-6`}>
+        <div className="flex items-start gap-3 mb-4">
           <Link
             href="/"
-            className="w-8 h-8 rounded-lg bg-white/20 flex items-center justify-center text-lg shrink-0"
+            className="w-9 h-9 rounded-2xl bg-white/20 flex items-center justify-center shrink-0"
           >
-            ←
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <polyline points="15 18 9 12 15 6" />
+            </svg>
           </Link>
           <div className="flex-1 min-w-0">
             <h1 className="text-xl font-bold truncate">{typedGroup.name}</h1>
-            <p className="text-sm opacity-80 mt-0.5">
+            <p className="text-sm text-white/70 mt-0.5">
               {typedGroup.lesson_type === 'group' ? 'קבוצה' : 'שיעור יחיד'}
               {typedGroup.is_mangan_school && typedGroup.school_name && (
-                <> · 🏫 {typedGroup.school_name}{typedGroup.grade ? ` כיתה ${typedGroup.grade}` : ''}</>
+                <> · {typedGroup.school_name}{typedGroup.grade ? ` כיתה ${typedGroup.grade}` : ''}</>
               )}
             </p>
           </div>
         </div>
 
         {/* Schedule badges */}
-        <div className="flex flex-wrap gap-2 mt-2">
+        <div className="flex flex-wrap gap-2">
           {typedGroup.group_schedules.map(s => (
             <span
               key={s.id}
-              className="bg-white/20 text-white text-xs font-semibold px-3 py-1 rounded-full"
+              className="bg-white/20 text-white text-xs font-semibold px-3 py-1 rounded-xl"
             >
-              📅 {DAYS_HE[s.day_of_week]} {s.start_time.slice(0, 5)}
+              {DAYS_HE[s.day_of_week]} · {s.start_time.slice(0, 5)}
             </span>
           ))}
         </div>
@@ -68,23 +74,23 @@ export default async function GroupDetailPage({ params }: Props) {
       <div className="px-4 py-5 max-w-md mx-auto w-full">
         {/* Stats bar */}
         <div className="flex gap-3 mb-5">
-          <div className="flex-1 bg-white border border-gray-100 rounded-xl py-3 text-center">
-            <p className="text-2xl font-bold text-indigo-600">{students.length}</p>
-            <p className="text-xs text-gray-500 mt-0.5">תלמידים</p>
+          <div className="flex-1 bg-white rounded-2xl shadow-sm py-3.5 text-center">
+            <p className="text-2xl font-bold text-teal-500">{students.length}</p>
+            <p className="text-xs text-gray-400 mt-0.5 font-medium">תלמידים</p>
           </div>
           <Link
             href={`/groups/${id}/attendance`}
-            className="flex-1 bg-indigo-600 text-white rounded-xl py-3 text-center font-semibold text-sm hover:bg-indigo-700 transition-colors flex flex-col items-center justify-center gap-0.5"
+            className="flex-1 bg-teal-500 text-white rounded-2xl shadow-sm shadow-teal-200 py-3.5 text-center font-bold text-sm hover:bg-teal-600 transition-colors flex flex-col items-center justify-center gap-1"
           >
-            <span className="text-lg">✓</span>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <polyline points="20 6 9 17 4 12" />
+            </svg>
             <span className="text-xs">סמן נוכחות</span>
           </Link>
         </div>
 
         {/* Section title */}
-        <h2 className="text-xs font-bold text-gray-400 uppercase tracking-wide mb-3">
-          תלמידים
-        </h2>
+        <h2 className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">תלמידים</h2>
 
         <StudentList students={students} groupId={id} />
       </div>
