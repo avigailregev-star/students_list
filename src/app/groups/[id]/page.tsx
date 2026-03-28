@@ -3,6 +3,7 @@ import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { getStudentsByGroup } from '@/lib/queries/students'
 import StudentList from '@/components/students/StudentList'
+import DeleteGroupButton from './DeleteGroupButton'
 import type { Group, GroupSchedule } from '@/types/database'
 import { DAYS_HE } from '@/lib/utils/hebrew'
 
@@ -55,6 +56,7 @@ export default async function GroupDetailPage({ params }: Props) {
               )}
             </p>
           </div>
+          <DeleteGroupButton groupId={typedGroup.id} groupName={typedGroup.name} />
         </div>
 
         {/* Schedule badges */}
