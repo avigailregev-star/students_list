@@ -23,7 +23,14 @@ export default function DashboardClient({ groups, teacherName }: Props) {
       weekStart.setDate(weekStart.getDate() + i * 7)
       slots.push(...getLessonSlotsForWeek(groups, weekStart))
     }
-    return slots
+    // Deduplicate: same group on same date (safety guard)
+    const seen = new Set<string>()
+    return slots.filter(s => {
+      const key = `${s.groupId}-${s.date.toDateString()}-${s.startTime}`
+      if (seen.has(key)) return false
+      seen.add(key)
+      return true
+    })
   }, [groups])
 
   return (

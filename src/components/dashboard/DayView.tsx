@@ -74,7 +74,7 @@ export default function DayView({ allSlots }: Props) {
       ) : (
         daySlots.map((slot, i) => (
           <LessonCard
-            key={`${slot.groupId}-${slot.startTime}`}
+            key={`${slot.groupId}-${slot.date.toDateString()}-${slot.startTime}`}
             slot={slot}
             isNext={i === nextSlotIndex && selectedDate.toDateString() === new Date().toDateString()}
           />
