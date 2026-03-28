@@ -74,6 +74,15 @@ export default async function AttendancePage({ params }: Props) {
               {formatDateHe(lessonDate)} · {startTime.slice(0, 5)}
             </p>
           </div>
+          <Link
+            href="/"
+            className="w-9 h-9 rounded-2xl bg-white/20 flex items-center justify-center shrink-0"
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+              <polyline points="9 22 9 12 15 12 15 22" />
+            </svg>
+          </Link>
         </div>
 
         {holidayCheck.isHoliday && (
@@ -124,6 +133,18 @@ export default async function AttendancePage({ params }: Props) {
                 <p className="text-center text-gray-400 text-sm py-8">אין תלמידים בקבוצה זו</p>
               )}
             </div>
+
+            {students.length > 0 && (
+              <Link
+                href="/"
+                className="mt-5 w-full flex items-center justify-center gap-2 bg-teal-500 hover:bg-teal-600 text-white py-3.5 rounded-2xl font-bold text-sm transition-colors shadow-sm shadow-teal-200"
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <polyline points="20 6 9 17 4 12" />
+                </svg>
+                סיום ושמירה
+              </Link>
+            )}
           </>
         )}
       </div>

@@ -115,6 +115,19 @@ export default function NewGroupPage() {
           )}
         </div>
 
+        {/* Student name for individual lesson */}
+        {lessonType === 'individual' && (
+          <div className="bg-white rounded-2xl p-4 shadow-sm">
+            <label className="block text-sm font-semibold text-gray-600 mb-2">שם התלמיד</label>
+            <input
+              name="student_name"
+              required={lessonType === 'individual'}
+              placeholder="לדוגמה: יובל כהן"
+              className="w-full px-4 py-2.5 bg-gray-50 border border-gray-100 rounded-xl text-sm focus:outline-none focus:border-teal-300 focus:ring-2 focus:ring-teal-100 transition-all"
+            />
+          </div>
+        )}
+
         {/* Mangan toggle */}
         <div className="bg-white rounded-2xl p-4 shadow-sm flex items-center justify-between">
           <div>

@@ -48,6 +48,17 @@ export async function createGroup(formData: FormData) {
 
   if (schedError) throw schedError
 
+  // For individual lessons, auto-create the student
+  if (lessonType === 'individual') {
+    const studentName = formData.get('student_name') as string
+    if (studentName) {
+      await supabase.from('students').insert({
+        group_id: group.id,
+        name: studentName,
+      })
+    }
+  }
+
   revalidatePath('/')
   redirect(`/groups/${group.id}`)
 }

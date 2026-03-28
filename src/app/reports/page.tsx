@@ -3,6 +3,7 @@ import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import type { Group, Student, Lesson, Attendance } from '@/types/database'
 import ReportGroup from './ReportGroup'
+import ExportButtons from './ExportButtons'
 
 type GroupWithData = Group & {
   students: (Student & {
@@ -87,16 +88,26 @@ export default async function ReportsPage() {
     reportData.push({ ...group, students: studentsWithStats, total_lessons: lessonList.length })
   }
 
+  const now = new Date()
+  const monthLabel = now.toLocaleDateString('he-IL', { month: 'long', year: 'numeric' })
+
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col pb-24">
-      {/* Header */}
-      <div className="bg-gradient-to-bl from-teal-400 to-teal-600 text-white rounded-b-[36px] shadow-lg shadow-teal-200 px-5 pt-8 pb-6">
+    <div className="min-h-screen bg-gray-50 flex flex-col pb-24 print:bg-white print:pb-0">
+      {/* Header — hidden on print */}
+      <div className="bg-gradient-to-bl from-teal-400 to-teal-600 text-white rounded-b-[36px] shadow-lg shadow-teal-200 px-5 pt-8 pb-6 print:hidden">
         <p className="text-xs font-semibold text-teal-100 uppercase tracking-widest mb-1">סטטיסטיקות</p>
         <h1 className="text-2xl font-bold">דוחות נוכחות</h1>
         <p className="text-sm text-teal-100 mt-0.5">{groups.length} קבוצות</p>
+        <ExportButtons reportData={reportData} month={monthLabel} />
       </div>
 
-      <div className="px-4 py-5 flex flex-col gap-4 max-w-md mx-auto w-full">
+      {/* Print header — visible only when printing */}
+      <div className="hidden print:block px-6 py-4 border-b border-gray-200 mb-4">
+        <h1 className="text-xl font-bold text-gray-900">דוח נוכחות — {monthLabel}</h1>
+        <p className="text-sm text-gray-500 mt-0.5">{groups.length} קבוצות</p>
+      </div>
+
+      <div className="px-4 py-5 flex flex-col gap-4 max-w-md mx-auto w-full print:max-w-full print:px-6">
         {reportData.map(group => (
           <ReportGroup key={group.id} group={group} />
         ))}

@@ -17,3 +17,10 @@ body {
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
 }
+
+@media print {
+  nav, .print\:hidden { display: none !important; }
+  body { background: white !important; }
+  .bg-white { box-shadow: none !important; }
+  * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+}

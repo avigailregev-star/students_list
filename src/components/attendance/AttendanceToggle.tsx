@@ -21,31 +21,35 @@ export default function AttendanceToggle({
   const [status, setStatus] = useState<AttendanceStatus | null>(initialStatus)
   const [brought, setBrought] = useState(initialBrought)
   const [isPending, startTransition] = useTransition()
+  const [saved, setSaved] = useState(!!initialStatus)
+
+  async function save(newStatus: AttendanceStatus | null, newBrought: boolean) {
+    startTransition(async () => {
+      const res = await fetch('/api/attendance', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          lessonId,
+          studentId,
+          status: newStatus ?? 'absent',
+          broughtInstrument: newBrought,
+        }),
+      })
+      if (res.ok) setSaved(true)
+    })
+  }
 
   async function handleStatus(newStatus: AttendanceStatus) {
     const next = status === newStatus ? null : newStatus
     setStatus(next)
-    startTransition(async () => {
-      await fetch('/api/attendance', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ lessonId, studentId, status: next ?? 'absent', broughtInstrument: brought }),
-      })
-    })
+    setSaved(false)
+    save(next, brought)
   }
 
   async function handleBrought() {
     const next = !brought
     setBrought(next)
-    if (status) {
-      startTransition(async () => {
-        await fetch('/api/attendance', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ lessonId, studentId, status, broughtInstrument: next }),
-        })
-      })
-    }
+    if (status) save(status, next)
   }
 
   return (
@@ -64,7 +68,12 @@ export default function AttendanceToggle({
         </span>
       </div>
 
-      <p className="flex-1 text-sm font-bold text-gray-800 truncate">{studentName}</p>
+      <div className="flex-1 min-w-0">
+        <p className="text-sm font-bold text-gray-800 truncate">{studentName}</p>
+        {saved && status && (
+          <p className="text-[10px] text-emerald-500 font-semibold">נשמר</p>
+        )}
+      </div>
 
       {/* Brought instrument */}
       {status === 'present' && (
