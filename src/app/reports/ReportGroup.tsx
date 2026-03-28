@@ -109,17 +109,17 @@ export default function ReportGroup({ group }: { group: GroupWithData }) {
                   {student.history.length === 0 && (
                     <p className="text-xs text-gray-400">אין היסטוריה עדיין</p>
                   )}
-                  <div className="flex flex-col gap-1.5">
+                  <div className="flex flex-col gap-2">
                     {student.history.map((h, i) => {
                       const date = new Date(h.date + 'T12:00:00')
                       return (
-                        <div key={i} className="flex items-center gap-2">
-                          <div className={`w-2 h-2 rounded-full shrink-0 ${STATUS_DOT[h.status] ?? STATUS_DOT.no_data}`} />
-                          <span className="text-xs text-gray-500 flex-1">{formatDateHe(date)}</span>
+                        <div key={i} className="flex items-center gap-2 bg-white rounded-xl px-3 py-2 shadow-[0_1px_3px_0_rgba(0,0,0,0.06)]">
+                          <div className={`w-2.5 h-2.5 rounded-full shrink-0 ${STATUS_DOT[h.status] ?? STATUS_DOT.no_data}`} />
+                          <span className="text-xs font-bold text-gray-700 flex-1">{formatDateHe(date)}</span>
                           {h.brought && (
                             <span className="text-[10px] bg-teal-50 text-teal-600 px-1.5 py-0.5 rounded-lg font-bold">כלי</span>
                           )}
-                          <span className={`text-[10px] font-semibold ${
+                          <span className={`text-xs font-bold ${
                             h.status === 'present' ? 'text-emerald-500' :
                             h.status === 'absent' ? 'text-red-400' :
                             h.status === 'late' ? 'text-amber-500' : 'text-gray-400'

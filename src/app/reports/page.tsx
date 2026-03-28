@@ -4,6 +4,7 @@ import { createClient } from '@/lib/supabase/server'
 import type { Group, Student, Lesson, Attendance } from '@/types/database'
 import ReportGroup from './ReportGroup'
 import ExportButtons from './ExportButtons'
+import BottomNav from '@/components/layout/BottomNav'
 
 type GroupWithData = Group & {
   students: (Student & {
@@ -112,6 +113,8 @@ export default async function ReportsPage() {
           <ReportGroup key={group.id} group={group} />
         ))}
       </div>
+
+      <BottomNav />
     </div>
   )
 }

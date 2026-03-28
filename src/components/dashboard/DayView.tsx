@@ -45,7 +45,7 @@ export default function DayView({ allSlots }: Props) {
           className="w-9 h-9 flex items-center justify-center rounded-2xl bg-white shadow-sm text-gray-500 hover:bg-gray-50 transition-colors"
         >
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-            <polyline points="15 18 9 12 15 6" />
+            <polyline points="9 18 15 12 9 6" />
           </svg>
         </button>
         <span className="text-sm font-bold text-gray-700">{formatDateHe(selectedDate)}</span>
@@ -54,7 +54,7 @@ export default function DayView({ allSlots }: Props) {
           className="w-9 h-9 flex items-center justify-center rounded-2xl bg-white shadow-sm text-gray-500 hover:bg-gray-50 transition-colors"
         >
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-            <polyline points="9 18 15 12 9 6" />
+            <polyline points="15 18 9 12 15 6" />
           </svg>
         </button>
       </div>
