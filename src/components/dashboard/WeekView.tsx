@@ -15,9 +15,17 @@ export default function WeekView({ allSlots }: Props) {
   const today = new Date()
   today.setHours(0, 0, 0, 0)
 
+  // Compute current week boundaries (Sun–Sat)
+  const weekStart = new Date(today)
+  weekStart.setDate(today.getDate() - today.getDay())
+  const weekEnd = new Date(weekStart)
+  weekEnd.setDate(weekStart.getDate() + 6)
+
   const byDay = useMemo(() => {
     const map = new Map<number, LessonSlot[]>()
     for (const slot of allSlots) {
+      // Only include slots that fall within the current week
+      if (slot.date < weekStart || slot.date > weekEnd) continue
       const arr = map.get(slot.dayOfWeek) ?? []
       arr.push(slot)
       map.set(slot.dayOfWeek, arr)
