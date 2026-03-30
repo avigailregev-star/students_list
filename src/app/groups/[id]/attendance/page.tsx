@@ -4,9 +4,10 @@ import { createClient } from '@/lib/supabase/server'
 import { getStudentsByGroup } from '@/lib/queries/students'
 import { getOrCreateLesson, getAttendanceForLesson } from '@/lib/queries/attendance'
 import AttendanceToggle from '@/components/attendance/AttendanceToggle'
+import CancelLessonButton from './CancelLessonButton'
 import { getNextLessonDate, isHolidayDate } from '@/lib/utils/schedule'
 import { formatDateHe } from '@/lib/utils/hebrew'
-import type { Group, GroupSchedule, Holiday, AttendanceStatus } from '@/types/database'
+import type { Group, GroupSchedule, Holiday, AttendanceStatus, Lesson } from '@/types/database'
 
 interface Props {
   params: Promise<{ id: string }>
@@ -42,7 +43,9 @@ export default async function AttendancePage({ params }: Props) {
   const dateStr = `${lessonDate.getFullYear()}-${String(lessonDate.getMonth() + 1).padStart(2, '0')}-${String(lessonDate.getDate()).padStart(2, '0')}`
   const startTime = matchingSchedule?.start_time ?? '00:00:00'
 
-  const lesson = await getOrCreateLesson(id, dateStr, startTime, holidayCheck.isHoliday, holidayCheck.name)
+  const lesson = await getOrCreateLesson(id, dateStr, startTime, holidayCheck.isHoliday, holidayCheck.name) as Lesson
+
+  const isCanceled = lesson.status === 'teacher_canceled'
 
   const [students, attendanceRows] = await Promise.all([
     getStudentsByGroup(id),
@@ -53,6 +56,8 @@ export default async function AttendancePage({ params }: Props) {
 
   const headerGradient = holidayCheck.isHoliday
     ? 'from-amber-400 to-orange-500 shadow-amber-200'
+    : isCanceled
+    ? 'from-red-400 to-red-600 shadow-red-200'
     : 'from-teal-400 to-teal-600 shadow-teal-200'
 
   return (
@@ -100,6 +105,16 @@ export default async function AttendancePage({ params }: Props) {
           </div>
         ) : (
           <>
+            {/* Cancel lesson button */}
+            <div className="mb-4">
+              <CancelLessonButton
+                lessonId={lesson.id}
+                isCanceled={isCanceled}
+                cancelReason={lesson.teacher_absence_reason}
+                isSickLeave={lesson.is_sick_leave}
+              />
+            </div>
+
             {/* Stats row */}
             <div className="flex gap-2.5 mb-5">
               {[
