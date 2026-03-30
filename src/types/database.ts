@@ -3,6 +3,8 @@ export type Teacher = {
   name: string
   email: string
   phone: string | null
+  role: 'admin' | 'teacher'
+  hourly_rate: number
   created_at: string
 }
 
@@ -45,13 +47,20 @@ export type Student = {
   created_at: string
 }
 
+export type LessonStatus = 'scheduled' | 'completed' | 'teacher_canceled' | 'holiday'
+export type AdminApprovalStatus = 'pending' | 'approved' | 'rejected'
+
 export type Lesson = {
   id: string
   group_id: string
   date: string // "YYYY-MM-DD"
   start_time: string // "HH:MM:SS"
+  status: LessonStatus
   is_holiday: boolean
   holiday_name: string | null
+  teacher_absence_reason: string | null
+  is_sick_leave: boolean
+  admin_approval_status: AdminApprovalStatus | null
   notes: string | null
   created_at: string
 }
@@ -64,6 +73,19 @@ export type Attendance = {
   student_id: string
   status: AttendanceStatus
   brought_instrument: boolean
+  student_absence_reason: string | null
+  created_at: string
+}
+
+export type SchoolEventType = 'holiday' | 'vacation' | 'makeup_day' | 'school_start' | 'school_end'
+
+export type SchoolEvent = {
+  id: string
+  event_type: SchoolEventType
+  start_date: string // "YYYY-MM-DD"
+  end_date: string   // "YYYY-MM-DD"
+  name: string
+  created_by: string | null
   created_at: string
 }
 
