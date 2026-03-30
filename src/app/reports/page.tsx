@@ -54,7 +54,7 @@ export default async function ReportsPage() {
 
   for (const group of groups as Group[]) {
     const { data: lessons } = await supabase
-      .from('lessons').select('*').eq('group_id', group.id).eq('is_holiday', false).order('date', { ascending: false })
+      .from('lessons').select('*').eq('group_id', group.id).eq('is_holiday', false).neq('status', 'teacher_canceled').order('date', { ascending: false })
 
     const lessonList = (lessons ?? []) as Lesson[]
     const lessonIds = lessonList.map(l => l.id)
