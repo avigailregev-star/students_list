@@ -27,9 +27,10 @@ export async function proxy(request: NextRequest) {
   const isLoginPage = pathname === '/login'
   const isAuthRoute = pathname.startsWith('/auth/')
   const isAdminRoute = pathname.startsWith('/admin')
+  const isResetPage = pathname === '/reset-password'
 
   // Unauthenticated → /login
-  if (!user && !isLoginPage && !isAuthRoute) {
+  if (!user && !isLoginPage && !isAuthRoute && !isResetPage) {
     const url = request.nextUrl.clone()
     url.pathname = '/login'
     return NextResponse.redirect(url)

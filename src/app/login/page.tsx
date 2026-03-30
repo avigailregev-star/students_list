@@ -32,7 +32,7 @@ export default function LoginPage() {
     try {
       if (mode === 'forgot') {
         const { error } = await supabase.auth.resetPasswordForEmail(email, {
-          redirectTo: `${window.location.origin}/auth/reset-callback`,
+          redirectTo: `${window.location.origin}/reset-password`,
         })
         if (error) throw error
         setMessage('נשלח אימייל לאיפוס סיסמה — בדקי את תיבת הדואר')

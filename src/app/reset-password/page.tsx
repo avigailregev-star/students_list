@@ -1,15 +1,45 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 
 export default function ResetPasswordPage() {
   const router = useRouter()
+  const supabase = createClient()
+  const [ready, setReady] = useState(false)
   const [password, setPassword] = useState('')
   const [confirm, setConfirm] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    // Handle PKCE flow: code in query params
+    const params = new URLSearchParams(window.location.search)
+    const code = params.get('code')
+    if (code) {
+      supabase.auth.exchangeCodeForSession(code).then(({ error }) => {
+        if (!error) setReady(true)
+        else router.push('/login')
+      })
+      return
+    }
+
+    // Handle implicit flow: token in URL fragment (#access_token=...)
+    // onAuthStateChange picks up the fragment automatically
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
+      if (event === 'PASSWORD_RECOVERY' || event === 'SIGNED_IN') {
+        setReady(true)
+      }
+    })
+
+    // Also check if already have a valid session (e.g. navigated back)
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session) setReady(true)
+    })
+
+    return () => subscription.unsubscribe()
+  }, [])
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -19,7 +49,6 @@ export default function ResetPasswordPage() {
     }
     setLoading(true)
     setError(null)
-    const supabase = createClient()
     const { error } = await supabase.auth.updateUser({ password })
     if (error) {
       setError(error.message)
@@ -28,6 +57,14 @@ export default function ResetPasswordPage() {
     }
     router.push('/')
     router.refresh()
+  }
+
+  if (!ready) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <p className="text-gray-400 text-sm">מאמת זהות...</p>
+      </div>
+    )
   }
 
   return (
