@@ -8,11 +8,12 @@ const MONTHS_HE = ['ינואר','פברואר','מרץ','אפריל','מאי','�
 const DAYS_HE   = ['א','ב','ג','ד','ה','ו','ש']
 
 const EVENT_CONFIG: Record<SchoolEventType, { label: string; bg: string; dot: string; text: string }> = {
-  holiday:    { label: 'חג',         bg: 'bg-amber-100',  dot: 'bg-amber-400',  text: 'text-amber-700' },
-  vacation:   { label: 'חופשה',      bg: 'bg-blue-100',   dot: 'bg-blue-400',   text: 'text-blue-700'  },
-  makeup_day: { label: 'יום השלמה',  bg: 'bg-emerald-100',dot: 'bg-emerald-500',text: 'text-emerald-700'},
-  school_start:{ label: 'פתיחת שנה', bg: 'bg-teal-100',   dot: 'bg-teal-500',   text: 'text-teal-700'  },
-  school_end:  { label: 'סיום שנה',  bg: 'bg-violet-100', dot: 'bg-violet-500', text: 'text-violet-700'},
+  holiday:     { label: 'חג',         bg: 'bg-amber-100',  dot: 'bg-amber-400',  text: 'text-amber-700'  },
+  vacation:    { label: 'חופשה',      bg: 'bg-blue-100',   dot: 'bg-blue-400',   text: 'text-blue-700'   },
+  makeup_day:  { label: 'יום השלמה',  bg: 'bg-emerald-100',dot: 'bg-emerald-500',text: 'text-emerald-700'},
+  school_start:{ label: 'פתיחת שנה', bg: 'bg-teal-100',   dot: 'bg-teal-500',   text: 'text-teal-700'   },
+  school_end:  { label: 'סיום שנה',  bg: 'bg-violet-100', dot: 'bg-violet-500', text: 'text-violet-700' },
+  concert:     { label: 'קונצרט',     bg: 'bg-pink-100',   dot: 'bg-pink-500',   text: 'text-pink-700'   },
 }
 
 function getSchoolYear() {
@@ -198,16 +199,17 @@ export default function CalendarClient({ events }: Props) {
               {/* Event type */}
               <div>
                 <label className="block text-sm font-semibold text-gray-700 mb-2">סוג אירוע</label>
-                <div className="grid grid-cols-2 gap-2">
+                <div className="flex flex-col gap-2">
                   {(Object.entries(EVENT_CONFIG) as [SchoolEventType, typeof EVENT_CONFIG[SchoolEventType]][]).map(([type, cfg]) => (
                     <button
                       key={type}
                       type="button"
                       onClick={() => setEventType(type)}
-                      className={`px-3 py-2.5 rounded-xl text-sm font-semibold border-2 transition-colors text-right ${
+                      className={`w-full px-4 py-3 rounded-xl text-sm font-semibold border-2 transition-colors text-right flex items-center gap-2 ${
                         eventType === type ? `border-current ${cfg.bg} ${cfg.text}` : 'border-gray-100 bg-gray-50 text-gray-600'
                       }`}
                     >
+                      <span className={`w-2.5 h-2.5 rounded-full shrink-0 ${eventType === type ? cfg.dot : 'bg-gray-300'}`} />
                       {cfg.label}
                     </button>
                   ))}
