@@ -54,8 +54,7 @@ export default function LoginPage() {
       const { error, data } = await supabase.auth.signInWithPassword({ email, password })
       if (error) throw error
       const { data: teacher } = await supabase.from('teachers').select('role').eq('id', data.user.id).single()
-      router.push(teacher?.role === 'admin' ? '/admin' : '/')
-      router.refresh()
+      window.location.href = teacher?.role === 'admin' ? '/admin' : '/'
 
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'שגיאה לא ידועה'
