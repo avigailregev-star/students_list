@@ -15,6 +15,7 @@ type GroupWithData = Group & {
     history: { date: string; status: string; brought: boolean }[]
   })[]
   total_lessons: number
+  canceled_lessons: number
 }
 
 export default async function ReportsPage() {
@@ -53,10 +54,13 @@ export default async function ReportsPage() {
   const reportData: GroupWithData[] = []
 
   for (const group of groups as Group[]) {
-    const { data: lessons } = await supabase
-      .from('lessons').select('*').eq('group_id', group.id).eq('is_holiday', false).neq('status', 'teacher_canceled').order('date', { ascending: false })
+    const [{ data: lessons }, { data: canceled }] = await Promise.all([
+      supabase.from('lessons').select('*').eq('group_id', group.id).eq('is_holiday', false).neq('status', 'teacher_canceled').order('date', { ascending: false }),
+      supabase.from('lessons').select('id, date').eq('group_id', group.id).eq('status', 'teacher_canceled').order('date', { ascending: false }),
+    ])
 
     const lessonList = (lessons ?? []) as Lesson[]
+    const canceledList = (canceled ?? []) as { id: string; date: string }[]
     const lessonIds = lessonList.map(l => l.id)
 
     const { data: students } = await supabase
@@ -72,10 +76,14 @@ export default async function ReportsPage() {
 
     const studentsWithStats = studentList.map(student => {
       const studentAtt = attendanceRows.filter(a => a.student_id === student.id)
-      const history = lessonList.map(lesson => {
-        const att = studentAtt.find(a => a.lesson_id === lesson.id)
-        return { date: lesson.date, status: att?.status ?? 'no_data', brought: att?.brought_instrument ?? false }
-      })
+      const history = [
+        ...lessonList.map(lesson => {
+          const att = studentAtt.find(a => a.lesson_id === lesson.id)
+          return { date: lesson.date, status: att?.status ?? 'no_data', brought: att?.brought_instrument ?? false }
+        }),
+        ...canceledList.map(lesson => ({ date: lesson.date, status: 'teacher_canceled', brought: false })),
+      ].sort((a, b) => b.date.localeCompare(a.date))
+
       return {
         ...student,
         total_lessons: lessonList.length,
@@ -86,7 +94,7 @@ export default async function ReportsPage() {
       }
     })
 
-    reportData.push({ ...group, students: studentsWithStats, total_lessons: lessonList.length })
+    reportData.push({ ...group, students: studentsWithStats, total_lessons: lessonList.length, canceled_lessons: canceledList.length })
   }
 
   const now = new Date()

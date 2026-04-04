@@ -15,14 +15,16 @@ type StudentWithStats = Student & {
 type GroupWithData = Group & {
   students: StudentWithStats[]
   total_lessons: number
+  canceled_lessons: number
 }
 
 const STATUS_DOT: Record<string, string> = {
-  present: 'bg-emerald-500',
-  late:    'bg-amber-400',
-  absent:  'bg-red-400',
-  excused: 'bg-gray-300',
-  no_data: 'bg-gray-100',
+  present:          'bg-emerald-500',
+  late:             'bg-amber-400',
+  absent:           'bg-red-400',
+  excused:          'bg-gray-300',
+  no_data:          'bg-gray-100',
+  teacher_canceled: 'bg-orange-400',
 }
 
 export default function ReportGroup({ group }: { group: GroupWithData }) {
@@ -41,7 +43,7 @@ export default function ReportGroup({ group }: { group: GroupWithData }) {
           <div>
             <p className="text-sm font-bold text-gray-900">{group.name}</p>
             <p className="text-xs text-gray-400 mt-0.5">
-              {group.total_lessons} שיעורים · {group.students.length} תלמידים
+              {group.total_lessons} שיעורים{group.canceled_lessons > 0 ? ` · ${group.canceled_lessons} בוטלו` : ''} · {group.students.length} תלמידים
             </p>
           </div>
         </div>
@@ -122,9 +124,14 @@ export default function ReportGroup({ group }: { group: GroupWithData }) {
                           <span className={`text-xs font-bold ${
                             h.status === 'present' ? 'text-emerald-500' :
                             h.status === 'absent' ? 'text-red-400' :
-                            h.status === 'late' ? 'text-amber-500' : 'text-gray-400'
+                            h.status === 'late' ? 'text-amber-500' :
+                            h.status === 'teacher_canceled' ? 'text-orange-500' : 'text-gray-400'
                           }`}>
-                            {h.status === 'present' ? 'הגיע' : h.status === 'absent' ? 'חסר' : h.status === 'late' ? 'איחר' : h.status === 'excused' ? 'מוצדק' : '—'}
+                            {h.status === 'present' ? 'הגיע' :
+                             h.status === 'absent' ? 'חסר' :
+                             h.status === 'late' ? 'איחר' :
+                             h.status === 'excused' ? 'מוצדק' :
+                             h.status === 'teacher_canceled' ? 'ביטול מורה' : '—'}
                           </span>
                         </div>
                       )
