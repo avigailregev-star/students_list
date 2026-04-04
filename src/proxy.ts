@@ -28,6 +28,7 @@ export async function proxy(request: NextRequest) {
   const isAuthRoute = pathname.startsWith('/auth/')
   const isAdminRoute = pathname.startsWith('/admin')
   const isResetPage = pathname === '/reset-password'
+  const isRedirectPage = pathname === '/redirect'
 
   // Unauthenticated → /login
   if (!user && !isLoginPage && !isAuthRoute && !isResetPage) {
@@ -36,26 +37,20 @@ export async function proxy(request: NextRequest) {
     return NextResponse.redirect(url)
   }
 
-  // Authenticated on login → redirect by role
+  // Authenticated on login → redirect by role (from user_metadata)
   if (user && isLoginPage) {
-    const { data: teacher } = await supabase
-      .from('teachers')
-      .select('role')
-      .eq('id', user.id)
-      .single()
+    const role = (user.user_metadata as Record<string, string>)?.role ?? 'teacher'
     const url = request.nextUrl.clone()
-    url.pathname = teacher?.role === 'admin' ? '/admin' : '/'
+    url.pathname = role === 'admin' ? '/admin' : '/'
     return NextResponse.redirect(url)
   }
 
+  // Let /redirect page handle role routing
+  if (isRedirectPage) return supabaseResponse
+
   // Role-based protection for authenticated users
   if (user && (isAdminRoute || pathname === '/')) {
-    const { data: teacher } = await supabase
-      .from('teachers')
-      .select('role')
-      .eq('id', user.id)
-      .single()
-    const role = teacher?.role ?? 'teacher'
+    const role = (user.user_metadata as Record<string, string>)?.role ?? 'teacher'
 
     // Admin on teacher home → /admin
     if (role === 'admin' && pathname === '/') {
