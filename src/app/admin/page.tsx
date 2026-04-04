@@ -6,13 +6,13 @@ export default async function AdminHomePage() {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
+  if ((user.user_metadata as Record<string,string>)?.role !== 'admin') redirect('/')
+
   const { data: teacher } = await supabase
     .from('teachers')
-    .select('name, role')
+    .select('name')
     .eq('id', user.id)
     .single()
-
-  if (teacher?.role !== 'admin') redirect('/')
 
   const [{ count: teacherCount }, { count: groupCount }, { count: pendingCount }] = await Promise.all([
     supabase.from('teachers').select('*', { count: 'exact', head: true }).eq('role', 'teacher'),

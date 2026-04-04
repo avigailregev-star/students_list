@@ -9,8 +9,7 @@ export default async function AdminSickLeavePage() {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
-  const { data: me } = await supabase.from('teachers').select('role').eq('id', user.id).single()
-  if (me?.role !== 'admin') redirect('/')
+  if ((user.user_metadata as Record<string,string>)?.role !== 'admin') redirect('/')
 
   // Fetch all sick leave lessons with group+teacher info
   const { data: lessons } = await supabase

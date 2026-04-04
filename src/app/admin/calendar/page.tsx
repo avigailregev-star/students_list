@@ -9,8 +9,7 @@ export default async function AdminCalendarPage() {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
-  const { data: me } = await supabase.from('teachers').select('role').eq('id', user.id).single()
-  if (me?.role !== 'admin') redirect('/')
+  if ((user.user_metadata as Record<string,string>)?.role !== 'admin') redirect('/')
 
   const { data: events } = await supabase
     .from('school_events')
