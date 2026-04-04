@@ -51,9 +51,10 @@ export default function LoginPage() {
       }
 
       // login
-      const { error } = await supabase.auth.signInWithPassword({ email, password })
+      const { error, data } = await supabase.auth.signInWithPassword({ email, password })
       if (error) throw error
-      router.push('/')
+      const { data: teacher } = await supabase.from('teachers').select('role').eq('id', data.user.id).single()
+      router.push(teacher?.role === 'admin' ? '/admin' : '/')
       router.refresh()
 
     } catch (err: unknown) {
