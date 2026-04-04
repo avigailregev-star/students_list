@@ -60,6 +60,7 @@ export default function ReportGroup({ group }: { group: GroupWithData }) {
           <p className="text-center text-gray-400 text-xs py-5">אין תלמידים</p>
         )}
         {group.students.map(student => {
+          const canceledCount = student.history.filter(h => h.status === 'teacher_canceled').length
           const pct = student.total_lessons > 0
             ? Math.round((student.lessons_attended / student.total_lessons) * 100)
             : 0
@@ -101,6 +102,12 @@ export default function ReportGroup({ group }: { group: GroupWithData }) {
                     <p className="text-sm font-bold text-red-400 tabular-nums">{student.lessons_absent}</p>
                     <p className="text-[9px] text-gray-400 font-medium">חסר</p>
                   </div>
+                  {canceledCount > 0 && (
+                    <div>
+                      <p className="text-sm font-bold text-orange-400 tabular-nums">{canceledCount}</p>
+                      <p className="text-[9px] text-gray-400 font-medium">ביטול</p>
+                    </div>
+                  )}
                   <div className="text-gray-300 text-xs mt-1">{isExpanded ? '▲' : '▼'}</div>
                 </div>
               </button>
