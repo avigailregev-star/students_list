@@ -1,17 +1,13 @@
-import { redirect, notFound } from 'next/navigation'
+import { notFound } from 'next/navigation'
 import Link from 'next/link'
-import { createClient } from '@/lib/supabase/server'
 import EditTeacherForm from './EditTeacherForm'
+import { requireAdmin } from '@/lib/auth'
 
 interface Props { params: Promise<{ id: string }> }
 
 export default async function TeacherDetailPage({ params }: Props) {
   const { id } = await params
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) redirect('/login')
-
-  if ((user.user_metadata as Record<string,string>)?.role !== 'admin') redirect('/')
+  const { supabase } = await requireAdmin()
 
   const { data: teacher } = await supabase
     .from('teachers')

@@ -1,14 +1,10 @@
 'use server'
 
 import { revalidatePath } from 'next/cache'
-import { redirect } from 'next/navigation'
-import { createClient } from '@/lib/supabase/server'
+import { requireAdmin as _requireAdmin } from '@/lib/auth'
 
 async function requireAdmin() {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) redirect('/login')
-  if ((user.user_metadata as Record<string,string>)?.role !== 'admin') redirect('/admin')
+  const { supabase } = await _requireAdmin('/admin')
   return supabase
 }
 

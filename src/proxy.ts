@@ -37,11 +37,10 @@ export async function proxy(request: NextRequest) {
     return NextResponse.redirect(url)
   }
 
-  // Authenticated on login → redirect by role (from user_metadata)
+  // Authenticated on login → let /redirect handle role routing
   if (user && isLoginPage) {
-    const role = (user.user_metadata as Record<string, string>)?.role ?? 'teacher'
     const url = request.nextUrl.clone()
-    url.pathname = role === 'admin' ? '/admin' : '/'
+    url.pathname = '/redirect'
     return NextResponse.redirect(url)
   }
 
@@ -50,7 +49,14 @@ export async function proxy(request: NextRequest) {
 
   // Role-based protection for authenticated users
   if (user && (isAdminRoute || pathname === '/')) {
-    const role = (user.user_metadata as Record<string, string>)?.role ?? 'teacher'
+    const metaRole = (user.user_metadata as Record<string, string>)?.role
+    let role = metaRole
+
+    // Fallback to DB if user_metadata.role is missing
+    if (!role) {
+      const { data: t } = await supabase.from('teachers').select('role').eq('id', user.id).single()
+      role = t?.role ?? 'teacher'
+    }
 
     // Admin on teacher home → /admin
     if (role === 'admin' && pathname === '/') {

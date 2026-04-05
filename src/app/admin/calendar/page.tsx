@@ -1,15 +1,10 @@
-import { redirect } from 'next/navigation'
 import Link from 'next/link'
-import { createClient } from '@/lib/supabase/server'
 import CalendarClient from './CalendarClient'
 import type { SchoolEvent } from '@/types/database'
+import { requireAdmin } from '@/lib/auth'
 
 export default async function AdminCalendarPage() {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) redirect('/login')
-
-  if ((user.user_metadata as Record<string,string>)?.role !== 'admin') redirect('/')
+  const { supabase } = await requireAdmin()
 
   const { data: events } = await supabase
     .from('school_events')

@@ -1,13 +1,8 @@
-import { redirect } from 'next/navigation'
 import Link from 'next/link'
-import { createClient } from '@/lib/supabase/server'
+import { requireAdmin } from '@/lib/auth'
 
 export default async function AdminTeachersPage() {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) redirect('/login')
-
-  if ((user.user_metadata as Record<string,string>)?.role !== 'admin') redirect('/')
+  const { supabase } = await requireAdmin()
 
   // Fetch all teachers with group counts
   const { data: teachers } = await supabase

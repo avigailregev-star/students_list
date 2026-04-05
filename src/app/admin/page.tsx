@@ -1,12 +1,7 @@
-import { redirect } from 'next/navigation'
-import { createClient } from '@/lib/supabase/server'
+import { requireAdmin } from '@/lib/auth'
 
 export default async function AdminHomePage() {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) redirect('/login')
-
-  if ((user.user_metadata as Record<string,string>)?.role !== 'admin') redirect('/')
+  const { supabase, user } = await requireAdmin()
 
   const { data: teacher } = await supabase
     .from('teachers')
