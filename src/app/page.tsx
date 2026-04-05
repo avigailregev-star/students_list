@@ -10,9 +10,11 @@ export default async function HomePage() {
 
   const { data: teacher } = await supabase
     .from('teachers')
-    .select('name')
+    .select('name, role')
     .eq('id', user.id)
     .single()
+
+  if (teacher?.role === 'admin') redirect('/admin')
 
   const groups = await getGroupsWithSchedules()
 
