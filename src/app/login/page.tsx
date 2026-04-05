@@ -51,7 +51,7 @@ export default function LoginPage() {
       // login
       const { error } = await supabase.auth.signInWithPassword({ email, password })
       if (error) throw error
-      window.location.href = '/'
+      window.location.href = '/redirect'
 
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'שגיאה לא ידועה'
