@@ -1,13 +1,12 @@
 'use client'
 
 import { useState } from 'react'
-import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
+import { getPostLoginRedirect } from './actions'
 
 type Mode = 'login' | 'signup' | 'forgot'
 
 export default function LoginPage() {
-  const router = useRouter()
   const supabase = createClient()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -53,7 +52,8 @@ export default function LoginPage() {
       // login
       const { error } = await supabase.auth.signInWithPassword({ email, password })
       if (error) throw error
-      window.location.href = '/redirect'
+      const destination = await getPostLoginRedirect()
+      window.location.href = destination
 
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'שגיאה לא ידועה'
