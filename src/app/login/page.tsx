@@ -2,7 +2,6 @@
 
 import { useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
-import { getPostLoginRedirect } from './actions'
 
 type Mode = 'login' | 'signup' | 'forgot'
 
@@ -52,8 +51,7 @@ export default function LoginPage() {
       // login
       const { error } = await supabase.auth.signInWithPassword({ email, password })
       if (error) throw error
-      const destination = await getPostLoginRedirect()
-      window.location.href = destination
+      window.location.href = '/'
 
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'שגיאה לא ידועה'
