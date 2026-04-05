@@ -49,9 +49,10 @@ export default function LoginPage() {
       }
 
       // login
-      const { error } = await supabase.auth.signInWithPassword({ email, password })
+      const { data, error } = await supabase.auth.signInWithPassword({ email, password })
       if (error) throw error
-      window.location.href = '/redirect'
+      const role = (data.user?.user_metadata as Record<string, string>)?.role
+      window.location.href = role === 'admin' ? '/admin' : (role ? '/' : '/redirect')
 
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'שגיאה לא ידועה'
