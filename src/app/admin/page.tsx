@@ -9,9 +9,8 @@ export default async function AdminHomePage() {
     .eq('id', user.id)
     .single()
 
-  const [{ count: teacherCount }, { count: groupCount }, { count: pendingCount }] = await Promise.all([
+  const [{ count: teacherCount }, { count: pendingCount }] = await Promise.all([
     supabase.from('teachers').select('*', { count: 'exact', head: true }).eq('role', 'teacher'),
-    supabase.from('groups').select('*', { count: 'exact', head: true }),
     supabase.from('lessons').select('*', { count: 'exact', head: true }).eq('admin_approval_status', 'pending'),
   ])
 
@@ -26,15 +25,9 @@ export default async function AdminHomePage() {
 
       <div className="px-4 py-5 flex flex-col gap-4">
         {/* Stats */}
-        <div className="grid grid-cols-2 gap-3">
-          <div className="bg-white rounded-2xl shadow-sm p-4 text-center">
-            <p className="text-3xl font-bold text-teal-500">{teacherCount ?? 0}</p>
-            <p className="text-xs text-gray-400 mt-1 font-medium">מורים פעילים</p>
-          </div>
-          <div className="bg-white rounded-2xl shadow-sm p-4 text-center">
-            <p className="text-3xl font-bold text-violet-500">{groupCount ?? 0}</p>
-            <p className="text-xs text-gray-400 mt-1 font-medium">קבוצות</p>
-          </div>
+        <div className="bg-white rounded-2xl shadow-sm p-4 text-center">
+          <p className="text-3xl font-bold text-teal-500">{teacherCount ?? 0}</p>
+          <p className="text-xs text-gray-400 mt-1 font-medium">מורים פעילים</p>
         </div>
 
         {/* Pending sick leave */}
