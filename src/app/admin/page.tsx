@@ -59,9 +59,8 @@ export default async function AdminHomePage() {
         <div className="flex flex-col gap-2">
           <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">קיצורי דרך</p>
           {[
-            { href: '/admin/teachers', label: 'ניהול מורים ושכר', color: 'bg-teal-500', icon: 'M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75' },
+            { href: '/admin/teachers', label: 'ניהול מורים', color: 'bg-teal-500', icon: 'M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75' },
             { href: '/admin/calendar', label: 'לוח שנה שנתי וחגים', color: 'bg-violet-500', icon: 'M3 4h18v16a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4zM16 2v4M8 2v4M3 10h18' },
-            { href: '/admin/payroll', label: 'דוחות שכר חודשיים', color: 'bg-emerald-500', icon: 'M12 1v22M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6' },
           ].map(item => (
             <a key={item.href} href={item.href} className="bg-white rounded-2xl shadow-sm px-4 py-3.5 flex items-center gap-3 hover:shadow-md transition-shadow">
               <div className={`w-9 h-9 ${item.color} rounded-xl flex items-center justify-center shrink-0`}>

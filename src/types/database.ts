@@ -4,7 +4,6 @@ export type Teacher = {
   email: string
   phone: string | null
   role: 'admin' | 'teacher'
-  hourly_rate: number
   created_at: string
 }
 

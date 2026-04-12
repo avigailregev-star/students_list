@@ -11,20 +11,18 @@ export default async function TeacherDetailPage({ params }: Props) {
 
   const { data: teacher } = await supabase
     .from('teachers')
-    .select('id, name, email, role, hourly_rate, created_at')
+    .select('id, name, email, role, created_at')
     .eq('id', id)
     .single()
 
   if (!teacher) notFound()
 
-  // Fetch groups with student counts
   const { data: groups } = await supabase
     .from('groups')
     .select('id, name, lesson_type, is_mangan_school, school_name, grade')
     .eq('teacher_id', id)
     .order('created_at', { ascending: true })
 
-  // Fetch lesson stats for this teacher
   const { count: completedLessons } = await supabase
     .from('lessons')
     .select('id', { count: 'exact', head: true })
@@ -36,8 +34,6 @@ export default async function TeacherDetailPage({ params }: Props) {
     .select('id', { count: 'exact', head: true })
     .in('group_id', (groups ?? []).map(g => g.id))
     .eq('status', 'teacher_canceled')
-
-  const totalPay = (completedLessons ?? 0) * teacher.hourly_rate
 
   return (
     <div className="flex flex-col min-h-screen">
@@ -74,23 +70,10 @@ export default async function TeacherDetailPage({ params }: Props) {
           ))}
         </div>
 
-        {/* Pay summary */}
-        <div className="bg-emerald-50 border border-emerald-100 rounded-2xl px-4 py-3.5 flex items-center justify-between">
-          <div>
-            <p className="text-xs text-emerald-600 font-medium">תעריף: ₪{teacher.hourly_rate}/שעה</p>
-            <p className="text-lg font-bold text-emerald-700 mt-0.5">סה״כ שכר: ₪{totalPay.toLocaleString()}</p>
-          </div>
-          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#10b981" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-            <line x1="12" y1="1" x2="12" y2="23"/>
-            <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
-          </svg>
-        </div>
-
         {/* Edit form */}
         <EditTeacherForm
           teacherId={teacher.id}
           initialName={teacher.name}
-          initialRate={teacher.hourly_rate}
         />
 
         {/* Groups */}

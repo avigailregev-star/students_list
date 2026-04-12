@@ -7,7 +7,7 @@ export default async function AdminTeachersPage() {
   // Fetch all teachers with group counts
   const { data: teachers } = await supabase
     .from('teachers')
-    .select('id, name, email, role, hourly_rate, created_at')
+    .select('id, name, email, role, created_at')
     .order('created_at', { ascending: true })
 
   const teacherList = teachers ?? []
@@ -48,7 +48,7 @@ export default async function AdminTeachersPage() {
             <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
           </svg>
           <p className="text-xs text-blue-600 leading-relaxed">
-            להוספת מורה חדש — שלח/י לו את קישור האפליקציה. לאחר ההרשמה יופיע כאן ותוכלי להגדיר את התעריף.
+            להוספת מורה חדש — שלח/י לו את קישור האפליקציה.
           </p>
         </div>
 
@@ -68,9 +68,6 @@ export default async function AdminTeachersPage() {
               <p className="text-xs text-gray-400 mt-0.5 truncate">{teacher.email}</p>
             </div>
             <div className="text-left shrink-0 flex flex-col items-end gap-1">
-              <span className="text-sm font-bold text-teal-600">
-                ₪{teacher.hourly_rate > 0 ? teacher.hourly_rate : '—'}
-              </span>
               <span className="text-[10px] text-gray-400">{countMap[teacher.id] ?? 0} קבוצות</span>
             </div>
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#d1d5db" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">

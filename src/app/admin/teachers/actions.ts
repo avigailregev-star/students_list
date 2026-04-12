@@ -13,12 +13,11 @@ export async function updateTeacher(formData: FormData) {
   const supabase = await requireAdmin()
 
   const teacherId = formData.get('teacher_id') as string
-  const hourlyRate = parseFloat(formData.get('hourly_rate') as string) || 0
   const name = formData.get('name') as string
 
   const { error } = await supabase
     .from('teachers')
-    .update({ hourly_rate: hourlyRate, name })
+    .update({ name })
     .eq('id', teacherId)
 
   if (error) throw new Error('שגיאה בעדכון המורה')
