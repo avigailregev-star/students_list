@@ -1,5 +1,7 @@
 import { requireAdmin } from '@/lib/auth'
 
+export const dynamic = 'force-dynamic'
+
 export default async function AdminHomePage() {
   const { supabase, user } = await requireAdmin()
 
