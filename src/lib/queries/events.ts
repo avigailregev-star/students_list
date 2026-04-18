@@ -14,11 +14,12 @@ export async function getEventsForTeacher(): Promise<SchoolEvent[]> {
   if (autoError) throw autoError
 
   // Explicitly assigned: other event types
+  // Graceful fallback if table doesn't exist in this environment yet
   const { data: assignedRows, error: assignError } = await supabase
     .from('school_event_assignments')
     .select('event_id')
     .eq('teacher_id', user.id)
-  if (assignError) throw assignError
+  if (assignError) return (autoEvents ?? []) as SchoolEvent[]
 
   const assignedIds = (assignedRows ?? []).map(r => r.event_id)
 
