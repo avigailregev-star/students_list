@@ -10,6 +10,8 @@ const VALID_EVENT_TYPES: SchoolEventType[] = [
   'holiday', 'vacation', 'concert', 'makeup_day', 'school_start', 'school_end',
 ]
 
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+
 async function requireAdmin() {
   const { supabase, user } = await _requireAdmin('/admin')
   return { supabase, userId: user.id }
@@ -18,17 +20,17 @@ async function requireAdmin() {
 export async function createEvent(formData: FormData) {
   const { supabase, userId } = await requireAdmin()
 
-  const name      = (formData.get('name') as string | null)?.trim()
-  const eventType = formData.get('event_type') as string
-  const startDate = (formData.get('start_date') as string | null)?.trim()
-  const endDate   = (formData.get('end_date') as string | null)?.trim() || startDate
+  const name       = (formData.get('name') as string | null)?.trim()
+  const eventType  = formData.get('event_type') as string
+  const startDate  = (formData.get('start_date') as string | null)?.trim()
+  const endDate    = (formData.get('end_date') as string | null)?.trim() || startDate
   const teacherIds = formData.getAll('teacher_ids') as string[]
 
   if (!name) throw new Error('שם האירוע חסר')
   if (!startDate) throw new Error('תאריך האירוע חסר')
-  if (!VALID_EVENT_TYPES.includes(eventType as SchoolEventType)) {
-    throw new Error('סוג אירוע לא תקין')
-  }
+  if (endDate && endDate < startDate) throw new Error('תאריך סיום קודם לתאריך התחלה')
+  if (!VALID_EVENT_TYPES.includes(eventType as SchoolEventType)) throw new Error('סוג אירוע לא תקין')
+  if (teacherIds.some(tid => !UUID_RE.test(tid))) throw new Error('מזהה מורה לא תקין')
 
   const { data: event, error } = await supabase
     .from('school_events')
@@ -38,7 +40,6 @@ export async function createEvent(formData: FormData) {
 
   if (error || !event) throw new Error('שגיאה ביצירת האירוע')
 
-  // Insert assignments for non-auto-sync event types
   if (!AUTO_SYNC_TYPES.includes(eventType as SchoolEventType) && teacherIds.length > 0) {
     const rows = teacherIds.map(tid => ({ event_id: event.id, teacher_id: tid }))
     const { error: assignError } = await supabase
@@ -48,6 +49,7 @@ export async function createEvent(formData: FormData) {
   }
 
   revalidatePath('/admin/calendar')
+  revalidatePath('/')
 }
 
 export async function deleteEvent(eventId: string) {
@@ -56,4 +58,5 @@ export async function deleteEvent(eventId: string) {
   const { error } = await supabase.from('school_events').delete().eq('id', eventId)
   if (error) throw new Error('שגיאה במחיקת האירוע')
   revalidatePath('/admin/calendar')
+  revalidatePath('/')
 }

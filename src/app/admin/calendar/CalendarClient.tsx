@@ -89,9 +89,13 @@ export default function CalendarClient({ events, teachers }: Props) {
     fd.set('end_date', endDate || selectedDate)
     for (const tid of selectedTeacherIds) fd.append('teacher_ids', tid)
     startTransition(async () => {
-      await createEvent(fd)
-      setAddOpen(false)
-      setSelectedTeacherIds([])
+      try {
+        await createEvent(fd)
+        setAddOpen(false)
+        setSelectedTeacherIds([])
+      } catch (err) {
+        alert(err instanceof Error ? err.message : 'שגיאה בשמירת האירוע')
+      }
     })
   }
 
@@ -128,7 +132,10 @@ export default function CalendarClient({ events, teachers }: Props) {
                     </p>
                   </div>
                   <button
-                    onClick={() => startTransition(() => deleteEvent(ev.id))}
+                    onClick={() => startTransition(async () => {
+                      try { await deleteEvent(ev.id) }
+                      catch (err) { alert(err instanceof Error ? err.message : 'שגיאה במחיקת האירוע') }
+                    })}
                     disabled={isPending}
                     className="w-7 h-7 rounded-lg bg-white/50 hover:bg-white/80 flex items-center justify-center transition-colors disabled:opacity-40 shrink-0"
                   >
