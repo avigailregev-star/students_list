@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { getGroupsWithSchedules } from '@/lib/queries/groups'
+import { getEventsForTeacher } from '@/lib/queries/events'
 import DashboardClient from '@/components/dashboard/DashboardClient'
 
 export default async function HomePage() {
@@ -16,12 +17,16 @@ export default async function HomePage() {
 
   if (teacher?.role === 'admin') redirect('/admin')
 
-  const groups = await getGroupsWithSchedules()
+  const [groups, events] = await Promise.all([
+    getGroupsWithSchedules(),
+    getEventsForTeacher(),
+  ])
 
   return (
     <DashboardClient
       groups={groups}
       teacherName={teacher?.name ?? 'מורה'}
+      events={events}
     />
   )
 }
