@@ -7,6 +7,7 @@ import type { LessonSlot } from '@/types/database'
 
 interface Props {
   allSlots: LessonSlot[]
+  /** Only read at mount. Safe because the component is conditionally rendered and remounts on each tab switch. */
   initialDate?: Date
 }
 

@@ -62,12 +62,14 @@ export default function MonthView({ groups, events, onDayClick }: Props) {
   // Map dateStr → groupIds with lessons
   const lessonMap = useMemo(() => {
     const slots = getLessonSlotsForMonth(groups, year, month)
-    const m: Record<string, string[]> = {}
+    const sets: Record<string, Set<string>> = {}
     for (const slot of slots) {
       const key = toDateStr(slot.date)
-      if (!m[key]) m[key] = []
-      if (!m[key].includes(slot.groupId)) m[key].push(slot.groupId)
+      if (!sets[key]) sets[key] = new Set()
+      sets[key].add(slot.groupId)
     }
+    const m: Record<string, string[]> = {}
+    for (const [key, set] of Object.entries(sets)) m[key] = Array.from(set)
     return m
   }, [groups, year, month])
 
@@ -119,19 +121,21 @@ export default function MonthView({ groups, events, onDayClick }: Props) {
         {Array.from({ length: daysInMonth }).map((_, i) => {
           const day     = i + 1
           const dow     = new Date(year, month, day).getDay()
-          const dateStr = `${year}-${String(month+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`
+          const dateStr = toDateStr(new Date(year, month, day))
           const ev      = eventMap[dateStr]
           const groupIds = lessonMap[dateStr] ?? []
           const isWeekend = dow === 5 || dow === 6
           const isToday   = dateStr === todayStr
           const cfg       = ev ? EVENT_COLORS[ev.event_type] : null
+          // Shows label on the event's start_date. If start_date is a weekend the label
+          // won't appear — acceptable since weekend cells are blank anyway.
           const isFirstOfEvent = ev && ev.start_date === dateStr
 
           return (
             <button
               key={day}
               disabled={isWeekend}
-              onClick={() => !isWeekend && onDayClick(new Date(year, month, day))}
+              onClick={() => onDayClick(new Date(year, month, day))}
               className={[
                 'rounded-xl min-h-[52px] p-1 flex flex-col transition-colors disabled:cursor-default',
                 isWeekend ? 'bg-transparent' : '',
