@@ -122,5 +122,10 @@ export function getLessonSlotsForMonth(
     }
   }
 
+  slots.sort((a, b) => {
+    if (a.dayOfWeek !== b.dayOfWeek) return a.dayOfWeek - b.dayOfWeek
+    return a.startTime.localeCompare(b.startTime)
+  })
+
   return slots
 }
