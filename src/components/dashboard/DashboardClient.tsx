@@ -20,11 +20,13 @@ export default function DashboardClient({ groups, teacherName, events }: Props) 
 
   const weekSlots: LessonSlot[] = useMemo(() => {
     const slots: LessonSlot[] = []
+    // Generate slots for 8 weeks: 2 past + current + 5 future
     for (let i = -2; i <= 5; i++) {
       const weekStart = getWeekStart()
       weekStart.setDate(weekStart.getDate() + i * 7)
       slots.push(...getLessonSlotsForWeek(groups, weekStart))
     }
+    // Deduplicate: same group on same date (safety guard)
     const seen = new Set<string>()
     return slots.filter(s => {
       const key = `${s.groupId}-${s.date.toDateString()}-${s.startTime}`
