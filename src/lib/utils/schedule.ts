@@ -88,3 +88,39 @@ export function getLessonSlotsForWeek(
 
   return slots
 }
+
+/**
+ * Returns all lesson slots for every day in the given calendar month.
+ */
+export function getLessonSlotsForMonth(
+  groups: GroupWithSchedules[],
+  year: number,
+  month: number  // 0-indexed (0=Jan)
+): LessonSlot[] {
+  const slots: LessonSlot[] = []
+  const daysInMonth = new Date(year, month + 1, 0).getDate()
+
+  for (let day = 1; day <= daysInMonth; day++) {
+    const date = new Date(year, month, day)
+    const dow = date.getDay()
+    for (const group of groups) {
+      for (const schedule of group.group_schedules) {
+        if (schedule.day_of_week === dow) {
+          slots.push({
+            groupId: group.id,
+            groupName: group.name,
+            lessonType: group.lesson_type,
+            isMangan: group.is_mangan_school,
+            schoolName: group.school_name,
+            grade: group.grade,
+            date: new Date(date),
+            startTime: schedule.start_time.slice(0, 5),
+            dayOfWeek: dow,
+          })
+        }
+      }
+    }
+  }
+
+  return slots
+}
