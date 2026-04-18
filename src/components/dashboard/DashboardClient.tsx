@@ -3,27 +3,28 @@
 import { useState, useMemo } from 'react'
 import DayView from './DayView'
 import WeekView from './WeekView'
+import MonthView from './MonthView'
 import BottomNav from '@/components/layout/BottomNav'
 import { getLessonSlotsForWeek, getWeekStart } from '@/lib/utils/schedule'
-import type { GroupWithSchedules, LessonSlot } from '@/types/database'
+import type { GroupWithSchedules, LessonSlot, SchoolEvent } from '@/types/database'
 
 interface Props {
   groups: GroupWithSchedules[]
   teacherName: string
+  events: SchoolEvent[]
 }
 
-export default function DashboardClient({ groups, teacherName }: Props) {
-  const [view, setView] = useState<'day' | 'week'>('day')
+export default function DashboardClient({ groups, teacherName, events }: Props) {
+  const [view, setView] = useState<'day' | 'week' | 'month'>('day')
+  const [dayInitialDate, setDayInitialDate] = useState<Date | undefined>(undefined)
 
   const weekSlots: LessonSlot[] = useMemo(() => {
     const slots: LessonSlot[] = []
-    // Generate slots for 8 weeks: 2 past + current + 5 future
     for (let i = -2; i <= 5; i++) {
       const weekStart = getWeekStart()
       weekStart.setDate(weekStart.getDate() + i * 7)
       slots.push(...getLessonSlotsForWeek(groups, weekStart))
     }
-    // Deduplicate: same group on same date (safety guard)
     const seen = new Set<string>()
     return slots.filter(s => {
       const key = `${s.groupId}-${s.date.toDateString()}-${s.startTime}`
@@ -32,6 +33,11 @@ export default function DashboardClient({ groups, teacherName }: Props) {
       return true
     })
   }, [groups])
+
+  function handleMonthDayClick(date: Date) {
+    setDayInitialDate(date)
+    setView('day')
+  }
 
   return (
     <div className="flex flex-col min-h-screen bg-gray-50">
@@ -42,9 +48,7 @@ export default function DashboardClient({ groups, teacherName }: Props) {
             <p className="text-xs font-semibold text-teal-100 uppercase tracking-widest mb-1">לוח שיעורים</p>
             <h1 className="text-2xl font-bold">שלום, {teacherName}</h1>
             <p className="text-sm text-teal-100 mt-0.5">
-              {groups.length > 0
-                ? `${groups.length} קבוצות פעילות`
-                : 'אין קבוצות עדיין'}
+              {groups.length > 0 ? `${groups.length} קבוצות פעילות` : 'אין קבוצות עדיין'}
             </p>
           </div>
           <div className="w-11 h-11 rounded-2xl bg-white/20 flex items-center justify-center shrink-0">
@@ -58,35 +62,31 @@ export default function DashboardClient({ groups, teacherName }: Props) {
 
         {/* View toggle */}
         <div className="flex mx-5 mb-5 bg-white/20 rounded-2xl p-1 gap-1">
-          <button
-            onClick={() => setView('day')}
-            className={`flex-1 py-2 text-sm font-bold rounded-xl transition-all ${
-              view === 'day'
-                ? 'bg-white text-teal-600 shadow-sm'
-                : 'text-white/80 hover:text-white'
-            }`}
-          >
-            יום
-          </button>
-          <button
-            onClick={() => setView('week')}
-            className={`flex-1 py-2 text-sm font-bold rounded-xl transition-all ${
-              view === 'week'
-                ? 'bg-white text-teal-600 shadow-sm'
-                : 'text-white/80 hover:text-white'
-            }`}
-          >
-            שבוע
-          </button>
+          {(['day', 'week', 'month'] as const).map(v => (
+            <button
+              key={v}
+              onClick={() => setView(v)}
+              className={`flex-1 py-2 text-sm font-bold rounded-xl transition-all ${
+                view === v ? 'bg-white text-teal-600 shadow-sm' : 'text-white/80 hover:text-white'
+              }`}
+            >
+              {v === 'day' ? 'יום' : v === 'week' ? 'שבוע' : 'חודש'}
+            </button>
+          ))}
         </div>
       </div>
 
       {/* Content */}
       <div className="flex-1 px-4 py-5 pb-28 overflow-y-auto">
-        {view === 'day'
-          ? <DayView allSlots={weekSlots} />
-          : <WeekView allSlots={weekSlots} />
-        }
+        {view === 'day' && <DayView allSlots={weekSlots} initialDate={dayInitialDate} />}
+        {view === 'week' && <WeekView allSlots={weekSlots} />}
+        {view === 'month' && (
+          <MonthView
+            groups={groups}
+            events={events}
+            onDayClick={handleMonthDayClick}
+          />
+        )}
       </div>
 
       <BottomNav />
