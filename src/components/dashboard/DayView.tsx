@@ -7,11 +7,12 @@ import type { LessonSlot } from '@/types/database'
 
 interface Props {
   allSlots: LessonSlot[]
+  initialDate?: Date
 }
 
-export default function DayView({ allSlots }: Props) {
+export default function DayView({ allSlots, initialDate }: Props) {
   const [selectedDate, setSelectedDate] = useState(() => {
-    const d = new Date()
+    const d = initialDate ? new Date(initialDate) : new Date()
     d.setHours(0, 0, 0, 0)
     return d
   })
