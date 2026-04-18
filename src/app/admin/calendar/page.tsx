@@ -1,6 +1,6 @@
 import Link from 'next/link'
 import CalendarClient from './CalendarClient'
-import type { SchoolEvent, Teacher } from '@/types/database'
+import type { SchoolEvent } from '@/types/database'
 import { requireAdmin } from '@/lib/auth'
 import { getTeachersForAdmin } from '@/lib/queries/teachers'
 

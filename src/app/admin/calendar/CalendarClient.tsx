@@ -2,7 +2,7 @@
 
 import { useState, useTransition, useMemo } from 'react'
 import { createEvent, deleteEvent } from './calendarActions'
-import type { SchoolEvent, SchoolEventType } from '@/types/database'
+import type { SchoolEvent, SchoolEventType, Teacher } from '@/types/database'
 
 const MONTHS_HE = ['ינואר','פברואר','מרץ','אפריל','מאי','יוני','יולי','אוגוסט','ספטמבר','אוקטובר','נובמבר','דצמבר']
 const DAYS_HE   = ['א','ב','ג','ד','ה','ו','ש']
@@ -34,7 +34,7 @@ function toDateStr(d: Date) {
 
 interface Props {
   events: SchoolEvent[]
-  teachers: import('@/types/database').Teacher[]
+  teachers: Teacher[]
 }
 
 export default function CalendarClient({ events, teachers }: Props) {
@@ -45,7 +45,6 @@ export default function CalendarClient({ events, teachers }: Props) {
   const [eventName, setEventName] = useState('')
   const [endDate, setEndDate] = useState('')
   const [isPending, startTransition] = useTransition()
-  const [expandedEvent, setExpandedEvent] = useState<string | null>(null)
   const [selectedTeacherIds, setSelectedTeacherIds] = useState<string[]>([])
 
   // Build a map: dateStr → event
@@ -77,6 +76,7 @@ export default function CalendarClient({ events, teachers }: Props) {
     setEndDate(dateStr)
     setEventName('')
     setEventType('holiday')
+    setSelectedTeacherIds([])
     setAddOpen(true)
   }
 
@@ -96,6 +96,7 @@ export default function CalendarClient({ events, teachers }: Props) {
   }
 
   const isAutoSync = eventType === 'holiday' || eventType === 'vacation'
+  const allSelected = teachers.length > 0 && selectedTeacherIds.length === teachers.length
 
   return (
     <div className="px-4 py-5 flex flex-col gap-5">
@@ -261,14 +262,12 @@ export default function CalendarClient({ events, teachers }: Props) {
                       type="button"
                       onClick={() =>
                         setSelectedTeacherIds(
-                          selectedTeacherIds.length === teachers.length
-                            ? []
-                            : teachers.map(t => t.id)
+                          allSelected ? [] : teachers.map(t => t.id)
                         )
                       }
                       className="text-xs font-bold text-teal-500"
                     >
-                      {selectedTeacherIds.length === teachers.length ? 'בטל הכל' : 'בחר הכל'}
+                      {allSelected ? 'בטל הכל' : 'בחר הכל'}
                     </button>
                   </div>
                   <div className="flex flex-col gap-1 rounded-2xl border border-gray-100 overflow-hidden">
