@@ -1,19 +1,22 @@
 import Link from 'next/link'
 import CalendarClient from './CalendarClient'
-import type { SchoolEvent } from '@/types/database'
+import type { SchoolEvent, Teacher } from '@/types/database'
 import { requireAdmin } from '@/lib/auth'
+import { getTeachersForAdmin } from '@/lib/queries/teachers'
 
 export default async function AdminCalendarPage() {
   const { supabase } = await requireAdmin()
 
-  const { data: events } = await supabase
-    .from('school_events')
-    .select('*')
-    .order('start_date', { ascending: true })
+  const [eventsResult, teachers] = await Promise.all([
+    supabase
+      .from('school_events')
+      .select('*')
+      .order('start_date', { ascending: true }),
+    getTeachersForAdmin(),
+  ])
 
   return (
     <div className="flex flex-col min-h-screen">
-      {/* Header */}
       <div className="bg-gradient-to-bl from-teal-400 to-teal-600 text-white rounded-b-[36px] shadow-lg shadow-teal-200 px-5 pt-10 pb-7">
         <div className="flex items-center gap-3">
           <Link href="/admin" className="w-9 h-9 rounded-2xl bg-white/20 flex items-center justify-center shrink-0">
@@ -29,7 +32,10 @@ export default async function AdminCalendarPage() {
         <p className="text-sm text-teal-100 mt-2 mr-12">לחצי על יום להוספת אירוע</p>
       </div>
 
-      <CalendarClient events={(events ?? []) as SchoolEvent[]} />
+      <CalendarClient
+        events={(eventsResult.data ?? []) as SchoolEvent[]}
+        teachers={teachers}
+      />
     </div>
   )
 }

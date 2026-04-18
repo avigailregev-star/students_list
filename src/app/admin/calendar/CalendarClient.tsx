@@ -32,9 +32,12 @@ function toDateStr(d: Date) {
   return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`
 }
 
-interface Props { events: SchoolEvent[] }
+interface Props {
+  events: SchoolEvent[]
+  teachers: import('@/types/database').Teacher[]
+}
 
-export default function CalendarClient({ events }: Props) {
+export default function CalendarClient({ events, teachers }: Props) {
   const schoolYear = getSchoolYear()
   const [addOpen, setAddOpen] = useState(false)
   const [selectedDate, setSelectedDate] = useState('')
@@ -43,6 +46,7 @@ export default function CalendarClient({ events }: Props) {
   const [endDate, setEndDate] = useState('')
   const [isPending, startTransition] = useTransition()
   const [expandedEvent, setExpandedEvent] = useState<string | null>(null)
+  const [selectedTeacherIds, setSelectedTeacherIds] = useState<string[]>([])
 
   // Build a map: dateStr → event
   const eventMap = useMemo(() => {
@@ -83,11 +87,15 @@ export default function CalendarClient({ events }: Props) {
     fd.set('event_type', eventType)
     fd.set('start_date', selectedDate)
     fd.set('end_date', endDate || selectedDate)
+    for (const tid of selectedTeacherIds) fd.append('teacher_ids', tid)
     startTransition(async () => {
       await createEvent(fd)
       setAddOpen(false)
+      setSelectedTeacherIds([])
     })
   }
+
+  const isAutoSync = eventType === 'holiday' || eventType === 'vacation'
 
   return (
     <div className="px-4 py-5 flex flex-col gap-5">
@@ -239,6 +247,64 @@ export default function CalendarClient({ events }: Props) {
                   dir="ltr"
                 />
               </div>
+
+              {/* Teacher sync */}
+              {isAutoSync ? (
+                <div className="bg-amber-50 rounded-xl px-4 py-3 text-xs text-amber-700 font-semibold">
+                  חגים וחופשות מסונכרנים אוטומטית עם כל המורות
+                </div>
+              ) : (
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <label className="text-sm font-semibold text-gray-700">סנכרן עם מורות</label>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setSelectedTeacherIds(
+                          selectedTeacherIds.length === teachers.length
+                            ? []
+                            : teachers.map(t => t.id)
+                        )
+                      }
+                      className="text-xs font-bold text-teal-500"
+                    >
+                      {selectedTeacherIds.length === teachers.length ? 'בטל הכל' : 'בחר הכל'}
+                    </button>
+                  </div>
+                  <div className="flex flex-col gap-1 rounded-2xl border border-gray-100 overflow-hidden">
+                    {teachers.map(t => {
+                      const checked = selectedTeacherIds.includes(t.id)
+                      return (
+                        <button
+                          key={t.id}
+                          type="button"
+                          onClick={() =>
+                            setSelectedTeacherIds(prev =>
+                              checked ? prev.filter(id => id !== t.id) : [...prev, t.id]
+                            )
+                          }
+                          className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 transition-colors text-right border-b border-gray-50 last:border-0"
+                        >
+                          <div className="w-8 h-8 rounded-xl bg-teal-500 flex items-center justify-center text-white text-xs font-bold shrink-0">
+                            {t.name.charAt(0)}
+                          </div>
+                          <span className="flex-1 text-sm font-semibold text-gray-700">{t.name}</span>
+                          <div className={`w-5 h-5 rounded-md border-2 flex items-center justify-center shrink-0 ${checked ? 'bg-teal-500 border-teal-500' : 'border-gray-300'}`}>
+                            {checked && (
+                              <svg width="10" height="10" viewBox="0 0 12 12" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                <polyline points="2 6 5 9 10 3"/>
+                              </svg>
+                            )}
+                          </div>
+                        </button>
+                      )
+                    })}
+                    {teachers.length === 0 && (
+                      <p className="px-4 py-3 text-xs text-gray-400">אין מורות רשומות</p>
+                    )}
+                  </div>
+                </div>
+              )}
 
               <div className="flex gap-2">
                 <button
