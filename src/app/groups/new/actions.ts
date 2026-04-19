@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
+import type { LessonType } from '@/types/database'
 
 export async function createGroup(formData: FormData) {
   const supabase = await createClient()
@@ -10,7 +11,7 @@ export async function createGroup(formData: FormData) {
   if (!user) redirect('/login')
 
   const name = formData.get('name') as string
-  const lessonType = formData.get('lesson_type') as 'group' | 'individual'
+  const lessonType = formData.get('lesson_type') as LessonType
   const isMangan = formData.get('is_mangan_school') === 'true'
   const schoolName = isMangan ? (formData.get('school_name') as string) : null
   const grade = isMangan ? (formData.get('grade') as string) : null
@@ -49,13 +50,11 @@ export async function createGroup(formData: FormData) {
   if (schedError) throw schedError
 
   // For individual lessons, auto-create the student
-  if (lessonType === 'individual') {
+  const isIndividual = lessonType === 'individual_45' || lessonType === 'individual_60'
+  if (isIndividual) {
     const studentName = formData.get('student_name') as string
     if (studentName) {
-      await supabase.from('students').insert({
-        group_id: group.id,
-        name: studentName,
-      })
+      await supabase.from('students').insert({ group_id: group.id, name: studentName })
     }
   }
 
