@@ -205,11 +205,11 @@ export default function CalendarClient({ events, teachers }: Props) {
 
       {/* Add event bottom sheet */}
       {addOpen && (
-        <div className="fixed inset-0 z-[100] flex flex-col justify-end" onClick={() => setAddOpen(false)}>
+        <div className="fixed inset-x-0 top-0 bottom-[72px] z-[100] flex flex-col justify-end" onClick={() => setAddOpen(false)}>
           <div className="absolute inset-0 bg-black/40" />
           <div
             className="relative bg-white w-full rounded-t-3xl flex flex-col"
-            style={{ maxHeight: 'calc(100dvh - 72px)' }}
+            style={{ maxHeight: 'calc(100dvh - 144px)' }}
             onClick={e => e.stopPropagation()}
           >
             {/* Header — קבוע */}
