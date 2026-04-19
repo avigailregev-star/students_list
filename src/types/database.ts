@@ -44,11 +44,6 @@ export type GroupSchedule = {
   created_at: string
 }
 
-export type GroupWithSchedulesAndStudents = Group & {
-  group_schedules: GroupSchedule[]
-  students: Student[]
-}
-
 export type Student = {
   id: string
   group_id: string
@@ -104,6 +99,11 @@ export type SchoolEvent = {
 // Joined types used in queries
 export type GroupWithSchedules = Group & {
   group_schedules: GroupSchedule[]
+}
+
+export type GroupWithSchedulesAndStudents = Group & {
+  group_schedules: GroupSchedule[]
+  students: Student[]
 }
 
 export type LessonSlot = {
