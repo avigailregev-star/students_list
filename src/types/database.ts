@@ -14,7 +14,15 @@ export type Holiday = {
   created_at: string
 }
 
-export type LessonType = 'group' | 'individual'
+export type LessonType =
+  | 'individual_45'
+  | 'individual_60'
+  | 'group'
+  | 'theory'
+  | 'orchestra'
+  | 'choir'
+  | 'melodies_individual'
+  | 'melodies_group'
 
 export type Group = {
   id: string
@@ -34,6 +42,11 @@ export type GroupSchedule = {
   start_time: string  // "HH:MM:SS"
   end_time: string | null
   created_at: string
+}
+
+export type GroupWithSchedulesAndStudents = Group & {
+  group_schedules: GroupSchedule[]
+  students: Student[]
 }
 
 export type Student = {
