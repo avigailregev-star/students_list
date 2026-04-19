@@ -14,6 +14,7 @@ interface Props {
 }
 
 interface PendingStudent {
+  id: number
   name: string
   instrument: string
   parentPhone: string
@@ -39,7 +40,7 @@ export default function AdminGroupSheet({ teacherId, group, isOpen, onClose }: P
 
   function addPendingStudent() {
     if (!newStudentName.trim()) return
-    setPendingStudents(prev => [...prev, { name: newStudentName.trim(), instrument: newStudentInstrument.trim(), parentPhone: newStudentPhone.trim() }])
+    setPendingStudents(prev => [...prev, { id: Date.now(), name: newStudentName.trim(), instrument: newStudentInstrument.trim(), parentPhone: newStudentPhone.trim() }])
     setNewStudentName('')
     setNewStudentInstrument('')
     setNewStudentPhone('')
@@ -94,7 +95,10 @@ export default function AdminGroupSheet({ teacherId, group, isOpen, onClose }: P
             <label className="block text-sm font-semibold text-gray-700 mb-1">סוג שיעור</label>
             <select
               value={lessonType}
-              onChange={e => setLessonType(e.target.value as LessonType)}
+              onChange={e => {
+                const val = e.target.value
+                if (LESSON_TYPE_OPTIONS.some(([v]) => v === val)) setLessonType(val as LessonType)
+              }}
               className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-teal-400 bg-white"
             >
               {LESSON_TYPE_OPTIONS.map(([value, cfg]) => (
@@ -151,6 +155,7 @@ export default function AdminGroupSheet({ teacherId, group, isOpen, onClose }: P
                 {s.instrument && <span className="text-xs text-gray-400">{s.instrument}</span>}
                 <button
                   type="button"
+                  aria-label="הסר תלמיד"
                   onClick={() => handleRemoveExistingStudent(s.id)}
                   disabled={isPending}
                   className="w-6 h-6 rounded-md bg-red-100 hover:bg-red-200 flex items-center justify-center text-red-500 shrink-0"
@@ -163,10 +168,10 @@ export default function AdminGroupSheet({ teacherId, group, isOpen, onClose }: P
             ))}
 
             {/* Pending new students */}
-            {pendingStudents.map((s, i) => (
-              <div key={i} className="flex items-center gap-2 px-3 py-2 bg-teal-50 rounded-xl mb-1.5">
+            {pendingStudents.map((s) => (
+              <div key={s.id} className="flex items-center gap-2 px-3 py-2 bg-teal-50 rounded-xl mb-1.5">
                 <span className="flex-1 text-sm text-teal-800">{s.name}{s.instrument ? ` · ${s.instrument}` : ''}</span>
-                <button type="button" onClick={() => setPendingStudents(prev => prev.filter((_, j) => j !== i))} className="w-6 h-6 rounded-md bg-teal-100 hover:bg-teal-200 flex items-center justify-center text-teal-600 shrink-0">
+                <button type="button" aria-label="הסר תלמיד" onClick={() => setPendingStudents(prev => prev.filter((p) => p.id !== s.id))} className="w-6 h-6 rounded-md bg-teal-100 hover:bg-teal-200 flex items-center justify-center text-teal-600 shrink-0">
                   <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
                 </button>
               </div>
