@@ -13,10 +13,11 @@ Enable the admin to create, edit, and delete lesson groups for any teacher. The 
 
 Current: `'group' | 'individual'`
 
-New (7 values):
+New (8 values):
 | Value | Hebrew |
 |-------|--------|
-| `individual` | פרטני |
+| `individual_45` | פרטני 45 דקות |
+| `individual_60` | פרטני 60 דקות |
 | `group` | קבוצתי |
 | `theory` | תיאוריה |
 | `orchestra` | תזמורת |
@@ -24,13 +25,15 @@ New (7 values):
 | `melodies_individual` | מנגינות פרטני |
 | `melodies_group` | מנגינות קבוצתי |
 
-**Migration required**: `ALTER TABLE groups DROP CONSTRAINT groups_lesson_type_check; ALTER TABLE groups ADD CONSTRAINT groups_lesson_type_check CHECK (lesson_type IN ('individual','group','theory','orchestra','choir','melodies_individual','melodies_group'));`
+**Migration required**: `ALTER TABLE groups DROP CONSTRAINT groups_lesson_type_check; ALTER TABLE groups ADD CONSTRAINT groups_lesson_type_check CHECK (lesson_type IN ('individual_45','individual_60','group','theory','orchestra','choir','melodies_individual','melodies_group'));`
+
+Note: existing rows with `lesson_type = 'individual'` must be migrated to `individual_45` before applying the constraint.
 
 ### TypeScript (`src/types/database.ts`)
 
 ```ts
 export type LessonType =
-  | 'individual' | 'group' | 'theory'
+  | 'individual_45' | 'individual_60' | 'group' | 'theory'
   | 'orchestra' | 'choir'
   | 'melodies_individual' | 'melodies_group'
 ```
