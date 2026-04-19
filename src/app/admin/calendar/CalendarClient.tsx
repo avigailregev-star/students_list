@@ -205,13 +205,23 @@ export default function CalendarClient({ events, teachers }: Props) {
 
       {/* Add event bottom sheet */}
       {addOpen && (
-        <div className="fixed inset-0 bg-black/40 z-50 flex items-end" onClick={() => setAddOpen(false)}>
-          <div className="bg-white w-full rounded-t-3xl p-5 pb-8 max-h-[85vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
-            <div className="w-10 h-1 bg-gray-200 rounded-full mx-auto mb-5" />
-            <h2 className="text-lg font-bold text-gray-900 mb-1">הוספת אירוע</h2>
-            <p className="text-sm text-gray-400 mb-4">{selectedDate}</p>
+        <div className="fixed inset-0 z-[100] flex flex-col justify-end" onClick={() => setAddOpen(false)}>
+          <div className="absolute inset-0 bg-black/40" />
+          <div
+            className="relative bg-white w-full rounded-t-3xl flex flex-col"
+            style={{ maxHeight: 'calc(100dvh - 72px)' }}
+            onClick={e => e.stopPropagation()}
+          >
+            {/* Header — קבוע */}
+            <div className="px-5 pt-5 pb-3 flex-shrink-0">
+              <div className="w-10 h-1 bg-gray-200 rounded-full mx-auto mb-4" />
+              <h2 className="text-lg font-bold text-gray-900 mb-0.5">הוספת אירוע</h2>
+              <p className="text-sm text-gray-400">{selectedDate}</p>
+            </div>
 
-            <form onSubmit={submitEvent} className="flex flex-col gap-4">
+            {/* Content + Footer בתוך form אחד */}
+            <form onSubmit={submitEvent} className="flex-1 flex flex-col overflow-hidden min-h-0">
+            <div className="flex-1 overflow-y-auto px-5 flex flex-col gap-4 pb-2">
               {/* Event type */}
               <div>
                 <label className="block text-sm font-semibold text-gray-700 mb-2">סוג אירוע</label>
@@ -267,11 +277,7 @@ export default function CalendarClient({ events, teachers }: Props) {
                     <label className="text-sm font-semibold text-gray-700">סנכרן עם מורות</label>
                     <button
                       type="button"
-                      onClick={() =>
-                        setSelectedTeacherIds(
-                          allSelected ? [] : teachers.map(t => t.id)
-                        )
-                      }
+                      onClick={() => setSelectedTeacherIds(allSelected ? [] : teachers.map(t => t.id))}
                       className="text-xs font-bold text-teal-500"
                     >
                       {allSelected ? 'בטל הכל' : 'בחר הכל'}
@@ -311,19 +317,20 @@ export default function CalendarClient({ events, teachers }: Props) {
                   </div>
                 </div>
               )}
-
-              <div className="flex gap-2">
-                <button
-                  type="submit"
-                  disabled={isPending}
-                  className="flex-1 bg-teal-500 text-white font-bold py-3 rounded-2xl hover:bg-teal-600 transition-colors disabled:opacity-60 text-sm"
-                >
-                  {isPending ? 'שומר...' : 'הוסף אירוע'}
-                </button>
-                <button type="button" onClick={() => setAddOpen(false)} className="flex-1 bg-gray-100 text-gray-600 font-bold py-3 rounded-2xl text-sm">
-                  ביטול
-                </button>
-              </div>
+            </div>
+            {/* Footer — קבוע */}
+            <div className="flex gap-2 px-5 pt-3 pb-6 border-t border-gray-100 flex-shrink-0">
+              <button
+                type="submit"
+                disabled={isPending}
+                className="flex-1 bg-teal-500 text-white font-bold py-3 rounded-2xl hover:bg-teal-600 transition-colors disabled:opacity-60 text-sm"
+              >
+                {isPending ? 'שומר...' : 'הוסף אירוע'}
+              </button>
+              <button type="button" onClick={() => setAddOpen(false)} className="flex-1 bg-gray-100 text-gray-600 font-bold py-3 rounded-2xl text-sm">
+                ביטול
+              </button>
+            </div>
             </form>
           </div>
         </div>
