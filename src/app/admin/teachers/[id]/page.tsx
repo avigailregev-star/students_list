@@ -2,6 +2,7 @@ import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import EditTeacherForm from './EditTeacherForm'
 import { requireAdmin } from '@/lib/auth'
+import { LESSON_TYPE_CONFIG } from '@/lib/utils/lessonTypes'
 
 interface Props { params: Promise<{ id: string }> }
 
@@ -81,22 +82,23 @@ export default async function TeacherDetailPage({ params }: Props) {
           <div>
             <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">קבוצות</p>
             <div className="flex flex-col gap-2">
-              {(groups ?? []).map(g => (
-                <div key={g.id} className="bg-white rounded-2xl shadow-sm px-4 py-3 flex items-center gap-3">
-                  <div className={`w-9 h-9 rounded-xl flex items-center justify-center text-white font-bold text-sm shrink-0 ${
-                    g.lesson_type === 'group' ? 'bg-teal-500' : 'bg-violet-500'
-                  }`}>
-                    {g.name.charAt(0)}
+              {(groups ?? []).map(g => {
+                const cfg = LESSON_TYPE_CONFIG[g.lesson_type as keyof typeof LESSON_TYPE_CONFIG]
+                return (
+                  <div key={g.id} className="bg-white rounded-2xl shadow-sm px-4 py-3 flex items-center gap-3">
+                    <div className={`w-9 h-9 rounded-xl flex items-center justify-center text-white font-bold text-sm shrink-0 ${cfg?.bg ?? 'bg-gray-400'}`}>
+                      {g.name.charAt(0)}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-semibold text-gray-900 truncate">{g.name}</p>
+                      <p className="text-xs text-gray-400 mt-0.5">
+                        {cfg?.label ?? g.lesson_type}
+                        {g.is_mangan_school && g.school_name && ` · ${g.school_name}`}
+                      </p>
+                    </div>
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-semibold text-gray-900 truncate">{g.name}</p>
-                    <p className="text-xs text-gray-400 mt-0.5">
-                      {g.lesson_type === 'group' ? 'קבוצה' : 'יחיד'}
-                      {g.is_mangan_school && g.school_name && ` · ${g.school_name}`}
-                    </p>
-                  </div>
-                </div>
-              ))}
+                )
+              })}
             </div>
           </div>
         )}
