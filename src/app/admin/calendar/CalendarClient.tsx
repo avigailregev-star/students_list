@@ -46,15 +46,18 @@ export default function CalendarClient({ events, teachers }: Props) {
   const [endDate, setEndDate] = useState('')
   const [isPending, startTransition] = useTransition()
   const [selectedTeacherIds, setSelectedTeacherIds] = useState<string[]>([])
+  const [selectedDayEvents, setSelectedDayEvents] = useState<SchoolEvent[]>([])
 
-  // Build a map: dateStr → event
+  // Build a map: dateStr → events[]
   const eventMap = useMemo(() => {
-    const m: Record<string, SchoolEvent> = {}
+    const m: Record<string, SchoolEvent[]> = {}
     for (const ev of events) {
       const start = new Date(ev.start_date + 'T12:00:00')
       const end   = new Date(ev.end_date   + 'T12:00:00')
       for (let d = new Date(start); d <= end; d = addDays(d, 1)) {
-        m[toDateStr(d)] = ev
+        const key = toDateStr(d)
+        if (!m[key]) m[key] = []
+        m[key].push(ev)
       }
     }
     return m
@@ -77,6 +80,7 @@ export default function CalendarClient({ events, teachers }: Props) {
     setEventName('')
     setEventType('holiday')
     setSelectedTeacherIds([])
+    setSelectedDayEvents(eventMap[dateStr] ?? [])
     setAddOpen(true)
   }
 
@@ -175,7 +179,8 @@ export default function CalendarClient({ events, teachers }: Props) {
                 {Array.from({ length: daysInMonth }).map((_, i) => {
                   const day = i + 1
                   const dateStr = `${year}-${String(monthIndex+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`
-                  const ev = eventMap[dateStr]
+                  const dayEvents = eventMap[dateStr]
+                  const ev = dayEvents?.[0]
                   const dow = new Date(year, monthIndex, day).getDay()
                   const isWeekend = dow === 5 || dow === 6
                   const isToday = dateStr === toDateStr(new Date())
@@ -222,6 +227,39 @@ export default function CalendarClient({ events, teachers }: Props) {
             {/* Content + Footer בתוך form אחד */}
             <form onSubmit={submitEvent} className="flex-1 flex flex-col overflow-hidden min-h-0">
             <div className="flex-1 overflow-y-auto px-5 flex flex-col gap-4 pb-2">
+
+              {/* אירועים קיימים ביום זה */}
+              {selectedDayEvents.length > 0 && (
+                <div className="flex flex-col gap-2">
+                  <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">אירועים ביום זה</p>
+                  {selectedDayEvents.map(ev => {
+                    const cfg = EVENT_CONFIG[ev.event_type]
+                    return (
+                      <div key={ev.id} className={`rounded-xl px-3 py-2.5 flex items-center gap-2.5 ${cfg.bg}`}>
+                        <span className={`w-2 h-2 rounded-full shrink-0 ${cfg.dot}`} />
+                        <span className={`flex-1 text-sm font-semibold ${cfg.text}`}>{ev.name}</span>
+                        <button
+                          type="button"
+                          onClick={() => startTransition(async () => {
+                            try { await deleteEvent(ev.id) }
+                            catch (err) { alert(err instanceof Error ? err.message : 'שגיאה במחיקת האירוע') }
+                          })}
+                          disabled={isPending}
+                          className="w-6 h-6 rounded-md bg-white/60 hover:bg-white flex items-center justify-center shrink-0"
+                        >
+                          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                            <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                          </svg>
+                        </button>
+                      </div>
+                    )
+                  })}
+                  <div className="border-t border-gray-100 pt-2">
+                    <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">הוספת אירוע נוסף</p>
+                  </div>
+                </div>
+              )}
+
               {/* Event type */}
               <div>
                 <label className="block text-sm font-semibold text-gray-700 mb-2">סוג אירוע</label>
