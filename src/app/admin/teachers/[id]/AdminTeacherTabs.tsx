@@ -33,8 +33,8 @@ export default function AdminTeacherTabs({ teacherId, groups, completedLessons, 
   function handleDelete(groupId: string) {
     if (!confirm('למחוק את הקבוצה? הפעולה אינה הפיכה.')) return
     startTransition(async () => {
-      try { await deleteGroup(groupId, teacherId) }
-      catch { alert('שגיאה במחיקת הקבוצה') }
+      const res = await deleteGroup(groupId, teacherId)
+      if (res.error) alert(res.error)
     })
   }
 

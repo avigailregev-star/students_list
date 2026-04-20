@@ -1,0 +1,65 @@
+<h2>טופס הוספת / עריכת קבוצה — איזו גרסה מתאימה?</h2>
+<p class="subtitle">בחרי את הפורמט שמרגיש הכי נוח לעריכה מהירה</p>
+
+<div class="cards">
+
+  <div class="card" data-choice="a" onclick="toggleSelect(this)">
+    <div class="card-image" style="background:#f8fafc;padding:14px;direction:rtl;font-size:11px">
+      <div style="font-weight:bold;margin-bottom:8px;color:#111">✏️ עריכת קבוצה</div>
+      <div style="margin-bottom:6px">
+        <div style="color:#6b7280;font-size:9px;margin-bottom:2px">סוג שיעור</div>
+        <div style="background:white;border:1px solid #e5e7eb;border-radius:6px;padding:5px 8px;font-size:10px;display:flex;justify-content:space-between">תזמורת <span style="color:#9ca3af">▼</span></div>
+      </div>
+      <div style="margin-bottom:6px">
+        <div style="color:#6b7280;font-size:9px;margin-bottom:2px">שם קבוצה</div>
+        <div style="background:white;border:1px solid #e5e7eb;border-radius:6px;padding:5px 8px;font-size:10px;color:#9ca3af">לדוגמה: תזמורת א׳</div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:6px">
+        <div>
+          <div style="color:#6b7280;font-size:9px;margin-bottom:2px">יום</div>
+          <div style="background:white;border:1px solid #e5e7eb;border-radius:6px;padding:5px 8px;font-size:10px;display:flex;justify-content:space-between">רביעי <span style="color:#9ca3af">▼</span></div>
+        </div>
+        <div>
+          <div style="color:#6b7280;font-size:9px;margin-bottom:2px">שעה</div>
+          <div style="background:white;border:1px solid #e5e7eb;border-radius:6px;padding:5px 8px;font-size:10px">14:00</div>
+        </div>
+      </div>
+      <div style="background:#0d9488;color:white;border-radius:6px;padding:5px;text-align:center;font-size:10px">שמור</div>
+    </div>
+    <div class="card-body">
+      <h3>A — Bottom Sheet (גיליון תחתון)</h3>
+      <p>עולה מלמטה כשלוחצים "הוסף" או "עריכה" — כמו מודל הקיים בלוח השנה</p>
+    </div>
+  </div>
+
+  <div class="card" data-choice="b" onclick="toggleSelect(this)">
+    <div class="card-image" style="background:#f8fafc;padding:14px;direction:rtl;font-size:11px">
+      <!-- Tabs bar -->
+      <div style="display:flex;gap:2px;background:#e5e7eb;border-radius:8px;padding:2px;margin-bottom:10px">
+        <div style="background:white;border-radius:6px;padding:3px 8px;font-size:10px;font-weight:bold;flex:1;text-align:center">📋 קבוצות</div>
+        <div style="color:#6b7280;padding:3px 8px;font-size:10px;flex:1;text-align:center">📅 שעות</div>
+      </div>
+      <!-- Inline form -->
+      <div style="background:#f0fdf4;border:1px dashed #0d9488;border-radius:8px;padding:8px;margin-bottom:6px">
+        <div style="color:#0d9488;font-size:9px;font-weight:bold;margin-bottom:6px">+ קבוצה חדשה</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px">
+          <div style="background:white;border:1px solid #e5e7eb;border-radius:5px;padding:4px 6px;font-size:9px;color:#9ca3af">סוג שיעור ▼</div>
+          <div style="background:white;border:1px solid #e5e7eb;border-radius:5px;padding:4px 6px;font-size:9px;color:#9ca3af">שם קבוצה</div>
+          <div style="background:white;border:1px solid #e5e7eb;border-radius:5px;padding:4px 6px;font-size:9px;color:#9ca3af">יום ▼</div>
+          <div style="background:white;border:1px solid #e5e7eb;border-radius:5px;padding:4px 6px;font-size:9px;color:#9ca3af">שעה</div>
+        </div>
+        <div style="background:#0d9488;color:white;border-radius:5px;padding:3px;text-align:center;font-size:9px;margin-top:4px">שמור</div>
+      </div>
+      <!-- Existing group -->
+      <div style="background:white;border:1px solid #e5e7eb;border-radius:6px;padding:5px 8px;font-size:9px;display:flex;gap:6px;align-items:center">
+        <div style="flex:1"><div style="font-weight:bold;color:#0d9488">פרטני</div><div style="color:#6b7280">ג׳ 16:00</div></div>
+        <div style="background:#f3f4f6;border-radius:4px;padding:2px 5px;font-size:8px">✏️</div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>B — Inline בתוך הלשונית</h3>
+      <p>הטופס מופיע ישירות בתוך לשונית "קבוצות" — ללא פתיחת מודל נפרד</p>
+    </div>
+  </div>
+
+</div>

@@ -20,12 +20,12 @@ export interface GroupFormData {
   students: { name: string; instrument?: string; parentPhone?: string }[]
 }
 
-export async function createGroupForTeacher(teacherId: string, data: GroupFormData) {
-  if (!UUID_RE.test(teacherId)) throw new Error('מזהה מורה לא תקין')
-  if (!data.name.trim()) throw new Error('שם קבוצה נדרש')
-  if (!VALID_TYPES.includes(data.lessonType)) throw new Error('סוג שיעור לא תקין')
-  if (data.dayOfWeek < 0 || data.dayOfWeek > 5) throw new Error('יום לא תקין')
-  if (!data.startTime) throw new Error('שעת התחלה נדרשת')
+export async function createGroupForTeacher(teacherId: string, data: GroupFormData): Promise<{ error?: string }> {
+  if (!UUID_RE.test(teacherId)) return { error: 'מזהה מורה לא תקין' }
+  if (!data.name.trim()) return { error: 'שם קבוצה נדרש' }
+  if (!VALID_TYPES.includes(data.lessonType)) return { error: 'סוג שיעור לא תקין' }
+  if (data.dayOfWeek < 0 || data.dayOfWeek > 5) return { error: 'יום לא תקין' }
+  if (!data.startTime) return { error: 'שעת התחלה נדרשת' }
 
   await requireAdmin()
   const supabase = createAdminClient()
@@ -41,7 +41,10 @@ export async function createGroupForTeacher(teacherId: string, data: GroupFormDa
     .select('id')
     .single()
 
-  if (groupError || !group) throw new Error('שגיאה ביצירת הקבוצה')
+  if (groupError || !group) {
+    console.error('createGroup error:', groupError)
+    return { error: `שגיאה ביצירת הקבוצה: ${groupError?.message ?? 'unknown'}` }
+  }
 
   const { error: schedError } = await supabase
     .from('group_schedules')
@@ -52,7 +55,10 @@ export async function createGroupForTeacher(teacherId: string, data: GroupFormDa
       end_time: data.endTime ?? null,
     })
 
-  if (schedError) throw new Error('שגיאה בשמירת המועד')
+  if (schedError) {
+    console.error('createSchedule error:', schedError)
+    return { error: `שגיאה בשמירת המועד: ${schedError.message}` }
+  }
 
   if (data.students.length > 0) {
     const { error: studError } = await supabase
@@ -64,16 +70,20 @@ export async function createGroupForTeacher(teacherId: string, data: GroupFormDa
         parent_phone: s.parentPhone?.trim() || null,
         is_active: true,
       })))
-    if (studError) throw new Error('שגיאה בהוספת תלמידים')
+    if (studError) {
+      console.error('createStudents error:', studError)
+      return { error: `שגיאה בהוספת תלמידים: ${studError.message}` }
+    }
   }
 
   revalidatePath(`/admin/teachers/${teacherId}`)
+  return {}
 }
 
-export async function updateGroup(groupId: string, teacherId: string, data: GroupFormData) {
-  if (!UUID_RE.test(groupId)) throw new Error('מזהה קבוצה לא תקין')
-  if (!data.name.trim()) throw new Error('שם קבוצה נדרש')
-  if (!VALID_TYPES.includes(data.lessonType)) throw new Error('סוג שיעור לא תקין')
+export async function updateGroup(groupId: string, teacherId: string, data: GroupFormData): Promise<{ error?: string }> {
+  if (!UUID_RE.test(groupId)) return { error: 'מזהה קבוצה לא תקין' }
+  if (!data.name.trim()) return { error: 'שם קבוצה נדרש' }
+  if (!VALID_TYPES.includes(data.lessonType)) return { error: 'סוג שיעור לא תקין' }
 
   await requireAdmin()
   const supabase = createAdminClient()
@@ -83,7 +93,10 @@ export async function updateGroup(groupId: string, teacherId: string, data: Grou
     .update({ name: data.name.trim(), lesson_type: data.lessonType })
     .eq('id', groupId)
 
-  if (groupError) throw new Error('שגיאה בעדכון הקבוצה')
+  if (groupError) {
+    console.error('updateGroup error:', groupError)
+    return { error: `שגיאה בעדכון הקבוצה: ${groupError.message}` }
+  }
 
   await supabase.from('group_schedules').delete().eq('group_id', groupId)
   const { error: schedError } = await supabase
@@ -95,23 +108,31 @@ export async function updateGroup(groupId: string, teacherId: string, data: Grou
       end_time: data.endTime ?? null,
     })
 
-  if (schedError) throw new Error('שגיאה בעדכון המועד')
+  if (schedError) {
+    console.error('updateSchedule error:', schedError)
+    return { error: `שגיאה בעדכון המועד: ${schedError.message}` }
+  }
 
   revalidatePath(`/admin/teachers/${teacherId}`)
+  return {}
 }
 
-export async function deleteGroup(groupId: string, teacherId: string) {
-  if (!UUID_RE.test(groupId)) throw new Error('מזהה קבוצה לא תקין')
+export async function deleteGroup(groupId: string, teacherId: string): Promise<{ error?: string }> {
+  if (!UUID_RE.test(groupId)) return { error: 'מזהה קבוצה לא תקין' }
   await requireAdmin()
   const supabase = createAdminClient()
   const { error } = await supabase.from('groups').delete().eq('id', groupId)
-  if (error) throw new Error('שגיאה במחיקת הקבוצה')
+  if (error) {
+    console.error('deleteGroup error:', error)
+    return { error: `שגיאה במחיקת הקבוצה: ${error.message}` }
+  }
   revalidatePath(`/admin/teachers/${teacherId}`)
+  return {}
 }
 
-export async function addStudentToGroup(groupId: string, teacherId: string, student: { name: string; instrument?: string; parentPhone?: string }) {
-  if (!UUID_RE.test(groupId)) throw new Error('מזהה קבוצה לא תקין')
-  if (!student.name.trim()) throw new Error('שם תלמיד נדרש')
+export async function addStudentToGroup(groupId: string, teacherId: string, student: { name: string; instrument?: string; parentPhone?: string }): Promise<{ error?: string }> {
+  if (!UUID_RE.test(groupId)) return { error: 'מזהה קבוצה לא תקין' }
+  if (!student.name.trim()) return { error: 'שם תלמיד נדרש' }
   await requireAdmin()
   const supabase = createAdminClient()
   const { error } = await supabase.from('students').insert({
@@ -121,15 +142,23 @@ export async function addStudentToGroup(groupId: string, teacherId: string, stud
     parent_phone: student.parentPhone?.trim() || null,
     is_active: true,
   })
-  if (error) throw new Error('שגיאה בהוספת תלמיד')
+  if (error) {
+    console.error('addStudent error:', error)
+    return { error: `שגיאה בהוספת תלמיד: ${error.message}` }
+  }
   revalidatePath(`/admin/teachers/${teacherId}`)
+  return {}
 }
 
-export async function removeStudentFromGroup(studentId: string, teacherId: string) {
-  if (!UUID_RE.test(studentId)) throw new Error('מזהה תלמיד לא תקין')
+export async function removeStudentFromGroup(studentId: string, teacherId: string): Promise<{ error?: string }> {
+  if (!UUID_RE.test(studentId)) return { error: 'מזהה תלמיד לא תקין' }
   await requireAdmin()
   const supabase = createAdminClient()
   const { error } = await supabase.from('students').delete().eq('id', studentId)
-  if (error) throw new Error('שגיאה במחיקת תלמיד')
+  if (error) {
+    console.error('removeStudent error:', error)
+    return { error: `שגיאה במחיקת תלמיד: ${error.message}` }
+  }
   revalidatePath(`/admin/teachers/${teacherId}`)
+  return {}
 }

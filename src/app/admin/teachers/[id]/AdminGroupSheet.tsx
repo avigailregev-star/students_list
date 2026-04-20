@@ -50,26 +50,25 @@ export default function AdminGroupSheet({ teacherId, group, isOpen, onClose }: P
     setError(null)
     const data = { name, lessonType, dayOfWeek, startTime, endTime: endTime || undefined, students: pendingStudents }
     startTransition(async () => {
-      try {
-        if (isEdit) {
-          await updateGroup(group.id, teacherId, { ...data, students: [] })
-          for (const s of pendingStudents) {
-            await addStudentToGroup(group.id, teacherId, s)
-          }
-        } else {
-          await createGroupForTeacher(teacherId, data)
+      if (isEdit) {
+        const res = await updateGroup(group.id, teacherId, { ...data, students: [] })
+        if (res.error) { setError(res.error); return }
+        for (const s of pendingStudents) {
+          const r = await addStudentToGroup(group.id, teacherId, s)
+          if (r.error) { setError(r.error); return }
         }
-        onClose()
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'שגיאה בשמירה')
+      } else {
+        const res = await createGroupForTeacher(teacherId, data)
+        if (res.error) { setError(res.error); return }
       }
+      onClose()
     })
   }
 
   function handleRemoveExistingStudent(studentId: string) {
     startTransition(async () => {
-      try { await removeStudentFromGroup(studentId, teacherId) }
-      catch (err) { setError(err instanceof Error ? err.message : 'שגיאה במחיקת תלמיד') }
+      const res = await removeStudentFromGroup(studentId, teacherId)
+      if (res.error) setError(res.error)
     })
   }
 
