@@ -48,7 +48,11 @@ export default function AdminGroupSheet({ teacherId, group, isOpen, onClose }: P
 
   function handleSave() {
     setError(null)
-    const data = { name, lessonType, dayOfWeek, startTime, endTime: endTime || undefined, students: pendingStudents }
+    // Auto-add any student typed but not yet confirmed
+    const allStudents = newStudentName.trim()
+      ? [...pendingStudents, { id: Date.now(), name: newStudentName.trim(), instrument: newStudentInstrument.trim(), parentPhone: newStudentPhone.trim() }]
+      : pendingStudents
+    const data = { name, lessonType, dayOfWeek, startTime, endTime: endTime || undefined, students: allStudents }
     startTransition(async () => {
       if (isEdit) {
         const res = await updateGroup(group.id, teacherId, { ...data, students: [] })
