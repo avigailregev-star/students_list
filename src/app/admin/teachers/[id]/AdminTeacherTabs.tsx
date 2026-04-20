@@ -65,7 +65,7 @@ export default function AdminTeacherTabs({ teacherId, groups, completedLessons, 
             const cfg = LESSON_TYPE_CONFIG[g.lesson_type]
             const schedule = g.group_schedules?.[0]
             return (
-              <div key={g.id} className="bg-white rounded-2xl shadow-sm px-4 py-3 flex items-center gap-3">
+              <div key={g.id} onClick={() => openEdit(g)} className="bg-white rounded-2xl shadow-sm px-4 py-3 flex items-center gap-3 cursor-pointer active:bg-gray-50">
                 <div className={`w-9 h-9 rounded-xl flex items-center justify-center text-white font-bold text-sm shrink-0 ${cfg?.bg ?? 'bg-gray-400'}`}>
                   {g.name.charAt(0)}
                 </div>
@@ -78,7 +78,7 @@ export default function AdminTeacherTabs({ teacherId, groups, completedLessons, 
                   </p>
                 </div>
                 <button
-                  onClick={() => openEdit(g)}
+                  onClick={e => { e.stopPropagation(); openEdit(g) }}
                   aria-label="ערוך קבוצה"
                   className="w-8 h-8 rounded-xl bg-gray-100 hover:bg-teal-50 flex items-center justify-center text-gray-500 hover:text-teal-600 shrink-0"
                 >
@@ -88,7 +88,7 @@ export default function AdminTeacherTabs({ teacherId, groups, completedLessons, 
                   </svg>
                 </button>
                 <button
-                  onClick={() => handleDelete(g.id)}
+                  onClick={e => { e.stopPropagation(); handleDelete(g.id) }}
                   disabled={isPending}
                   aria-label="מחק קבוצה"
                   className="w-8 h-8 rounded-xl bg-gray-100 hover:bg-red-50 flex items-center justify-center text-gray-400 hover:text-red-500 shrink-0 disabled:opacity-40"
