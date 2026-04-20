@@ -2,6 +2,7 @@
 
 import { revalidatePath } from 'next/cache'
 import { requireAdmin } from '@/lib/auth'
+import { createAdminClient } from '@/lib/supabase/admin'
 import type { LessonType } from '@/types/database'
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
@@ -26,7 +27,8 @@ export async function createGroupForTeacher(teacherId: string, data: GroupFormDa
   if (data.dayOfWeek < 0 || data.dayOfWeek > 5) throw new Error('יום לא תקין')
   if (!data.startTime) throw new Error('שעת התחלה נדרשת')
 
-  const { supabase } = await requireAdmin()
+  await requireAdmin()
+  const supabase = createAdminClient()
 
   const { data: group, error: groupError } = await supabase
     .from('groups')
@@ -73,7 +75,8 @@ export async function updateGroup(groupId: string, teacherId: string, data: Grou
   if (!data.name.trim()) throw new Error('שם קבוצה נדרש')
   if (!VALID_TYPES.includes(data.lessonType)) throw new Error('סוג שיעור לא תקין')
 
-  const { supabase } = await requireAdmin()
+  await requireAdmin()
+  const supabase = createAdminClient()
 
   const { error: groupError } = await supabase
     .from('groups')
@@ -82,7 +85,6 @@ export async function updateGroup(groupId: string, teacherId: string, data: Grou
 
   if (groupError) throw new Error('שגיאה בעדכון הקבוצה')
 
-  // Replace schedule: delete existing, insert new
   await supabase.from('group_schedules').delete().eq('group_id', groupId)
   const { error: schedError } = await supabase
     .from('group_schedules')
@@ -100,7 +102,8 @@ export async function updateGroup(groupId: string, teacherId: string, data: Grou
 
 export async function deleteGroup(groupId: string, teacherId: string) {
   if (!UUID_RE.test(groupId)) throw new Error('מזהה קבוצה לא תקין')
-  const { supabase } = await requireAdmin()
+  await requireAdmin()
+  const supabase = createAdminClient()
   const { error } = await supabase.from('groups').delete().eq('id', groupId)
   if (error) throw new Error('שגיאה במחיקת הקבוצה')
   revalidatePath(`/admin/teachers/${teacherId}`)
@@ -109,7 +112,8 @@ export async function deleteGroup(groupId: string, teacherId: string) {
 export async function addStudentToGroup(groupId: string, teacherId: string, student: { name: string; instrument?: string; parentPhone?: string }) {
   if (!UUID_RE.test(groupId)) throw new Error('מזהה קבוצה לא תקין')
   if (!student.name.trim()) throw new Error('שם תלמיד נדרש')
-  const { supabase } = await requireAdmin()
+  await requireAdmin()
+  const supabase = createAdminClient()
   const { error } = await supabase.from('students').insert({
     group_id: groupId,
     name: student.name.trim(),
@@ -123,7 +127,8 @@ export async function addStudentToGroup(groupId: string, teacherId: string, stud
 
 export async function removeStudentFromGroup(studentId: string, teacherId: string) {
   if (!UUID_RE.test(studentId)) throw new Error('מזהה תלמיד לא תקין')
-  const { supabase } = await requireAdmin()
+  await requireAdmin()
+  const supabase = createAdminClient()
   const { error } = await supabase.from('students').delete().eq('id', studentId)
   if (error) throw new Error('שגיאה במחיקת תלמיד')
   revalidatePath(`/admin/teachers/${teacherId}`)

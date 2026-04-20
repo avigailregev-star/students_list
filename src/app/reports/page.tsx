@@ -33,8 +33,15 @@ export default async function ReportsPage() {
     return (
       <div className="min-h-screen bg-gray-50 flex flex-col">
         <div className="bg-gradient-to-bl from-teal-400 to-teal-600 text-white rounded-b-[36px] shadow-lg shadow-teal-200 px-5 pt-8 pb-6">
-          <p className="text-xs font-semibold text-teal-100 uppercase tracking-widest mb-1">סטטיסטיקות</p>
-          <h1 className="text-2xl font-bold">דוחות נוכחות</h1>
+          <div className="flex items-center gap-3">
+            <Link href="/" className="w-9 h-9 rounded-2xl bg-white/20 flex items-center justify-center shrink-0">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+            </Link>
+            <div>
+              <p className="text-xs font-semibold text-teal-100 uppercase tracking-widest mb-1">סטטיסטיקות</p>
+              <h1 className="text-2xl font-bold">דוחות נוכחות</h1>
+            </div>
+          </div>
         </div>
         <div className="flex-1 flex items-center justify-center flex-col gap-3 text-gray-400">
           <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
@@ -43,9 +50,6 @@ export default async function ReportsPage() {
             <line x1="6" y1="20" x2="6" y2="14" />
           </svg>
           <p className="text-sm">אין קבוצות עדיין</p>
-          <Link href="/groups/new" className="text-teal-600 font-bold text-sm hover:underline">
-            הוסף קבוצה ראשונה
-          </Link>
         </div>
       </div>
     )
@@ -104,9 +108,16 @@ export default async function ReportsPage() {
     <div className="min-h-screen bg-gray-50 flex flex-col pb-24 print:bg-white print:pb-0">
       {/* Header — hidden on print */}
       <div className="bg-gradient-to-bl from-teal-400 to-teal-600 text-white rounded-b-[36px] shadow-lg shadow-teal-200 px-5 pt-8 pb-6 print:hidden">
-        <p className="text-xs font-semibold text-teal-100 uppercase tracking-widest mb-1">סטטיסטיקות</p>
-        <h1 className="text-2xl font-bold">דוחות נוכחות</h1>
-        <p className="text-sm text-teal-100 mt-0.5">{groups.length} קבוצות</p>
+        <div className="flex items-center gap-3 mb-1">
+          <Link href="/" className="w-9 h-9 rounded-2xl bg-white/20 flex items-center justify-center shrink-0">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+          </Link>
+          <div>
+            <p className="text-xs font-semibold text-teal-100 uppercase tracking-widest">סטטיסטיקות</p>
+            <h1 className="text-2xl font-bold">דוחות נוכחות</h1>
+          </div>
+        </div>
+        <p className="text-sm text-teal-100 mt-0.5 mr-12">{groups.length} קבוצות</p>
         <ExportButtons reportData={reportData} month={monthLabel} />
       </div>
 
