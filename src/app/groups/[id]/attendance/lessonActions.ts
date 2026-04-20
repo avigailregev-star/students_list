@@ -12,6 +12,7 @@ export async function cancelLesson(formData: FormData) {
   const lessonId = formData.get('lesson_id') as string
   const reason = formData.get('reason') as string
   const isSickLeave = formData.get('is_sick_leave') === 'true'
+  const documentUrl = formData.get('document_url') as string | null
 
   const { error } = await supabase
     .from('lessons')
@@ -20,6 +21,7 @@ export async function cancelLesson(formData: FormData) {
       teacher_absence_reason: reason,
       is_sick_leave: isSickLeave,
       admin_approval_status: isSickLeave ? 'pending' : null,
+      sick_leave_document_url: documentUrl || null,
     })
     .eq('id', lessonId)
 

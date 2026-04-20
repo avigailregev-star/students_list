@@ -1,6 +1,7 @@
 'use client'
 
-import { useState, useTransition } from 'react'
+import { useState, useTransition, useRef } from 'react'
+import { createClient } from '@/lib/supabase/client'
 import { cancelLesson, restoreLesson } from './lessonActions'
 
 const REASONS = [
@@ -22,7 +23,11 @@ export default function CancelLessonButton({ lessonId, isCanceled, cancelReason,
   const [open, setOpen] = useState(false)
   const [reason, setReason] = useState(REASONS[0])
   const [sickLeave, setSickLeave] = useState(false)
+  const [file, setFile] = useState<File | null>(null)
+  const [uploading, setUploading] = useState(false)
+  const [uploadError, setUploadError] = useState<string | null>(null)
   const [isPending, startTransition] = useTransition()
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   if (isCanceled) {
     return (
@@ -49,6 +54,42 @@ export default function CancelLessonButton({ lessonId, isCanceled, cancelReason,
     )
   }
 
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault()
+    setUploadError(null)
+
+    let documentUrl: string | null = null
+
+    if (sickLeave && file) {
+      setUploading(true)
+      try {
+        const supabase = createClient()
+        const ext = file.name.split('.').pop()
+        const path = `${lessonId}-${Date.now()}.${ext}`
+        const { error } = await supabase.storage.from('sick-leave').upload(path, file)
+        if (error) throw error
+        const { data: urlData } = supabase.storage.from('sick-leave').getPublicUrl(path)
+        documentUrl = urlData.publicUrl
+      } catch {
+        setUploadError('שגיאה בהעלאת הקובץ, נסי שוב')
+        setUploading(false)
+        return
+      }
+      setUploading(false)
+    }
+
+    const fd = new FormData()
+    fd.set('lesson_id', lessonId)
+    fd.set('reason', reason)
+    fd.set('is_sick_leave', String(sickLeave))
+    if (documentUrl) fd.set('document_url', documentUrl)
+
+    startTransition(async () => {
+      await cancelLesson(fd)
+      setOpen(false)
+    })
+  }
+
   return (
     <>
       <button
@@ -61,26 +102,13 @@ export default function CancelLessonButton({ lessonId, isCanceled, cancelReason,
       {open && (
         <div className="fixed inset-0 bg-black/40 z-50 flex items-end" onClick={() => setOpen(false)}>
           <div
-            className="bg-white w-full rounded-t-3xl p-5 pb-8"
+            className="bg-white w-full rounded-t-3xl p-5 pb-8 max-h-[90dvh] overflow-y-auto"
             onClick={e => e.stopPropagation()}
           >
             <div className="w-10 h-1 bg-gray-200 rounded-full mx-auto mb-5" />
             <h2 className="text-lg font-bold text-gray-900 mb-4">ביטול שיעור</h2>
 
-            <form
-              onSubmit={e => {
-                e.preventDefault()
-                const fd = new FormData()
-                fd.set('lesson_id', lessonId)
-                fd.set('reason', reason)
-                fd.set('is_sick_leave', String(sickLeave))
-                startTransition(async () => {
-                  await cancelLesson(fd)
-                  setOpen(false)
-                })
-              }}
-              className="flex flex-col gap-4"
-            >
+            <form onSubmit={handleSubmit} className="flex flex-col gap-4">
               <div>
                 <label className="block text-sm font-semibold text-gray-700 mb-2">סיבת הביטול</label>
                 <div className="flex flex-col gap-2">
@@ -105,36 +133,79 @@ export default function CancelLessonButton({ lessonId, isCanceled, cancelReason,
               </div>
 
               {reason === 'מחלה' && (
-                <button
-                  type="button"
-                  onClick={() => setSickLeave(v => !v)}
-                  className={`flex items-center gap-3 px-4 py-3 rounded-2xl border-2 transition-colors text-right ${
-                    sickLeave ? 'border-amber-400 bg-amber-50' : 'border-gray-100 bg-gray-50'
-                  }`}
-                >
-                  <div className={`w-5 h-5 rounded-md border-2 flex items-center justify-center shrink-0 ${
-                    sickLeave ? 'border-amber-500 bg-amber-500' : 'border-gray-300'
-                  }`}>
-                    {sickLeave && (
-                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-                        <polyline points="20 6 9 17 4 12"/>
+                <div className="flex flex-col gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setSickLeave(v => !v)}
+                    className={`flex items-center gap-3 px-4 py-3 rounded-2xl border-2 transition-colors text-right ${
+                      sickLeave ? 'border-amber-400 bg-amber-50' : 'border-gray-100 bg-gray-50'
+                    }`}
+                  >
+                    <div className={`w-5 h-5 rounded-md border-2 flex items-center justify-center shrink-0 ${
+                      sickLeave ? 'border-amber-500 bg-amber-500' : 'border-gray-300'
+                    }`}>
+                      {sickLeave && (
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                          <polyline points="20 6 9 17 4 12"/>
+                        </svg>
+                      )}
+                    </div>
+                    <div>
+                      <p className="text-sm font-bold text-gray-800">הגש בקשת אישור מחלה</p>
+                      <p className="text-xs text-gray-400">יישלח למנהל/ת לאישור</p>
+                    </div>
+                  </button>
+
+                  {sickLeave && (
+                    <div
+                      className="flex items-center gap-3 px-4 py-3 rounded-2xl border-2 border-dashed border-gray-200 bg-gray-50 cursor-pointer"
+                      onClick={() => fileInputRef.current?.click()}
+                    >
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                        <polyline points="17 8 12 3 7 8"/>
+                        <line x1="12" y1="3" x2="12" y2="15"/>
                       </svg>
-                    )}
-                  </div>
-                  <div>
-                    <p className="text-sm font-bold text-gray-800">הגש בקשת אישור מחלה</p>
-                    <p className="text-xs text-gray-400">יישלח למנהל/ת לאישור</p>
-                  </div>
-                </button>
+                      <div className="flex-1">
+                        <p className="text-sm font-semibold text-gray-700">
+                          {file ? file.name : 'העלה תמונה או קובץ אישור'}
+                        </p>
+                        <p className="text-xs text-gray-400">תמונה, PDF (אופציונלי)</p>
+                      </div>
+                      {file && (
+                        <button
+                          type="button"
+                          onClick={e => { e.stopPropagation(); setFile(null) }}
+                          className="text-gray-400 hover:text-red-400"
+                        >
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                            <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                          </svg>
+                        </button>
+                      )}
+                      <input
+                        ref={fileInputRef}
+                        type="file"
+                        accept="image/*,.pdf"
+                        className="hidden"
+                        onChange={e => setFile(e.target.files?.[0] ?? null)}
+                      />
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {uploadError && (
+                <p className="text-sm text-red-500 text-right">{uploadError}</p>
               )}
 
               <div className="flex gap-2 mt-1">
                 <button
                   type="submit"
-                  disabled={isPending}
+                  disabled={isPending || uploading}
                   className="flex-1 bg-red-500 text-white font-bold py-3 rounded-2xl hover:bg-red-600 transition-colors disabled:opacity-60 text-sm"
                 >
-                  {isPending ? '...' : 'אשר ביטול'}
+                  {uploading ? 'מעלה קובץ...' : isPending ? '...' : 'אשר ביטול'}
                 </button>
                 <button
                   type="button"
