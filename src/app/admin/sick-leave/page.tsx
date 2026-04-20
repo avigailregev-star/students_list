@@ -11,7 +11,7 @@ export default async function AdminSickLeavePage() {
   // Fetch all sick leave lessons with group+teacher info
   const { data: lessons } = await supabase
     .from('lessons')
-    .select('id, date, teacher_absence_reason, admin_approval_status, groups(name, teacher_id, teachers(name))')
+    .select('id, date, teacher_absence_reason, admin_approval_status, sick_leave_document_url, groups(name, teacher_id, teachers(name))')
     .eq('is_sick_leave', true)
     .order('date', { ascending: false })
 
@@ -22,6 +22,8 @@ export default async function AdminSickLeavePage() {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const group = (lesson.groups as any) as { name: string; teacher_id: string; teachers: { name: string } | null } | null
     const date = new Date(lesson.date + 'T12:00:00')
+    const docUrl = (lesson as any).sick_leave_document_url as string | null
+    const isImage = docUrl && /\.(jpg|jpeg|png|gif|webp)$/i.test(docUrl)
     return (
       <div className="bg-white rounded-2xl shadow-sm px-4 py-3.5">
         <div className="flex items-start justify-between gap-2">
@@ -41,6 +43,22 @@ export default async function AdminSickLeavePage() {
              lesson.admin_approval_status === 'rejected' ? 'נדחה' : 'ממתין'}
           </span>
         </div>
+        {docUrl && (
+          <div className="mt-3">
+            {isImage ? (
+              <a href={docUrl} target="_blank" rel="noopener noreferrer">
+                <img src={docUrl} alt="אישור מחלה" className="max-h-48 rounded-xl border border-gray-100 object-contain" />
+              </a>
+            ) : (
+              <a href={docUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-teal-600 text-sm font-semibold hover:underline">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/>
+                </svg>
+                פתח אישור מחלה
+              </a>
+            )}
+          </div>
+        )}
         {showActions && <ApprovalButtons lessonId={lesson.id} />}
       </div>
     )
