@@ -141,6 +141,17 @@ export async function deleteGroup(groupId: string, teacherId: string): Promise<{
     if (!UUID_RE.test(groupId)) return { error: 'מזהה קבוצה לא תקין' }
     await requireAdmin()
     const supabase = createAdminClient()
+
+    // Delete dependents first to avoid FK violations
+    const { data: lessons } = await supabase.from('lessons').select('id').eq('group_id', groupId)
+    if (lessons && lessons.length > 0) {
+      const lessonIds = lessons.map(l => l.id)
+      await supabase.from('attendance').delete().in('lesson_id', lessonIds)
+    }
+    await supabase.from('lessons').delete().eq('group_id', groupId)
+    await supabase.from('students').delete().eq('group_id', groupId)
+    await supabase.from('group_schedules').delete().eq('group_id', groupId)
+
     const { error } = await supabase.from('groups').delete().eq('id', groupId)
     if (error) {
       console.error('deleteGroup error:', error)
