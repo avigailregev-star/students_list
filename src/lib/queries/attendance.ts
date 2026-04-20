@@ -57,6 +57,6 @@ export async function upsertAttendance(
     student_id: studentId,
     status,
     brought_instrument: broughtInstrument,
-  })
+  }, { onConflict: 'lesson_id,student_id' })
   if (error) throw error
 }
