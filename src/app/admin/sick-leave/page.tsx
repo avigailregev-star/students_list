@@ -2,9 +2,11 @@ import Link from 'next/link'
 import { formatDateHe } from '@/lib/utils/hebrew'
 import ApprovalButtons from './ApprovalButtons'
 import { requireAdmin } from '@/lib/auth'
+import { createAdminClient } from '@/lib/supabase/admin'
 
 export default async function AdminSickLeavePage() {
-  const { supabase } = await requireAdmin()
+  await requireAdmin()
+  const supabase = createAdminClient()
 
   // Fetch all sick leave lessons with group+teacher info
   const { data: lessons } = await supabase
