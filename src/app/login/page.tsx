@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
+import { transferTeacherGroups } from './actions'
 
 type Mode = 'login' | 'signup' | 'forgot'
 
@@ -68,6 +69,8 @@ export default function LoginPage() {
           // Remove orphan record so we can insert with the correct auth ID
           if (existingId) {
             await supabase.from('teachers').delete().eq('id', existingId)
+            // Reassign groups the admin created under the old ID to the new auth UID
+            await transferTeacherGroups(existingId, data.user.id)
           }
 
           const { error: insertError } = await supabase.from('teachers').insert({ id: data.user.id, name, email })

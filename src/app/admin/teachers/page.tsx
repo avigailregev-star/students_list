@@ -1,8 +1,10 @@
 import Link from 'next/link'
 import { requireAdmin } from '@/lib/auth'
+import { createAdminClient } from '@/lib/supabase/admin'
 
 export default async function AdminTeachersPage() {
-  const { supabase } = await requireAdmin()
+  await requireAdmin()
+  const supabase = createAdminClient()
 
   // Fetch all teachers with group counts
   const { data: teachers } = await supabase
