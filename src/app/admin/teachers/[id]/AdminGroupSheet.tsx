@@ -57,7 +57,7 @@ export default function AdminGroupSheet({ teacherId, group, isOpen, onClose }: P
       if (isEdit) {
         const res = await updateGroup(group.id, teacherId, { ...data, students: [] })
         if (res.error) { setError(res.error); return }
-        for (const s of pendingStudents) {
+        for (const s of allStudents) {
           const r = await addStudentToGroup(group.id, teacherId, s)
           if (r.error) { setError(r.error); return }
         }
