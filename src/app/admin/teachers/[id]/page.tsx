@@ -3,13 +3,15 @@ import Link from 'next/link'
 import EditTeacherForm from './EditTeacherForm'
 import AdminTeacherTabs from './AdminTeacherTabs'
 import { requireAdmin } from '@/lib/auth'
+import { createAdminClient } from '@/lib/supabase/admin'
 import type { GroupWithSchedulesAndStudents } from '@/types/database'
 
 interface Props { params: Promise<{ id: string }> }
 
 export default async function TeacherDetailPage({ params }: Props) {
   const { id } = await params
-  const { supabase } = await requireAdmin()
+  await requireAdmin()
+  const supabase = createAdminClient()
 
   const { data: teacher } = await supabase
     .from('teachers')
