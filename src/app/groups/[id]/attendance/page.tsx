@@ -5,7 +5,7 @@ import { getStudentsByGroup } from '@/lib/queries/students'
 import { getOrCreateLesson, getAttendanceForLesson } from '@/lib/queries/attendance'
 import AttendanceSection from '@/components/attendance/AttendanceSection'
 import CancelLessonButton from './CancelLessonButton'
-import { getNextLessonDate, isHolidayDate } from '@/lib/utils/schedule'
+import { getLastLessonDate, isHolidayDate } from '@/lib/utils/schedule'
 import { formatDateHe } from '@/lib/utils/hebrew'
 import type { Group, GroupSchedule, Holiday, AttendanceStatus, Lesson } from '@/types/database'
 
@@ -33,7 +33,7 @@ export default async function AttendancePage({ params }: Props) {
   const { data: holidaysData } = await supabase.from('holidays').select('*')
   const holidays = (holidaysData ?? []) as Holiday[]
 
-  const lessonDate = getNextLessonDate(typedGroup.group_schedules) ?? new Date()
+  const lessonDate = getLastLessonDate(typedGroup.group_schedules) ?? new Date()
   const holidayCheck = isHolidayDate(lessonDate, holidays)
 
   const matchingSchedule = typedGroup.group_schedules.find(

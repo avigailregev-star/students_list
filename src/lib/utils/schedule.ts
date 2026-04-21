@@ -25,6 +25,28 @@ export function getNextLessonDate(schedules: GroupSchedule[], from: Date = new D
 }
 
 /**
+ * Returns the most recent past lesson date (or today if today is a lesson day).
+ * Used for the attendance page so teachers mark the lesson that already happened.
+ */
+export function getLastLessonDate(schedules: GroupSchedule[], from: Date = new Date()): Date | null {
+  if (schedules.length === 0) return null
+  const base = new Date(from)
+  base.setHours(0, 0, 0, 0)
+  const current = base.getDay()
+
+  const candidates = schedules.map(s => {
+    const date = new Date(base)
+    const backDiff = (current - s.day_of_week + 7) % 7
+    date.setDate(date.getDate() - backDiff)
+    return date
+  })
+
+  // Return the most recent one (closest to today going backward)
+  candidates.sort((a, b) => b.getTime() - a.getTime())
+  return candidates[0]
+}
+
+/**
  * Checks if a date is a holiday (Friday, Saturday, or exists in holidays list).
  */
 export function isHolidayDate(
