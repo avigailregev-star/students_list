@@ -10,24 +10,15 @@ export async function getOrCreateLesson(
 ): Promise<Lesson> {
   const supabase = await createClient()
 
-  const { data: existing } = await supabase
-    .from('lessons')
-    .select('*')
-    .eq('group_id', groupId)
-    .eq('date', date)
-    .single()
-
-  if (existing) return existing as Lesson
-
   const { data, error } = await supabase
     .from('lessons')
-    .insert({
+    .upsert({
       group_id: groupId,
       date,
       start_time: startTime,
       is_holiday: isHoliday,
       holiday_name: holidayName ?? null,
-    })
+    }, { onConflict: 'group_id,date,start_time', ignoreDuplicates: false })
     .select()
     .single()
 
