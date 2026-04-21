@@ -20,7 +20,7 @@ export async function POST(request: Request) {
       student_id: studentId,
       status,
       brought_instrument: broughtInstrument,
-    })
+    }, { onConflict: 'lesson_id,student_id' })
 
     if (error) return NextResponse.json({ error: error.message }, { status: 500 })
     return NextResponse.json({ ok: true })

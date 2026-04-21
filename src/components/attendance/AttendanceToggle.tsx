@@ -9,6 +9,7 @@ interface Props {
   studentName: string
   initialStatus: AttendanceStatus | null
   initialBrought: boolean
+  onStatusChange?: (status: AttendanceStatus | null) => void
 }
 
 export default function AttendanceToggle({
@@ -17,6 +18,7 @@ export default function AttendanceToggle({
   studentName,
   initialStatus,
   initialBrought,
+  onStatusChange,
 }: Props) {
   const [status, setStatus] = useState<AttendanceStatus | null>(initialStatus)
   const [brought, setBrought] = useState(initialBrought)
@@ -43,6 +45,7 @@ export default function AttendanceToggle({
     const next = status === newStatus ? null : newStatus
     setStatus(next)
     setSaved(false)
+    onStatusChange?.(next)
     save(next, brought)
   }
 
