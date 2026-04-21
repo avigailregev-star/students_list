@@ -18,6 +18,9 @@ export default async function GroupDetailPage({ params }: Props) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
+  const { data: teacher } = await supabase.from('teachers').select('role').eq('id', user.id).single()
+  const isAdmin = teacher?.role === 'admin'
+
   const { data: group, error } = await supabase
     .from('groups')
     .select('*, group_schedules(*)')
@@ -56,7 +59,7 @@ export default async function GroupDetailPage({ params }: Props) {
               )}
             </p>
           </div>
-          <DeleteGroupButton groupId={typedGroup.id} groupName={typedGroup.name} />
+          {isAdmin && <DeleteGroupButton groupId={typedGroup.id} groupName={typedGroup.name} />}
         </div>
 
         {/* Schedule badges */}
@@ -94,7 +97,7 @@ export default async function GroupDetailPage({ params }: Props) {
         {/* Section title */}
         <h2 className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">תלמידים</h2>
 
-        <StudentList students={students} groupId={id} />
+        <StudentList students={students} groupId={id} readOnly={!isAdmin} />
       </div>
     </div>
   )
