@@ -7,7 +7,7 @@ import AttendanceSection from '@/components/attendance/AttendanceSection'
 import CancelLessonButton from './CancelLessonButton'
 import { getNextLessonDate, isHolidayDate } from '@/lib/utils/schedule'
 import { formatDateHe } from '@/lib/utils/hebrew'
-import type { Group, GroupSchedule, Holiday, Lesson } from '@/types/database'
+import type { Group, GroupSchedule, Holiday, AttendanceStatus, Lesson } from '@/types/database'
 
 interface Props {
   params: Promise<{ id: string }>
