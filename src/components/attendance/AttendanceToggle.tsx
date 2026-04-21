@@ -54,10 +54,12 @@ export default function AttendanceToggle({
 
   async function handleStatus(newStatus: AttendanceStatus) {
     const next = status === newStatus ? null : newStatus
+    const nextBrought = next === 'present' ? brought : false
+    if (next !== 'present') setBrought(false)
     setStatus(next)
     setSaved(false)
     onStatusChange?.(next)
-    save(next, brought)
+    save(next, nextBrought)
   }
 
   async function handleBrought() {

@@ -56,11 +56,12 @@ export default async function ReportsPage() {
   }
 
   const reportData: GroupWithData[] = []
+  const todayStr = new Date().toISOString().slice(0, 10)
 
   for (const group of groups as Group[]) {
     const [{ data: lessons }, { data: canceled }] = await Promise.all([
-      supabase.from('lessons').select('*').eq('group_id', group.id).eq('is_holiday', false).neq('status', 'teacher_canceled').order('date', { ascending: false }),
-      supabase.from('lessons').select('id, date').eq('group_id', group.id).eq('status', 'teacher_canceled').order('date', { ascending: false }),
+      supabase.from('lessons').select('*').eq('group_id', group.id).eq('is_holiday', false).neq('status', 'teacher_canceled').lte('date', todayStr).order('date', { ascending: false }),
+      supabase.from('lessons').select('id, date').eq('group_id', group.id).eq('status', 'teacher_canceled').lte('date', todayStr).order('date', { ascending: false }),
     ])
 
     const lessonList = (lessons ?? []) as Lesson[]
