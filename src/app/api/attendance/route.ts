@@ -22,7 +22,10 @@ export async function POST(request: Request) {
       brought_instrument: broughtInstrument,
     }, { onConflict: 'lesson_id,student_id' })
 
-    if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+    if (error) {
+      console.error('[attendance] upsert error:', error)
+      return NextResponse.json({ error: error.message }, { status: 500 })
+    }
     return NextResponse.json({ ok: true })
   } catch {
     return NextResponse.json({ error: 'Invalid request' }, { status: 400 })

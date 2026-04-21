@@ -24,20 +24,31 @@ export default function AttendanceToggle({
   const [brought, setBrought] = useState(initialBrought)
   const [isPending, startTransition] = useTransition()
   const [saved, setSaved] = useState(!!initialStatus)
+  const [saveError, setSaveError] = useState<string | null>(null)
 
   async function save(newStatus: AttendanceStatus | null, newBrought: boolean) {
+    setSaveError(null)
     startTransition(async () => {
-      const res = await fetch('/api/attendance', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          lessonId,
-          studentId,
-          status: newStatus ?? 'absent',
-          broughtInstrument: newBrought,
-        }),
-      })
-      if (res.ok) setSaved(true)
+      try {
+        const res = await fetch('/api/attendance', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            lessonId,
+            studentId,
+            status: newStatus ?? 'absent',
+            broughtInstrument: newBrought,
+          }),
+        })
+        if (res.ok) {
+          setSaved(true)
+        } else {
+          const body = await res.json().catch(() => ({}))
+          setSaveError(body.error ?? `שגיאה ${res.status}`)
+        }
+      } catch {
+        setSaveError('שגיאת רשת')
+      }
     })
   }
 
@@ -73,7 +84,10 @@ export default function AttendanceToggle({
 
       <div className="flex-1 min-w-0">
         <p className="text-sm font-bold text-gray-800 truncate">{studentName}</p>
-        {saved && status && (
+        {saveError && (
+          <p className="text-[10px] text-red-500 font-semibold">{saveError}</p>
+        )}
+        {!saveError && saved && status && (
           <p className="text-[10px] text-emerald-500 font-semibold">נשמר</p>
         )}
       </div>
