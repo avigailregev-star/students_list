@@ -69,6 +69,7 @@ export type Lesson = {
   is_sick_leave: boolean
   admin_approval_status: AdminApprovalStatus | null
   sick_leave_document_url: string | null
+  cancellation_notes: string | null
   notes: string | null
   created_at: string
 }

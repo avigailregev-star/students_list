@@ -4,11 +4,15 @@ import { useState, useTransition, useRef } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { cancelLesson, restoreLesson } from './lessonActions'
 
+const ADVANCE_NOTICE_REASON = 'הודעה מראש מתלמיד'
+const ADVANCE_NOTICE_LIMIT = 2
+
 const REASONS = [
   'מחלה',
   'אירוע משפחתי',
   'הכשרה מקצועית',
   'חירום',
+  ADVANCE_NOTICE_REASON,
   'אחר',
 ]
 
@@ -16,18 +20,24 @@ interface Props {
   lessonId: string
   isCanceled: boolean
   cancelReason?: string | null
+  cancelNotes?: string | null
   isSickLeave?: boolean
+  advanceNoticeUsed: number
 }
 
-export default function CancelLessonButton({ lessonId, isCanceled, cancelReason, isSickLeave }: Props) {
+export default function CancelLessonButton({ lessonId, isCanceled, cancelReason, cancelNotes, isSickLeave, advanceNoticeUsed }: Props) {
   const [open, setOpen] = useState(false)
   const [reason, setReason] = useState(REASONS[0])
+  const [notes, setNotes] = useState('')
   const [sickLeave, setSickLeave] = useState(false)
   const [file, setFile] = useState<File | null>(null)
   const [uploading, setUploading] = useState(false)
   const [uploadError, setUploadError] = useState<string | null>(null)
   const [isPending, startTransition] = useTransition()
   const fileInputRef = useRef<HTMLInputElement>(null)
+
+  const advanceNoticeLeft = Math.max(0, ADVANCE_NOTICE_LIMIT - advanceNoticeUsed)
+  const advanceNoticeDisabled = advanceNoticeUsed >= ADVANCE_NOTICE_LIMIT
 
   if (isCanceled) {
     return (
@@ -41,6 +51,7 @@ export default function CancelLessonButton({ lessonId, isCanceled, cancelReason,
           <div className="flex-1">
             <p className="text-sm font-bold text-red-700">השיעור בוטל</p>
             <p className="text-xs text-red-400">{cancelReason}{isSickLeave ? ' · בקשת מחלה הוגשה' : ''}</p>
+            {cancelNotes && <p className="text-xs text-red-400 mt-0.5">"{cancelNotes}"</p>}
           </div>
           <button
             onClick={() => startTransition(() => restoreLesson(lessonId))}
@@ -81,6 +92,7 @@ export default function CancelLessonButton({ lessonId, isCanceled, cancelReason,
     const fd = new FormData()
     fd.set('lesson_id', lessonId)
     fd.set('reason', reason)
+    fd.set('notes', notes.trim())
     fd.set('is_sick_leave', String(sickLeave))
     if (documentUrl) fd.set('document_url', documentUrl)
 
@@ -109,29 +121,60 @@ export default function CancelLessonButton({ lessonId, isCanceled, cancelReason,
             <h2 className="text-lg font-bold text-gray-900 mb-4">ביטול שיעור</h2>
 
             <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+              {/* Reason type */}
               <div>
                 <label className="block text-sm font-semibold text-gray-700 mb-2">סיבת הביטול</label>
                 <div className="flex flex-col gap-2">
-                  {REASONS.map(r => (
-                    <button
-                      key={r}
-                      type="button"
-                      onClick={() => {
-                        setReason(r)
-                        if (r !== 'מחלה') setSickLeave(false)
-                      }}
-                      className={`text-right px-4 py-2.5 rounded-xl text-sm font-semibold border-2 transition-colors ${
-                        reason === r
-                          ? 'border-red-400 bg-red-50 text-red-700'
-                          : 'border-gray-100 bg-gray-50 text-gray-700 hover:border-gray-200'
-                      }`}
-                    >
-                      {r}
-                    </button>
-                  ))}
+                  {REASONS.map(r => {
+                    const isAdvance = r === ADVANCE_NOTICE_REASON
+                    const disabled = isAdvance && advanceNoticeDisabled
+                    return (
+                      <button
+                        key={r}
+                        type="button"
+                        disabled={disabled}
+                        onClick={() => {
+                          if (!disabled) {
+                            setReason(r)
+                            if (r !== 'מחלה') setSickLeave(false)
+                          }
+                        }}
+                        className={`text-right px-4 py-2.5 rounded-xl text-sm font-semibold border-2 transition-colors ${
+                          disabled
+                            ? 'border-gray-100 bg-gray-50 text-gray-300 cursor-not-allowed'
+                            : reason === r
+                            ? 'border-red-400 bg-red-50 text-red-700'
+                            : 'border-gray-100 bg-gray-50 text-gray-700 hover:border-gray-200'
+                        }`}
+                      >
+                        <span>{r}</span>
+                        {isAdvance && (
+                          <span className={`text-xs mr-2 ${disabled ? 'text-gray-300' : advanceNoticeLeft <= 1 ? 'text-amber-500' : 'text-gray-400'}`}>
+                            {disabled ? '(הגעת למגבלה השנתית)' : `(נותרו ${advanceNoticeLeft})`}
+                          </span>
+                        )}
+                      </button>
+                    )
+                  })}
                 </div>
               </div>
 
+              {/* Required free-text notes */}
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-1">
+                  פירוט <span className="text-red-400">*</span>
+                </label>
+                <textarea
+                  value={notes}
+                  onChange={e => setNotes(e.target.value)}
+                  required
+                  placeholder="תארי את סיבת הביטול..."
+                  rows={3}
+                  className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-teal-400 resize-none"
+                />
+              </div>
+
+              {/* Sick leave options */}
               {reason === 'מחלה' && (
                 <div className="flex flex-col gap-2">
                   <button
@@ -195,14 +238,12 @@ export default function CancelLessonButton({ lessonId, isCanceled, cancelReason,
                 </div>
               )}
 
-              {uploadError && (
-                <p className="text-sm text-red-500 text-right">{uploadError}</p>
-              )}
+              {uploadError && <p className="text-sm text-red-500 text-right">{uploadError}</p>}
 
               <div className="flex gap-2 mt-1">
                 <button
                   type="submit"
-                  disabled={isPending || uploading}
+                  disabled={isPending || uploading || !notes.trim()}
                   className="flex-1 bg-red-500 text-white font-bold py-3 rounded-2xl hover:bg-red-600 transition-colors disabled:opacity-60 text-sm"
                 >
                   {uploading ? 'מעלה קובץ...' : isPending ? '...' : 'אשר ביטול'}

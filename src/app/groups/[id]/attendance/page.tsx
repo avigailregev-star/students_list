@@ -47,6 +47,29 @@ export default async function AttendancePage({ params }: Props) {
 
   const isCanceled = lesson.status === 'teacher_canceled'
 
+  // Count advance-notice cancellations for this teacher in the current school year
+  const now = new Date()
+  const schoolYearStart = now.getMonth() >= 8
+    ? `${now.getFullYear()}-09-01`
+    : `${now.getFullYear() - 1}-09-01`
+  const schoolYearEnd = now.getMonth() >= 8
+    ? `${now.getFullYear() + 1}-08-31`
+    : `${now.getFullYear()}-08-31`
+
+  const { data: teacherGroups } = await supabase.from('groups').select('id').eq('teacher_id', user.id)
+  const teacherGroupIds = (teacherGroups ?? []).map(g => g.id)
+
+  const { count: advanceNoticeUsed } = teacherGroupIds.length > 0
+    ? await supabase
+        .from('lessons')
+        .select('id', { count: 'exact', head: true })
+        .eq('teacher_absence_reason', 'הודעה מראש מתלמיד')
+        .eq('status', 'teacher_canceled')
+        .gte('date', schoolYearStart)
+        .lte('date', schoolYearEnd)
+        .in('group_id', teacherGroupIds)
+    : { count: 0 }
+
   const [students, attendanceRows] = await Promise.all([
     getStudentsByGroup(id),
     getAttendanceForLesson(lesson.id),
@@ -111,7 +134,9 @@ export default async function AttendancePage({ params }: Props) {
                 lessonId={lesson.id}
                 isCanceled={isCanceled}
                 cancelReason={lesson.teacher_absence_reason}
+                cancelNotes={lesson.cancellation_notes}
                 isSickLeave={lesson.is_sick_leave}
+                advanceNoticeUsed={advanceNoticeUsed ?? 0}
               />
             </div>
 

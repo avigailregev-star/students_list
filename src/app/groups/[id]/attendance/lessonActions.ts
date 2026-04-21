@@ -11,6 +11,7 @@ export async function cancelLesson(formData: FormData) {
 
   const lessonId = formData.get('lesson_id') as string
   const reason = formData.get('reason') as string
+  const notes = formData.get('notes') as string
   const isSickLeave = formData.get('is_sick_leave') === 'true'
   const documentUrl = formData.get('document_url') as string | null
 
@@ -19,6 +20,7 @@ export async function cancelLesson(formData: FormData) {
     .update({
       status: 'teacher_canceled',
       teacher_absence_reason: reason,
+      cancellation_notes: notes || null,
       is_sick_leave: isSickLeave,
       admin_approval_status: isSickLeave ? 'pending' : null,
       sick_leave_document_url: documentUrl || null,
