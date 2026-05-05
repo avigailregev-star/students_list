@@ -28,7 +28,7 @@ const items = [
   },
 ]
 
-export default function BottomNav() {
+export default function BottomNav({ isAdmin }: { isAdmin?: boolean }) {
   const pathname = usePathname()
   const router = useRouter()
 
@@ -54,6 +54,19 @@ export default function BottomNav() {
           </Link>
         )
       })}
+
+      {isAdmin && (
+        <Link
+          href="/admin"
+          className="flex flex-col items-center gap-0.5 px-5 py-1.5 rounded-2xl transition-colors hover:bg-teal-50"
+        >
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+            <rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/>
+            <rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/>
+          </svg>
+          <span className="text-[10px] font-bold text-gray-400">ניהול</span>
+        </Link>
+      )}
 
       <button
         onClick={handleLogout}

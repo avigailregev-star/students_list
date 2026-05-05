@@ -12,9 +12,10 @@ interface Props {
   groups: GroupWithSchedules[]
   teacherName: string
   events: SchoolEvent[]
+  isAdmin?: boolean
 }
 
-export default function DashboardClient({ groups, teacherName, events }: Props) {
+export default function DashboardClient({ groups, teacherName, events, isAdmin }: Props) {
   const [view, setView] = useState<'day' | 'week' | 'month'>('day')
   const [dayInitialDate, setDayInitialDate] = useState<Date | undefined>(undefined)
 
@@ -91,7 +92,7 @@ export default function DashboardClient({ groups, teacherName, events }: Props) 
         )}
       </div>
 
-      <BottomNav />
+      <BottomNav isAdmin={isAdmin} />
     </div>
   )
 }

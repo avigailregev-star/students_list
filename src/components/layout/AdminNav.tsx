@@ -6,6 +6,16 @@ import { createClient } from '@/lib/supabase/client'
 
 const NAV_ITEMS = [
   {
+    href: '/',
+    label: 'מורה',
+    icon: (
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+        <polyline points="9 22 9 12 15 12 15 22"/>
+      </svg>
+    ),
+  },
+  {
     href: '/admin',
     label: 'בקרה',
     icon: (
@@ -63,7 +73,9 @@ export default function AdminNav() {
     <nav className="fixed bottom-0 inset-x-0 bg-white border-t border-gray-100 z-50">
       <div className="flex items-center justify-around py-2 pb-3">
         {NAV_ITEMS.map(item => {
-          const isActive = item.href === '/admin'
+          const isActive = item.href === '/'
+            ? pathname === '/'
+            : item.href === '/admin'
             ? pathname === '/admin'
             : pathname.startsWith(item.href)
           return (

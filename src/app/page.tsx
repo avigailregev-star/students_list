@@ -15,7 +15,8 @@ export default async function HomePage() {
     .eq('id', user.id)
     .single()
 
-  if (teacher?.role === 'admin') redirect('/admin')
+  const metaRole = (user.user_metadata as Record<string, string>)?.role
+  const isAdmin = metaRole === 'admin' || teacher?.role === 'admin'
 
   const [groups, events] = await Promise.all([
     getGroupsWithSchedules(),
@@ -27,6 +28,7 @@ export default async function HomePage() {
       groups={groups}
       teacherName={teacher?.name ?? 'מורה'}
       events={events}
+      isAdmin={isAdmin}
     />
   )
 }
