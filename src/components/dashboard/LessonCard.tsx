@@ -8,9 +8,12 @@ interface Props {
 
 export default function LessonCard({ slot, isNext }: Props) {
   return (
-    <div className={`bg-white rounded-2xl p-4 flex items-center gap-3 shadow-sm ${
-      isNext ? 'ring-2 ring-teal-400' : ''
-    }`}>
+    <Link
+      href={`/groups/${slot.groupId}/attendance`}
+      className={`bg-white rounded-2xl p-4 flex items-center gap-3 shadow-sm active:opacity-80 transition-opacity ${
+        isNext ? 'ring-2 ring-teal-400' : ''
+      }`}
+    >
       {/* Avatar */}
       <div className={`w-11 h-11 rounded-2xl flex items-center justify-center text-white font-bold text-base shrink-0 ${
         slot.lessonType === 'group' ? 'bg-teal-500' : 'bg-violet-500'
@@ -43,19 +46,14 @@ export default function LessonCard({ slot, isNext }: Props) {
         )}
       </div>
 
-      {/* Attendance button */}
-      <Link
-        href={`/groups/${slot.groupId}/attendance`}
-        className={`shrink-0 w-10 h-10 rounded-2xl flex items-center justify-center transition-colors ${
-          isNext
-            ? 'bg-teal-500 hover:bg-teal-600'
-            : 'bg-gray-100 hover:bg-gray-200'
-        }`}
-      >
+      {/* Attendance indicator */}
+      <div className={`shrink-0 w-10 h-10 rounded-2xl flex items-center justify-center ${
+        isNext ? 'bg-teal-500' : 'bg-gray-100'
+      }`}>
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={isNext ? 'white' : '#6b7280'} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
           <polyline points="20 6 9 17 4 12" />
         </svg>
-      </Link>
-    </div>
+      </div>
+    </Link>
   )
 }
