@@ -67,6 +67,19 @@ export default function NewGroupForm() {
           )}
         </div>
 
+        <div className="bg-white rounded-2xl p-4 shadow-sm">
+          <label className="block text-sm font-semibold text-gray-600 mb-2">
+            מקסימום תלמידים <span className="text-gray-400 font-normal">(לרישום)</span>
+          </label>
+          <input
+            name="max_students"
+            type="number"
+            min="1"
+            placeholder="השאר ריק אם לא פתוח לרישום"
+            className="w-full px-4 py-2.5 bg-gray-50 border border-gray-100 rounded-xl text-sm focus:outline-none focus:border-teal-300 transition-all"
+          />
+        </div>
+
         {isIndividual && (
           <div className="bg-white rounded-2xl p-4 shadow-sm">
             <label className="block text-sm font-semibold text-gray-600 mb-2">שם התלמיד</label>

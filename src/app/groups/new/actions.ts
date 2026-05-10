@@ -15,6 +15,8 @@ export async function createGroup(formData: FormData) {
   const isMangan = formData.get('is_mangan_school') === 'true'
   const schoolName = isMangan ? (formData.get('school_name') as string) : null
   const grade = isMangan ? (formData.get('grade') as string) : null
+  const maxStudentsRaw = formData.get('max_students') as string
+  const maxStudents = maxStudentsRaw && maxStudentsRaw !== '' ? parseInt(maxStudentsRaw, 10) : null
 
   // Parse schedule(s)
   const schedules: { day_of_week: number; start_time: string }[] = []
@@ -36,7 +38,7 @@ export async function createGroup(formData: FormData) {
   // Insert group
   const { data: group, error: groupError } = await supabase
     .from('groups')
-    .insert({ teacher_id: user.id, name, lesson_type: lessonType, is_mangan_school: isMangan, school_name: schoolName, grade })
+    .insert({ teacher_id: user.id, name, lesson_type: lessonType, is_mangan_school: isMangan, school_name: schoolName, grade, max_students: maxStudents })
     .select()
     .single()
 
