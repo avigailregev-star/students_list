@@ -11,6 +11,8 @@ interface Props {
   group?: GroupWithSchedulesAndStudents
   isOpen: boolean
   onClose: () => void
+  defaultDayOfWeek?: number
+  defaultStartTime?: string
 }
 
 interface PendingStudent {
@@ -20,14 +22,14 @@ interface PendingStudent {
   parentPhone: string
 }
 
-export default function AdminGroupSheet({ teacherId, group, isOpen, onClose }: Props) {
+export default function AdminGroupSheet({ teacherId, group, isOpen, onClose, defaultDayOfWeek, defaultStartTime }: Props) {
   const isEdit = !!group
   const schedule = group?.group_schedules?.[0]
 
   const [lessonType, setLessonType] = useState<LessonType>(group?.lesson_type ?? 'group')
   const [name, setName] = useState(group?.name ?? '')
-  const [dayOfWeek, setDayOfWeek] = useState<number>(schedule?.day_of_week ?? 0)
-  const [startTime, setStartTime] = useState(schedule?.start_time?.slice(0, 5) ?? '')
+  const [dayOfWeek, setDayOfWeek] = useState<number>(schedule?.day_of_week ?? defaultDayOfWeek ?? 0)
+  const [startTime, setStartTime] = useState(schedule?.start_time?.slice(0, 5) ?? defaultStartTime ?? '')
   const [endTime, setEndTime] = useState(schedule?.end_time?.slice(0, 5) ?? '')
   const [pendingStudents, setPendingStudents] = useState<PendingStudent[]>([])
   const [newStudentName, setNewStudentName] = useState('')
