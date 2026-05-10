@@ -1,0 +1,29 @@
+import { redirect } from 'next/navigation'
+import { createClient } from '@/lib/supabase/server'
+import BottomNav from '@/components/layout/BottomNav'
+import AvailabilityClient from './AvailabilityClient'
+import { getAvailabilitySlots } from './actions'
+
+export default async function AvailabilityPage() {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) redirect('/login')
+
+  const { data: teacher } = await supabase.from('teachers').select('role').eq('id', user.id).single()
+  const isAdmin = teacher?.role === 'admin'
+
+  const slots = await getAvailabilitySlots()
+
+  return (
+    <div className="min-h-screen bg-gray-50 flex flex-col pb-24">
+      <div className="bg-gradient-to-bl from-teal-400 to-teal-600 text-white rounded-b-[36px] shadow-lg shadow-teal-200 px-5 pt-8 pb-6">
+        <h1 className="text-xl font-bold">זמינות</h1>
+        <p className="text-sm text-white/70 mt-1">ימים ושעות פנויים לרישום</p>
+      </div>
+
+      <AvailabilityClient initialSlots={slots}/>
+
+      <BottomNav isAdmin={isAdmin}/>
+    </div>
+  )
+}
