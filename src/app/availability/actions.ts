@@ -17,7 +17,7 @@ export async function addAvailabilitySlot(formData: FormData): Promise<void> {
   const lessonType = formData.get('lesson_type') as 'individual' | 'group'
   const maxStudents = parseInt(formData.get('max_students') as string, 10) || 1
 
-  if (isNaN(dayOfWeek) || !startTime || !instrument) {
+  if (isNaN(dayOfWeek) || !startTime || !instrument || isNaN(durationMinutes) || ![45, 60].includes(durationMinutes)) {
     throw new Error('כל השדות נדרשים')
   }
 

@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useTransition } from 'react'
+import { useRouter } from 'next/navigation'
 import { DAYS_HE } from '@/lib/utils/hebrew'
 import { addAvailabilitySlot, toggleAvailabilitySlot, deleteAvailabilitySlot } from './actions'
 import type { TeacherAvailability } from '@/types/database'
@@ -12,6 +13,7 @@ const LESSON_TYPE_LABELS: Record<'individual' | 'group', string> = {
 
 function SlotCard({ slot, onDeleted }: { slot: TeacherAvailability; onDeleted: () => void }) {
   const [isPending, startTransition] = useTransition()
+  const router = useRouter()
   const endHour = slot.start_time.slice(0, 5)
 
   return (
@@ -28,7 +30,7 @@ function SlotCard({ slot, onDeleted }: { slot: TeacherAvailability; onDeleted: (
       <div className="flex items-center gap-2">
         <button
           disabled={isPending}
-          onClick={() => startTransition(() => toggleAvailabilitySlot(slot.id, !slot.is_active))}
+          onClick={() => startTransition(async () => { await toggleAvailabilitySlot(slot.id, !slot.is_active); router.refresh() })}
           className={`text-xs font-bold px-3 py-1.5 rounded-xl transition-colors ${slot.is_active ? 'bg-teal-50 text-teal-600 hover:bg-teal-100' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'}`}
         >
           {slot.is_active ? 'פעיל' : 'מושהה'}
