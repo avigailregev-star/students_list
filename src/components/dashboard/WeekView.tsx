@@ -76,7 +76,11 @@ export default function WeekView({ allSlots, events }: Props) {
           </div>
         )
       })}
-      {allSlots.length === 0 && (
+      {allSlots.length === 0 && !WORK_DAYS.some(day => {
+        const d = new Date(weekStart)
+        d.setDate(weekStart.getDate() + day)
+        return getActiveEvents(events, d).length > 0
+      }) && (
         <div className="text-center py-16 text-gray-400 text-sm">
           אין שיעורים השבוע
         </div>
