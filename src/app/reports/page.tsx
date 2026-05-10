@@ -5,6 +5,16 @@ import type { Group, Student, Lesson, Attendance } from '@/types/database'
 import ReportGroup from './ReportGroup'
 import ExportButtons from './ExportButtons'
 import BottomNav from '@/components/layout/BottomNav'
+import { getEventsForTeacher } from '@/lib/queries/events'
+import type { GroupSchedule, SchoolEventType } from '@/types/database'
+
+type HistoryEntry = {
+  date: string
+  status: string
+  brought: boolean
+  eventType?: SchoolEventType
+  eventName?: string
+}
 
 type GroupWithData = Group & {
   students: (Student & {
@@ -12,7 +22,7 @@ type GroupWithData = Group & {
     lessons_absent: number
     brought_instrument: number
     total_lessons: number
-    history: { date: string; status: string; brought: boolean }[]
+    history: HistoryEntry[]
   })[]
   total_lessons: number
   canceled_lessons: number
@@ -25,7 +35,7 @@ export default async function ReportsPage() {
 
   const { data: groups } = await supabase
     .from('groups')
-    .select('*')
+    .select('*, group_schedules(*)')
     .eq('teacher_id', user.id)
     .order('created_at')
 
@@ -54,6 +64,8 @@ export default async function ReportsPage() {
       </div>
     )
   }
+
+  const events = await getEventsForTeacher()
 
   const reportData: GroupWithData[] = []
   const todayStr = new Date().toISOString().slice(0, 10)
@@ -99,7 +111,30 @@ export default async function ReportsPage() {
       }
     })
 
-    reportData.push({ ...group, students: studentsWithStats, total_lessons: lessonList.length, canceled_lessons: canceledList.length })
+    const scheduledDays = ((group as Group & { group_schedules: GroupSchedule[] }).group_schedules ?? [])
+      .map((s: GroupSchedule) => s.day_of_week)
+
+    const eventEntries: HistoryEntry[] = []
+    const seenEventDates = new Set<string>()
+    for (const ev of events) {
+      const start = new Date(ev.start_date + 'T12:00:00')
+      const end   = new Date(ev.end_date   + 'T12:00:00')
+      for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+        const ds = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`
+        if (ds > todayStr) continue
+        if (scheduledDays.includes(d.getDay()) && !seenEventDates.has(ds)) {
+          seenEventDates.add(ds)
+          eventEntries.push({ date: ds, status: 'school_event', brought: false, eventType: ev.event_type, eventName: ev.name })
+        }
+      }
+    }
+
+    const studentsWithEventHistory = studentsWithStats.map(student => ({
+      ...student,
+      history: [...student.history, ...eventEntries].sort((a, b) => b.date.localeCompare(a.date)),
+    }))
+
+    reportData.push({ ...group, students: studentsWithEventHistory, total_lessons: lessonList.length, canceled_lessons: canceledList.length })
   }
 
   const now = new Date()
