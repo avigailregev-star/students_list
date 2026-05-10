@@ -67,10 +67,10 @@ export async function deleteAvailabilitySlot(id: string): Promise<void> {
   revalidatePath('/availability')
 }
 
-export async function getAvailabilitySlots(): Promise<TeacherAvailability[]> {
+export async function getAvailabilitySlots(): Promise<{ slots: TeacherAvailability[]; error: string | null }> {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return []
+  if (!user) return { slots: [], error: null }
 
   const { data, error } = await supabase
     .from('teacher_availability')
@@ -79,6 +79,6 @@ export async function getAvailabilitySlots(): Promise<TeacherAvailability[]> {
     .order('day_of_week', { ascending: true })
     .order('start_time', { ascending: true })
 
-  if (error) throw error
-  return (data ?? []) as TeacherAvailability[]
+  if (error) return { slots: [], error: error.message }
+  return { slots: (data ?? []) as TeacherAvailability[], error: null }
 }

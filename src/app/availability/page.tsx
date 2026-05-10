@@ -12,7 +12,7 @@ export default async function AvailabilityPage() {
   const { data: teacher } = await supabase.from('teachers').select('role').eq('id', user.id).single()
   const isAdmin = teacher?.role === 'admin'
 
-  const slots = await getAvailabilitySlots()
+  const { slots, error: slotsError } = await getAvailabilitySlots()
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col pb-24">
@@ -20,6 +20,12 @@ export default async function AvailabilityPage() {
         <h1 className="text-xl font-bold">זמינות</h1>
         <p className="text-sm text-white/70 mt-1">ימים ושעות פנויים לרישום</p>
       </div>
+
+      {slotsError && (
+        <div className="mx-4 mt-4 bg-red-50 border border-red-200 rounded-2xl px-4 py-3 text-xs text-red-700 font-mono break-all">
+          שגיאת DB: {slotsError}
+        </div>
+      )}
 
       <AvailabilityClient initialSlots={slots}/>
 
