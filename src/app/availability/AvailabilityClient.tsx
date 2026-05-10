@@ -70,13 +70,10 @@ function AddSlotForm({ onAdded }: { onAdded: () => void }) {
     setError(null)
     const formData = new FormData(e.currentTarget)
     startTransition(async () => {
-      try {
-        await addAvailabilitySlot(formData)
-        setOpen(false)
-        onAdded()
-      } catch (err: unknown) {
-        setError(err instanceof Error ? err.message : 'שגיאה בשמירה')
-      }
+      const err = await addAvailabilitySlot(formData)
+      if (err) { setError(err); return }
+      setOpen(false)
+      onAdded()
     })
   }
 

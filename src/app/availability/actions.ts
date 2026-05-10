@@ -5,7 +5,7 @@ import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import type { TeacherAvailability } from '@/types/database'
 
-export async function addAvailabilitySlot(formData: FormData): Promise<void> {
+export async function addAvailabilitySlot(formData: FormData): Promise<string | void> {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
@@ -18,7 +18,7 @@ export async function addAvailabilitySlot(formData: FormData): Promise<void> {
   const maxStudents = parseInt(formData.get('max_students') as string, 10) || 1
 
   if (isNaN(dayOfWeek) || !startTime || !instrument || isNaN(durationMinutes) || ![45, 60].includes(durationMinutes)) {
-    throw new Error('כל השדות נדרשים')
+    return 'כל השדות נדרשים'
   }
 
   const { error } = await supabase
@@ -33,7 +33,7 @@ export async function addAvailabilitySlot(formData: FormData): Promise<void> {
       max_students: maxStudents,
     })
 
-  if (error) throw new Error('שגיאה בשמירת הסלוט')
+  if (error) return `שגיאת DB: ${error.message}`
   revalidatePath('/availability')
 }
 
