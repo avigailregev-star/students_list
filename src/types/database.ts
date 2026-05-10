@@ -99,16 +99,12 @@ export type SchoolEvent = {
   created_at: string
 }
 
-export type TeacherAvailability = {
+export type TeacherAvailabilityRange = {
   id: string
   teacher_id: string
-  day_of_week: number        // 0=ראשון … 6=שבת
-  start_time: string         // "HH:MM:SS"
-  duration_minutes: 45 | 60
-  instrument: string
-  lesson_type: 'individual' | 'group'
-  max_students: number
-  is_active: boolean
+  day_of_week: number   // 0=ראשון … 6=שבת
+  start_time: string    // "HH:MM:SS"
+  end_time: string      // "HH:MM:SS"
   created_at: string
 }
 
