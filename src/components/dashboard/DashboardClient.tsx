@@ -82,7 +82,7 @@ export default function DashboardClient({ groups, teacherName, events, isAdmin }
       {/* Content */}
       <div className="flex-1 px-4 py-5 pb-28 overflow-y-auto">
         {view === 'day' && <DayView allSlots={weekSlots} initialDate={dayInitialDate} events={events} />}
-        {view === 'week' && <WeekView allSlots={weekSlots} />}
+        {view === 'week' && <WeekView allSlots={weekSlots} events={events} />}
         {view === 'month' && (
           <MonthView
             groups={groups}
