@@ -3,13 +3,15 @@
 import { useState } from 'react'
 import type { Group, Student } from '@/types/database'
 import { formatDateHe } from '@/lib/utils/hebrew'
+import { EVENT_COLORS } from '@/lib/utils/eventColors'
+import type { SchoolEventType } from '@/types/database'
 
 type StudentWithStats = Student & {
   total_lessons: number
   lessons_attended: number
   lessons_absent: number
   brought_instrument: number
-  history: { date: string; status: string; brought: boolean }[]
+  history: { date: string; status: string; brought: boolean; eventType?: SchoolEventType; eventName?: string }[]
 }
 
 type GroupWithData = Group & {
@@ -121,6 +123,18 @@ export default function ReportGroup({ group }: { group: GroupWithData }) {
                   <div className="flex flex-col gap-2">
                     {student.history.map((h, i) => {
                       const date = new Date(h.date + 'T12:00:00')
+
+                      if (h.status === 'school_event' && h.eventType) {
+                        const cfg = EVENT_COLORS[h.eventType]
+                        return (
+                          <div key={i} className={`flex items-center gap-2 rounded-xl px-3 py-2 border-r-4 ${cfg.bg} ${cfg.border} shadow-[0_1px_3px_0_rgba(0,0,0,0.06)]`}>
+                            <span className={`text-[10px] font-bold uppercase tracking-wide shrink-0 ${cfg.text}`}>{cfg.label}</span>
+                            <span className={`text-xs font-bold flex-1 ${cfg.text}`}>{formatDateHe(date)}</span>
+                            <span className={`text-xs font-bold ${cfg.text}`}>{h.eventName}</span>
+                          </div>
+                        )
+                      }
+
                       return (
                         <div key={i} className="flex items-center gap-2 bg-white rounded-xl px-3 py-2 shadow-[0_1px_3px_0_rgba(0,0,0,0.06)]">
                           <div className={`w-2.5 h-2.5 rounded-full shrink-0 ${STATUS_DOT[h.status] ?? STATUS_DOT.no_data}`} />
