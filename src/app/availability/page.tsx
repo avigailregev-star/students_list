@@ -2,7 +2,7 @@ import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import BottomNav from '@/components/layout/BottomNav'
 import AvailabilityClient from './AvailabilityClient'
-import { getAvailabilitySlots } from './actions'
+import { getAvailabilityRanges } from './actions'
 
 export default async function AvailabilityPage() {
   const supabase = await createClient()
@@ -12,7 +12,7 @@ export default async function AvailabilityPage() {
   const { data: teacher } = await supabase.from('teachers').select('role').eq('id', user.id).single()
   const isAdmin = teacher?.role === 'admin'
 
-  const { slots, error: slotsError } = await getAvailabilitySlots()
+  const { ranges, error } = await getAvailabilityRanges()
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col pb-24">
@@ -21,13 +21,13 @@ export default async function AvailabilityPage() {
         <p className="text-sm text-white/70 mt-1">ימים ושעות פנויים לרישום</p>
       </div>
 
-      {slotsError && (
+      {error && (
         <div className="mx-4 mt-4 bg-red-50 border border-red-200 rounded-2xl px-4 py-3 text-xs text-red-700 font-mono break-all">
-          שגיאת DB: {slotsError}
+          שגיאת DB: {error}
         </div>
       )}
 
-      <AvailabilityClient initialSlots={slots}/>
+      <AvailabilityClient initialRanges={ranges}/>
 
       <BottomNav isAdmin={isAdmin}/>
     </div>
