@@ -3,15 +3,17 @@
 import { useState, useMemo } from 'react'
 import LessonCard from './LessonCard'
 import { formatDateHe } from '@/lib/utils/hebrew'
-import type { LessonSlot } from '@/types/database'
+import { EVENT_COLORS, getActiveEvents } from '@/lib/utils/eventColors'
+import type { LessonSlot, SchoolEvent } from '@/types/database'
 
 interface Props {
   allSlots: LessonSlot[]
   /** Only read at mount. Safe because the component is conditionally rendered and remounts on each tab switch. */
   initialDate?: Date
+  events: SchoolEvent[]
 }
 
-export default function DayView({ allSlots, initialDate }: Props) {
+export default function DayView({ allSlots, initialDate, events }: Props) {
   const [selectedDate, setSelectedDate] = useState(() => {
     const d = initialDate ? new Date(initialDate) : new Date()
     d.setHours(0, 0, 0, 0)
@@ -23,6 +25,8 @@ export default function DayView({ allSlots, initialDate }: Props) {
       .filter(s => s.date.toDateString() === selectedDate.toDateString())
       .sort((a, b) => a.startTime.localeCompare(b.startTime))
   }, [allSlots, selectedDate])
+
+  const activeEvents = useMemo(() => getActiveEvents(events, selectedDate), [events, selectedDate])
 
   const now = new Date()
   const nextSlotIndex = daySlots.findIndex(s => {
@@ -60,6 +64,17 @@ export default function DayView({ allSlots, initialDate }: Props) {
           </svg>
         </button>
       </div>
+
+      {/* Event banners */}
+      {activeEvents.map(ev => {
+        const cfg = EVENT_COLORS[ev.event_type]
+        return (
+          <div key={ev.id} className={`flex items-center gap-3 px-4 py-2.5 rounded-2xl border-r-4 ${cfg.bg} ${cfg.border}`}>
+            <span className={`text-[11px] font-bold uppercase tracking-wide ${cfg.text}`}>{cfg.label}</span>
+            <span className={`text-sm font-bold ${cfg.text}`}>{ev.name}</span>
+          </div>
+        )
+      })}
 
       {/* Next pill */}
       {nextSlotIndex >= 0 && selectedDate.toDateString() === new Date().toDateString() && (
