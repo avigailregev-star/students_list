@@ -4,7 +4,7 @@ import EditTeacherForm from './EditTeacherForm'
 import AdminTeacherTabs from './AdminTeacherTabs'
 import { requireAdmin } from '@/lib/auth'
 import { createAdminClient } from '@/lib/supabase/admin'
-import type { GroupWithSchedulesAndStudents } from '@/types/database'
+import type { GroupWithSchedulesAndStudents, TeacherAvailabilityRange } from '@/types/database'
 
 interface Props { params: Promise<{ id: string }> }
 
@@ -28,6 +28,15 @@ export default async function TeacherDetailPage({ params }: Props) {
     .order('created_at', { ascending: true })
 
   const groups = (groupsRaw ?? []) as GroupWithSchedulesAndStudents[]
+
+  const { data: rangesRaw } = await supabase
+    .from('teacher_availability_ranges')
+    .select('*')
+    .eq('teacher_id', id)
+    .order('day_of_week', { ascending: true })
+    .order('start_time', { ascending: true })
+
+  const ranges = (rangesRaw ?? []) as TeacherAvailabilityRange[]
 
   const groupIds = groups.map(g => g.id)
 
@@ -64,6 +73,7 @@ export default async function TeacherDetailPage({ params }: Props) {
         <AdminTeacherTabs
           teacherId={teacher.id}
           groups={groups}
+          ranges={ranges}
           completedLessons={completedLessons ?? 0}
           canceledLessons={canceledLessons ?? 0}
         />

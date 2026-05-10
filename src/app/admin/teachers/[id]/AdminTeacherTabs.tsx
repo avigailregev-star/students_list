@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useTransition } from 'react'
-import type { GroupWithSchedulesAndStudents } from '@/types/database'
+import type { GroupWithSchedulesAndStudents, TeacherAvailabilityRange } from '@/types/database'
 import { LESSON_TYPE_CONFIG } from '@/lib/utils/lessonTypes'
 import { DAYS_HE } from '@/lib/utils/hebrew'
 import { deleteGroup } from './groupActions'
@@ -10,18 +10,21 @@ import AdminGroupSheet from './AdminGroupSheet'
 interface Props {
   teacherId: string
   groups: GroupWithSchedulesAndStudents[]
+  ranges: TeacherAvailabilityRange[]
   completedLessons: number
   canceledLessons: number
 }
 
-export default function AdminTeacherTabs({ teacherId, groups, completedLessons, canceledLessons }: Props) {
-  const [activeTab, setActiveTab] = useState<'groups' | 'stats'>('groups')
+export default function AdminTeacherTabs({ teacherId, groups, ranges, completedLessons, canceledLessons }: Props) {
+  const [activeTab, setActiveTab] = useState<'groups' | 'availability' | 'stats'>('groups')
   const [sheetOpen, setSheetOpen] = useState(false)
   const [editingGroup, setEditingGroup] = useState<GroupWithSchedulesAndStudents | undefined>()
   const [isPending, startTransition] = useTransition()
+  const [sheetDefaults, setSheetDefaults] = useState<{ dayOfWeek?: number; startTime?: string }>({})
 
-  function openCreate() {
+  function openCreate(defaults?: { dayOfWeek?: number; startTime?: string }) {
     setEditingGroup(undefined)
+    setSheetDefaults(defaults ?? {})
     setSheetOpen(true)
   }
 
@@ -42,7 +45,7 @@ export default function AdminTeacherTabs({ teacherId, groups, completedLessons, 
     <>
       {/* Tab bar */}
       <div className="flex gap-2 bg-gray-100 rounded-2xl p-1">
-        {(['groups', 'stats'] as const).map(tab => (
+        {(['groups', 'availability', 'stats'] as const).map(tab => (
           <button
             key={tab}
             onClick={() => setActiveTab(tab)}
@@ -50,7 +53,7 @@ export default function AdminTeacherTabs({ teacherId, groups, completedLessons, 
               activeTab === tab ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-400'
             }`}
           >
-            {tab === 'groups' ? 'קבוצות' : 'סטטיסטיקות'}
+            {tab === 'groups' ? 'קבוצות' : tab === 'availability' ? 'זמינות' : 'סטטיסטיקות'}
           </button>
         ))}
       </div>
@@ -100,9 +103,63 @@ export default function AdminTeacherTabs({ teacherId, groups, completedLessons, 
               </div>
             )
           })}
-          <button onClick={openCreate} className="w-full py-3 border-2 border-dashed border-teal-300 text-teal-600 font-bold text-sm rounded-2xl hover:border-teal-400 hover:bg-teal-50 transition-colors">
+          <button onClick={() => openCreate()} className="w-full py-3 border-2 border-dashed border-teal-300 text-teal-600 font-bold text-sm rounded-2xl hover:border-teal-400 hover:bg-teal-50 transition-colors">
             + הוסף קבוצה
           </button>
+        </div>
+      )}
+
+      {/* Availability tab */}
+      {activeTab === 'availability' && (
+        <div className="flex flex-col gap-3">
+          {ranges.length === 0 && (
+            <p className="text-sm text-gray-400 text-center py-4">המורה לא הגדיר טווחי זמינות עדיין.</p>
+          )}
+          {ranges.map(range => {
+            const matched = groups.filter(g => {
+              const sched = g.group_schedules?.[0]
+              if (!sched) return false
+              return (
+                sched.day_of_week === range.day_of_week &&
+                sched.start_time >= range.start_time &&
+                sched.start_time < range.end_time
+              )
+            })
+            return (
+              <div key={range.id} className="bg-white rounded-2xl shadow-sm overflow-hidden">
+                <div className="flex justify-between items-center px-4 py-3 bg-green-50 border-b border-green-100">
+                  <div>
+                    <span className="text-sm font-bold text-green-900">{DAYS_HE[range.day_of_week]}</span>
+                    <span className="text-xs text-green-700 mr-2">{range.start_time.slice(0, 5)} – {range.end_time.slice(0, 5)}</span>
+                  </div>
+                  <button
+                    onClick={() => openCreate({ dayOfWeek: range.day_of_week, startTime: range.start_time.slice(0, 5) })}
+                    className="bg-teal-500 text-white text-xs font-bold px-3 py-1.5 rounded-xl hover:bg-teal-600 transition-colors"
+                  >
+                    + שבץ שיעור
+                  </button>
+                </div>
+                <div className="px-4 py-3 flex flex-col gap-2">
+                  {matched.length === 0 && (
+                    <p className="text-xs text-gray-400 italic">אין שיעורים משובצים בטווח זה</p>
+                  )}
+                  {matched.map(g => {
+                    const cfg = LESSON_TYPE_CONFIG[g.lesson_type]
+                    const sched = g.group_schedules[0]
+                    return (
+                      <div key={g.id} className="flex items-center gap-2">
+                        <div className={`w-2.5 h-2.5 rounded-full shrink-0 ${cfg?.bg ?? 'bg-gray-400'}`} />
+                        <span className="text-sm font-semibold text-gray-800">{g.name}</span>
+                        <span className="text-xs text-gray-400">
+                          {sched.start_time.slice(0, 5)}{sched.end_time ? `–${sched.end_time.slice(0, 5)}` : ''} · {g.students?.length ?? 0} תלמידים
+                        </span>
+                      </div>
+                    )
+                  })}
+                </div>
+              </div>
+            )
+          })}
         </div>
       )}
 
@@ -129,6 +186,8 @@ export default function AdminTeacherTabs({ teacherId, groups, completedLessons, 
         group={editingGroup}
         isOpen={sheetOpen}
         onClose={() => setSheetOpen(false)}
+        defaultDayOfWeek={sheetDefaults.dayOfWeek}
+        defaultStartTime={sheetDefaults.startTime}
       />
     </>
   )
