@@ -130,7 +130,7 @@ export default function AdminTeacherTabs({ teacherId, groups, ranges, completedL
                 <div className="flex justify-between items-center px-4 py-3 bg-green-50 border-b border-green-100">
                   <div>
                     <span className="text-sm font-bold text-green-900">{DAYS_HE[range.day_of_week]}</span>
-                    <span className="text-xs text-green-700 mr-2">{range.start_time.slice(0, 5)} – {range.end_time.slice(0, 5)}</span>
+                    <span className="text-xs text-green-700 ml-2">{range.start_time.slice(0, 5)} – {range.end_time.slice(0, 5)}</span>
                   </div>
                   <button
                     onClick={() => openCreate({ dayOfWeek: range.day_of_week, startTime: range.start_time.slice(0, 5) })}

@@ -21,21 +21,21 @@ export default async function TeacherDetailPage({ params }: Props) {
 
   if (!teacher) notFound()
 
-  const { data: groupsRaw } = await supabase
-    .from('groups')
-    .select('*, group_schedules(*), students(*)')
-    .eq('teacher_id', id)
-    .order('created_at', { ascending: true })
+  const [{ data: groupsRaw }, { data: rangesRaw }] = await Promise.all([
+    supabase
+      .from('groups')
+      .select('*, group_schedules(*), students(*)')
+      .eq('teacher_id', id)
+      .order('created_at', { ascending: true }),
+    supabase
+      .from('teacher_availability_ranges')
+      .select('*')
+      .eq('teacher_id', id)
+      .order('day_of_week', { ascending: true })
+      .order('start_time', { ascending: true }),
+  ])
 
   const groups = (groupsRaw ?? []) as GroupWithSchedulesAndStudents[]
-
-  const { data: rangesRaw } = await supabase
-    .from('teacher_availability_ranges')
-    .select('*')
-    .eq('teacher_id', id)
-    .order('day_of_week', { ascending: true })
-    .order('start_time', { ascending: true })
-
   const ranges = (rangesRaw ?? []) as TeacherAvailabilityRange[]
 
   const groupIds = groups.map(g => g.id)
