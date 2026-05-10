@@ -30,6 +30,7 @@ export default function AdminTeacherTabs({ teacherId, groups, ranges, completedL
 
   function openEdit(group: GroupWithSchedulesAndStudents) {
     setEditingGroup(group)
+    setSheetDefaults({})
     setSheetOpen(true)
   }
 
