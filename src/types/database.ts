@@ -32,6 +32,7 @@ export type Group = {
   is_mangan_school: boolean
   school_name: string | null
   grade: string | null
+  max_students: number | null
   created_at: string
 }
 
@@ -95,6 +96,19 @@ export type SchoolEvent = {
   end_date: string   // "YYYY-MM-DD"
   name: string
   created_by: string | null
+  created_at: string
+}
+
+export type TeacherAvailability = {
+  id: string
+  teacher_id: string
+  day_of_week: number        // 0=ראשון … 6=שבת
+  start_time: string         // "HH:MM:SS"
+  duration_minutes: 45 | 60
+  instrument: string
+  lesson_type: 'individual' | 'group'
+  max_students: number
+  is_active: boolean
   created_at: string
 }
 
