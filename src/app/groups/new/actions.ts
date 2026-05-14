@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import type { LessonType } from '@/types/database'
+import { DAYS_HE } from '@/lib/utils/hebrew'
 
 export async function createGroup(formData: FormData) {
   const supabase = await createClient()
@@ -33,6 +34,32 @@ export async function createGroup(formData: FormData) {
 
   if (!name || schedules.length === 0) {
     throw new Error('שם הקבוצה ולפחות מועד אחד נדרשים')
+  }
+
+  // Prevent duplicate schedules within the same form
+  if (schedules.length === 2 &&
+    schedules[0].day_of_week === schedules[1].day_of_week &&
+    schedules[0].start_time === schedules[1].start_time) {
+    throw new Error('שני המועדים זהים. אנא בחרי יום ושעה שונים.')
+  }
+
+  // Check for conflicts with existing groups for this teacher
+  const { data: teacherGroups } = await supabase.from('groups').select('id').eq('teacher_id', user.id)
+  if (teacherGroups && teacherGroups.length > 0) {
+    const { data: existingSchedules } = await supabase
+      .from('group_schedules')
+      .select('day_of_week, start_time')
+      .in('group_id', teacherGroups.map(g => g.id))
+
+    for (const newSched of schedules) {
+      const conflict = existingSchedules?.find(
+        s => s.day_of_week === newSched.day_of_week && s.start_time.startsWith(newSched.start_time)
+      )
+      if (conflict) {
+        const dayName = DAYS_HE[newSched.day_of_week]
+        throw new Error(`כבר קיים שיעור ביום ${dayName} בשעה ${newSched.start_time}. לא ניתן לשבץ שני שיעורים באותה שעה.`)
+      }
+    }
   }
 
   // Insert group
