@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache'
 import { requireAdmin } from '@/lib/auth'
 import { createAdminClient } from '@/lib/supabase/admin'
 import type { LessonType } from '@/types/database'
+import { DAYS_HE } from '@/lib/utils/hebrew'
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
@@ -35,6 +36,23 @@ export async function createGroupForTeacher(teacherId: string, data: GroupFormDa
 
     await requireAdmin()
     const supabase = createAdminClient()
+
+    // Check for schedule conflict with existing groups for this teacher
+    const { data: teacherGroups } = await supabase.from('groups').select('id').eq('teacher_id', teacherId)
+    if (teacherGroups && teacherGroups.length > 0) {
+      const { data: existingSchedules } = await supabase
+        .from('group_schedules')
+        .select('day_of_week, start_time')
+        .in('group_id', teacherGroups.map(g => g.id))
+
+      const conflict = existingSchedules?.find(
+        s => s.day_of_week === data.dayOfWeek && s.start_time.startsWith(data.startTime)
+      )
+      if (conflict) {
+        const dayName = DAYS_HE[data.dayOfWeek]
+        return { error: `כבר קיים שיעור ביום ${dayName} בשעה ${data.startTime}. לא ניתן לשבץ שני שיעורים באותה שעה.` }
+      }
+    }
 
     const { data: group, error: groupError } = await supabase
       .from('groups')
@@ -100,6 +118,24 @@ export async function updateGroup(groupId: string, teacherId: string, data: Grou
 
     await requireAdmin()
     const supabase = createAdminClient()
+
+    // Check for schedule conflict with OTHER groups for this teacher
+    const { data: teacherGroups } = await supabase.from('groups').select('id').eq('teacher_id', teacherId)
+    const otherGroupIds = (teacherGroups ?? []).map(g => g.id).filter(id => id !== groupId)
+    if (otherGroupIds.length > 0) {
+      const { data: existingSchedules } = await supabase
+        .from('group_schedules')
+        .select('day_of_week, start_time')
+        .in('group_id', otherGroupIds)
+
+      const conflict = existingSchedules?.find(
+        s => s.day_of_week === data.dayOfWeek && s.start_time.startsWith(data.startTime)
+      )
+      if (conflict) {
+        const dayName = DAYS_HE[data.dayOfWeek]
+        return { error: `כבר קיים שיעור ביום ${dayName} בשעה ${data.startTime}. לא ניתן לשבץ שני שיעורים באותה שעה.` }
+      }
+    }
 
     const { error: groupError } = await supabase
       .from('groups')
