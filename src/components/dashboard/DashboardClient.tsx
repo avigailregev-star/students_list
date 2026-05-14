@@ -21,8 +21,8 @@ export default function DashboardClient({ groups, teacherName, events, isAdmin }
 
   const weekSlots: LessonSlot[] = useMemo(() => {
     const slots: LessonSlot[] = []
-    // Generate slots for 8 weeks: 2 past + current + 5 future
-    for (let i = -2; i <= 5; i++) {
+    // Generate slots for ~52 weeks: 4 past + current + 47 future (full school year)
+    for (let i = -4; i <= 47; i++) {
       const weekStart = getWeekStart()
       weekStart.setDate(weekStart.getDate() + i * 7)
       slots.push(...getLessonSlotsForWeek(groups, weekStart))
