@@ -131,7 +131,7 @@ export default function AdminGroupSheet({ teacherId, group, isOpen, onClose, def
               onChange={e => setDayOfWeek(Number(e.target.value))}
               className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-teal-400 bg-white"
             >
-              {DAYS_HE.slice(0, 6).map((day, i) => (
+              {DAYS_HE.slice(0, 5).map((day, i) => (
                 <option key={i} value={i}>{day}</option>
               ))}
             </select>
