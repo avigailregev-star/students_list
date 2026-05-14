@@ -31,7 +31,7 @@ export async function createGroupForTeacher(teacherId: string, data: GroupFormDa
     if (!UUID_RE.test(teacherId)) return { error: 'מזהה מורה לא תקין' }
     if (!data.name.trim()) return { error: 'שם קבוצה נדרש' }
     if (!VALID_TYPES.includes(data.lessonType)) return { error: 'סוג שיעור לא תקין' }
-    if (data.dayOfWeek < 0 || data.dayOfWeek > 5) return { error: 'יום לא תקין' }
+    if (data.dayOfWeek < 0 || data.dayOfWeek > 4) return { error: 'יום לא תקין' }
     if (!data.startTime) return { error: 'שעת התחלה נדרשת' }
 
     await requireAdmin()
