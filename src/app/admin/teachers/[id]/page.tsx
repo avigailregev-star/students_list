@@ -35,7 +35,15 @@ export default async function TeacherDetailPage({ params }: Props) {
       .order('start_time', { ascending: true }),
   ])
 
-  const groups = (groupsRaw ?? []) as GroupWithSchedulesAndStudents[]
+  const groups = ((groupsRaw ?? []) as GroupWithSchedulesAndStudents[]).sort((a, b) => {
+    const sa = a.group_schedules[0]
+    const sb = b.group_schedules[0]
+    if (!sa && !sb) return 0
+    if (!sa) return 1
+    if (!sb) return -1
+    if (sa.day_of_week !== sb.day_of_week) return sa.day_of_week - sb.day_of_week
+    return sa.start_time.localeCompare(sb.start_time)
+  })
   const ranges = (rangesRaw ?? []) as TeacherAvailabilityRange[]
 
   const groupIds = groups.map(g => g.id)
