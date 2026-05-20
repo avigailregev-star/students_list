@@ -93,14 +93,14 @@ export default function DayView({ allSlots, initialDate, events }: Props) {
           {daySlots.map((slot, i) => {
             const isNext = i === nextSlotIndex && selectedDate.toDateString() === new Date().toDateString()
             return (
-              <div key={`${slot.groupId}-${slot.date.toDateString()}-${slot.startTime}`} className="flex items-center gap-3" dir="ltr">
+              <div key={`${slot.groupId}-${slot.date.toDateString()}-${slot.startTime}`} className="flex items-center gap-3">
                 <div className="w-14 shrink-0 flex flex-col items-center gap-1">
                   <span className={`text-sm font-bold tabular-nums ${isNext ? 'text-teal-500' : 'text-gray-400'}`}>
                     {slot.startTime}
                   </span>
                   <div className={`w-1.5 h-1.5 rounded-full ${isNext ? 'bg-teal-400' : 'bg-gray-200'}`} />
                 </div>
-                <div className="flex-1" dir="rtl">
+                <div className="flex-1">
                   <LessonCard slot={slot} isNext={isNext} hideTime />
                 </div>
               </div>
