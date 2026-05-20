@@ -114,7 +114,7 @@ export default function AdminGroupSheet({ teacherId, group, isOpen, onClose, def
 
           {/* Name */}
           <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-1">שם קבוצה</label>
+            <label className="block text-sm font-semibold text-gray-700 mb-1">שם שיעור</label>
             <input
               value={name}
               onChange={e => setName(e.target.value)}
