@@ -54,7 +54,7 @@ export default function AdminTeacherTabs({ teacherId, groups, ranges, completedL
               activeTab === tab ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-400'
             }`}
           >
-            {tab === 'groups' ? 'קבוצות' : tab === 'availability' ? 'זמינות' : 'סטטיסטיקות'}
+            {tab === 'groups' ? 'שיעורים' : tab === 'availability' ? 'זמינות' : 'סטטיסטיקות'}
           </button>
         ))}
       </div>
@@ -105,7 +105,7 @@ export default function AdminTeacherTabs({ teacherId, groups, ranges, completedL
             )
           })}
           <button onClick={() => openCreate()} className="w-full py-3 border-2 border-dashed border-teal-300 text-teal-600 font-bold text-sm rounded-2xl hover:border-teal-400 hover:bg-teal-50 transition-colors">
-            + הוסף קבוצה
+            + הוסף שיעור
           </button>
         </div>
       )}
