@@ -4,9 +4,10 @@ import type { LessonSlot } from '@/types/database'
 interface Props {
   slot: LessonSlot
   isNext?: boolean
+  hideTime?: boolean
 }
 
-export default function LessonCard({ slot, isNext }: Props) {
+export default function LessonCard({ slot, isNext, hideTime }: Props) {
   return (
     <Link
       href={`/groups/${slot.groupId}/attendance`}
@@ -25,7 +26,7 @@ export default function LessonCard({ slot, isNext }: Props) {
       <div className="flex-1 min-w-0">
         <p className="text-sm font-bold text-gray-900 truncate">{slot.groupName}</p>
         <div className="flex items-center gap-2 mt-0.5">
-          <span className="text-xs text-gray-400 font-medium">{slot.startTime}</span>
+          {!hideTime && <span className="text-xs text-gray-400 font-medium">{slot.startTime}</span>}
           <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
             slot.lessonType === 'group'
               ? 'bg-teal-50 text-teal-600'
