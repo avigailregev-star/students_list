@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
+import type { AuthChangeEvent, Session } from '@supabase/supabase-js'
 
 export default function ResetPasswordPage() {
   const router = useRouter()
@@ -20,7 +21,7 @@ export default function ResetPasswordPage() {
     const params = new URLSearchParams(window.location.search)
     const code = params.get('code')
     if (code) {
-      supabase.auth.exchangeCodeForSession(code).then(({ error }) => {
+      supabase.auth.exchangeCodeForSession(code).then(({ error }: { error: Error | null }) => {
         if (!error) setReady(true)
         else router.push('/login')
       })
@@ -29,15 +30,15 @@ export default function ResetPasswordPage() {
 
     // Handle implicit flow: token in URL fragment (#access_token=...)
     // onAuthStateChange picks up the fragment automatically
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event: AuthChangeEvent) => {
       if (event === 'PASSWORD_RECOVERY' || event === 'SIGNED_IN') {
         setReady(true)
       }
     })
 
     // Also check if already have a valid session (e.g. navigated back)
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session) setReady(true)
+    supabase.auth.getSession().then(({ data }: { data: { session: Session | null } }) => {
+      if (data.session) setReady(true)
     })
 
     return () => subscription.unsubscribe()

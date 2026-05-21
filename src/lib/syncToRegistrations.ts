@@ -8,8 +8,8 @@ async function getGroupContext(groupId: string) {
     .eq('id', groupId)
     .single()
   if (!data) return null
-  const teacherName = (data.teachers as { name: string } | null)?.name
-  const schedule = (data.group_schedules as { day_of_week: number; start_time: string }[] | null)?.[0]
+  const teacherName = (data.teachers as unknown as { name: string } | null)?.name
+  const schedule = (data.group_schedules as unknown as { day_of_week: number; start_time: string }[] | null)?.[0]
   return teacherName ? { teacherName, schedule } : null
 }
 
