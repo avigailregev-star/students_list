@@ -45,7 +45,7 @@ export async function syncStudentAdded({
       return
     }
 
-    await supabase.from('registrations').insert({
+    const { data: inserted, error: insertErr } = await supabase.from('registrations').insert({
       student_name: studentName,
       parent_name: '',
       parent_phone: parentPhone || null,
@@ -56,8 +56,16 @@ export async function syncStudentAdded({
       assigned_day: ctx.schedule ? String(ctx.schedule.day_of_week) : null,
       assigned_time: ctx.schedule?.start_time || null,
       status: 'שובץ',
-      group_id: groupId,
-    })
+    }).select('id').single()
+
+    if (insertErr) {
+      console.error('syncStudentAdded insert error:', insertErr.message)
+      return
+    }
+
+    if (inserted?.id) {
+      await supabase.from('registrations').update({ group_id: groupId }).eq('id', inserted.id)
+    }
   } catch (e) {
     console.error('syncStudentAdded error:', e)
   }
