@@ -5,6 +5,7 @@ import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import type { LessonType } from '@/types/database'
 import { DAYS_HE } from '@/lib/utils/hebrew'
+import { syncStudentAdded } from '@/lib/syncToRegistrations'
 
 export async function createGroup(formData: FormData) {
   const supabase = await createClient()
@@ -84,6 +85,7 @@ export async function createGroup(formData: FormData) {
     const studentName = formData.get('student_name') as string
     if (studentName) {
       await supabase.from('students').insert({ group_id: group.id, name: studentName })
+      await syncStudentAdded({ groupId: group.id, studentName })
     }
   }
 

@@ -5,6 +5,7 @@ import { requireAdmin } from '@/lib/auth'
 import { createAdminClient } from '@/lib/supabase/admin'
 import type { LessonType } from '@/types/database'
 import { DAYS_HE } from '@/lib/utils/hebrew'
+import { syncStudentAdded, syncStudentRemoved } from '@/lib/syncToRegistrations'
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
@@ -98,6 +99,9 @@ export async function createGroupForTeacher(teacherId: string, data: GroupFormDa
         console.error('createStudents error:', studError)
         return { error: `שגיאה בהוספת תלמידים: ${studError.message}` }
       }
+      await Promise.all(data.students.map(s =>
+        syncStudentAdded({ groupId: group.id, studentName: s.name.trim(), instrument: s.instrument?.trim() || null, parentPhone: s.parentPhone?.trim() || null })
+      ))
     }
 
     revalidatePath(`/admin/teachers/${teacherId}`)
@@ -185,7 +189,9 @@ export async function deleteGroup(groupId: string, teacherId: string): Promise<{
       await supabase.from('attendance').delete().in('lesson_id', lessonIds)
     }
     await supabase.from('lessons').delete().eq('group_id', groupId)
+    const { data: groupStudents } = await supabase.from('students').select('name').eq('group_id', groupId)
     await supabase.from('students').delete().eq('group_id', groupId)
+    if (groupStudents) await Promise.all(groupStudents.map(s => syncStudentRemoved({ studentName: s.name, groupId })))
     await supabase.from('group_schedules').delete().eq('group_id', groupId)
 
     const { error } = await supabase.from('groups').delete().eq('id', groupId)
@@ -220,6 +226,7 @@ export async function addStudentToGroup(groupId: string, teacherId: string, stud
       console.error('addStudent error:', error)
       return { error: `שגיאה בהוספת תלמיד: ${error.message}` }
     }
+    await syncStudentAdded({ groupId, studentName: student.name.trim(), instrument: student.instrument?.trim() || null, parentPhone: student.parentPhone?.trim() || null })
     revalidatePath(`/admin/teachers/${teacherId}`)
     return {}
   } catch (err) {
@@ -235,11 +242,13 @@ export async function removeStudentFromGroup(studentId: string, teacherId: strin
     if (!UUID_RE.test(studentId)) return { error: 'מזהה תלמיד לא תקין' }
     await requireAdmin()
     const supabase = createAdminClient()
+    const { data: student } = await supabase.from('students').select('name, group_id').eq('id', studentId).single()
     const { error } = await supabase.from('students').delete().eq('id', studentId)
     if (error) {
       console.error('removeStudent error:', error)
       return { error: `שגיאה במחיקת תלמיד: ${error.message}` }
     }
+    if (student?.name && student?.group_id) await syncStudentRemoved({ studentName: student.name, groupId: student.group_id })
     revalidatePath(`/admin/teachers/${teacherId}`)
     return {}
   } catch (err) {
