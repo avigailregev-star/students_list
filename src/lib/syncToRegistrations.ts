@@ -78,6 +78,8 @@ export async function syncStudentAdded({
       parent_email: 'attendance@local',
       type: 'new',
       instruments: instrument ? [instrument] : [],
+      unavailable_days: [],
+      has_accommodations: false,
       teacher: ctx.teacherName,
       assigned_day: ctx.schedule ? String(ctx.schedule.day_of_week) : null,
       assigned_time: ctx.schedule?.start_time || null,
