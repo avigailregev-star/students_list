@@ -5,7 +5,7 @@ async function getGroupContext(groupId: string) {
 
   const { data: group, error: groupErr } = await supabase
     .from('groups')
-    .select('teacher_id')
+    .select('teacher_id, name')
     .eq('id', groupId)
     .single()
 
@@ -32,7 +32,7 @@ async function getGroupContext(groupId: string) {
 
   const schedule = schedules?.[0] as { day_of_week: number; start_time: string } | undefined
 
-  return { teacherName: teacher.name as string, schedule }
+  return { teacherName: teacher.name as string, groupName: group.name as string, schedule }
 }
 
 export async function syncStudentAdded({
@@ -66,7 +66,7 @@ export async function syncStudentAdded({
 
     if (existing) {
       if (!existing.group_id) {
-        await supabase.from('registrations').update({ group_id: groupId }).eq('id', existing.id)
+        await supabase.from('registrations').update({ group_id: groupId, selected_course: ctx.groupName }).eq('id', existing.id)
       }
       return
     }
@@ -84,6 +84,7 @@ export async function syncStudentAdded({
       assigned_day: ctx.schedule ? String(ctx.schedule.day_of_week) : null,
       assigned_time: ctx.schedule?.start_time || null,
       status: 'שובץ',
+      selected_course: ctx.groupName,
     }
 
     console.log('syncStudentAdded: inserting', JSON.stringify(payload))
@@ -104,7 +105,7 @@ export async function syncStudentAdded({
     if (inserted?.id) {
       const { error: updateErr } = await supabase
         .from('registrations')
-        .update({ group_id: groupId })
+        .update({ group_id: groupId, selected_course: ctx.groupName })
         .eq('id', inserted.id)
       if (updateErr) console.error('syncStudentAdded: group_id update failed', updateErr.message)
     }
