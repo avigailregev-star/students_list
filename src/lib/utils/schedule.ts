@@ -43,7 +43,11 @@ export function getLastLessonDate(schedules: GroupSchedule[], from: Date = new D
 
   // Return the most recent one (closest to today going backward)
   candidates.sort((a, b) => b.getTime() - a.getTime())
-  return candidates[0]
+  const result = candidates[0]
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+  if (result > today) return null
+  return result
 }
 
 /**
