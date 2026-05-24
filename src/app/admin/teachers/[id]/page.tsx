@@ -35,7 +35,10 @@ export default async function TeacherDetailPage({ params }: Props) {
       .order('start_time', { ascending: true }),
   ])
 
-  const groups = ((groupsRaw ?? []) as GroupWithSchedulesAndStudents[]).sort((a, b) => {
+  const groups = ((groupsRaw ?? []) as GroupWithSchedulesAndStudents[]).map(g => ({
+    ...g,
+    students: g.students.filter((s: { is_active?: boolean }) => s.is_active !== false),
+  })).sort((a, b) => {
     const sa = a.group_schedules[0]
     const sb = b.group_schedules[0]
     if (!sa && !sb) return 0
