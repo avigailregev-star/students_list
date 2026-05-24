@@ -5,10 +5,9 @@ import { usePathname, useRouter } from 'next/navigation'
 
 interface Props {
   error: Error
-  onDismiss: () => void
 }
 
-export default function ErrorPage({ error, onDismiss }: Props) {
+export default function ErrorPage({ error }: Props) {
   const [description, setDescription] = useState('')
   const [sending, setSending] = useState(false)
   const pathname = usePathname()
@@ -30,7 +29,6 @@ export default function ErrorPage({ error, onDismiss }: Props) {
     } catch {
       // best effort — don't block the user
     }
-    onDismiss()
     router.push('/')
   }
 
@@ -39,7 +37,7 @@ export default function ErrorPage({ error, onDismiss }: Props) {
       <div className="bg-white rounded-3xl shadow-sm p-8 max-w-sm w-full text-center">
         <div className="text-4xl mb-4">😔</div>
         <h1 className="text-xl font-bold text-gray-900 mb-2">אירעה שגיאה</h1>
-        <p className="text-sm text-gray-500 mb-6">הבעיה דווחה אוטומטית. מטפלים בה.</p>
+        <p className="text-sm text-gray-500 mb-6">נא דווחי לנו על הבעיה כדי שנוכל לטפל בה.</p>
 
         <textarea
           value={description}
@@ -48,10 +46,12 @@ export default function ErrorPage({ error, onDismiss }: Props) {
           className="w-full border border-gray-200 rounded-2xl px-4 py-3 text-sm resize-none mb-4 focus:outline-none focus:ring-2 focus:ring-teal-400"
           rows={3}
           dir="rtl"
+          aria-label="תיאור השגיאה"
         />
 
         <div className="flex gap-3">
           <button
+            type="button"
             onClick={() => report(true)}
             disabled={sending}
             className="flex-1 bg-teal-500 text-white font-bold py-3 rounded-2xl text-sm disabled:opacity-50"
@@ -59,6 +59,7 @@ export default function ErrorPage({ error, onDismiss }: Props) {
             שלחי דיווח
           </button>
           <button
+            type="button"
             onClick={() => report(false)}
             disabled={sending}
             className="flex-1 bg-gray-100 text-gray-600 font-bold py-3 rounded-2xl text-sm disabled:opacity-50"
