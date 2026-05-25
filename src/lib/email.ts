@@ -27,7 +27,7 @@ export async function sendBugReportEmail(params: BugEmailParams) {
 
   try {
     const { error } = await resend.emails.send({
-      from: 'noreply@students-list.app',
+      from: 'onboarding@resend.dev',
       to: 'avigailregev@gmail.com',
       subject: `🐛 באג חדש — ${escapeHtml(teacherName)}`,
       html: `
