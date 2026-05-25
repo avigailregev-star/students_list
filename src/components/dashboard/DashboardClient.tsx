@@ -1,5 +1,7 @@
 'use client'
 
+throw new Error('בדיקת מערכת דיווח שגיאות')
+
 import { useState, useMemo } from 'react'
 import DayView from './DayView'
 import WeekView from './WeekView'
