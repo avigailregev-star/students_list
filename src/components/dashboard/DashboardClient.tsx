@@ -16,7 +16,6 @@ interface Props {
 }
 
 export default function DashboardClient({ groups, teacherName, events, isAdmin }: Props) {
-  throw new Error('בדיקת מערכת דיווח שגיאות')
   const [view, setView] = useState<'day' | 'week' | 'month'>('day')
   const [dayInitialDate, setDayInitialDate] = useState<Date | undefined>(undefined)
 
