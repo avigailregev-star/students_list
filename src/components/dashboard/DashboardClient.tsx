@@ -1,7 +1,5 @@
 'use client'
 
-throw new Error('בדיקת מערכת דיווח שגיאות')
-
 import { useState, useMemo } from 'react'
 import DayView from './DayView'
 import WeekView from './WeekView'
@@ -18,6 +16,7 @@ interface Props {
 }
 
 export default function DashboardClient({ groups, teacherName, events, isAdmin }: Props) {
+  throw new Error('בדיקת מערכת דיווח שגיאות')
   const [view, setView] = useState<'day' | 'week' | 'month'>('day')
   const [dayInitialDate, setDayInitialDate] = useState<Date | undefined>(undefined)
 
