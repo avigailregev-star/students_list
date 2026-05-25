@@ -23,6 +23,8 @@ function escapeHtml(s: string): string {
 }
 
 export async function sendBugReportEmail(params: BugEmailParams) {
+  if (!process.env.RESEND_API_KEY) return
+
   const { teacherName, errorMessage, pageUrl, userDescription, createdAt } = params
 
   try {
