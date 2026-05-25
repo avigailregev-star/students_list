@@ -18,4 +18,5 @@ export async function markResolved(id: string) {
   if (error) throw new Error('שגיאה בעדכון הדיווח')
 
   revalidatePath('/admin/bugs')
+  revalidatePath('/admin', 'layout')
 }

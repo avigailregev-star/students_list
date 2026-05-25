@@ -119,7 +119,7 @@ export default function AdminNav({ bugsCount = 0 }: { bugsCount?: number }) {
             >
               {item.icon}
               {item.badge != null && item.badge > 0 && (
-                <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full" />
+                <span className="absolute top-1 end-1 w-2 h-2 bg-red-500 rounded-full" />
               )}
               <span className="text-[10px] font-semibold">{item.label}</span>
             </Link>
