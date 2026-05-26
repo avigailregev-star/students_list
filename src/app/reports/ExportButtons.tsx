@@ -1,11 +1,18 @@
 'use client'
 
+interface HistoryEntry {
+  date: string
+  status: string
+  brought: boolean
+}
+
 interface StudentRow {
   name: string
   total_lessons: number
   lessons_attended: number
   lessons_absent: number
   brought_instrument: number
+  history: HistoryEntry[]
 }
 
 interface GroupRow {
@@ -20,32 +27,67 @@ interface Props {
   month: string
 }
 
+const STATUS_LABEL: Record<string, string> = {
+  present:          'הגיע',
+  late:             'איחר',
+  absent:           'חסר',
+  teacher_canceled: 'ביטול',
+  school_event:     'אירוע',
+  excused:          'מוצדק',
+  no_data:          '',
+}
+
+function formatDateCSV(dateStr: string): string {
+  const d = new Date(dateStr + 'T12:00:00')
+  return `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${String(d.getFullYear()).slice(2)}`
+}
+
+function cell(val: string | number): string {
+  const s = String(val)
+  return s.includes(',') || s.includes('"') || s.includes('\n')
+    ? `"${s.replace(/"/g, '""')}"`
+    : s
+}
+
 export default function ExportButtons({ reportData, month }: Props) {
   function exportCSV() {
-    const BOM = '\uFEFF' // UTF-8 BOM so Hebrew shows correctly in Excel
+    const BOM = '﻿'
     const rows: string[] = []
 
     rows.push(`דוח נוכחות — ${month}`)
     rows.push('')
-    rows.push('קבוצה,סוג,תלמיד,סה"כ שיעורים,הגיע,חסר,אחוז נוכחות,הביא כלי')
 
     for (const group of reportData) {
-      const typeLabel = group.lesson_type === 'group' ? 'קבוצה' : 'יחיד'
+      rows.push(`קבוצה: ${group.name} (${group.lesson_type === 'group' ? 'קבוצה' : 'יחיד'})`)
+
+      // All unique dates for this group, sorted oldest→newest
+      const allDates = Array.from(
+        new Set(group.students.flatMap(s => s.history.map(h => h.date)))
+      ).sort()
+
+      const header = [
+        'תלמיד', 'סה"כ שיעורים', 'הגיע', 'חסר', 'אחוז נוכחות', 'הביא כלי',
+        ...allDates.map(formatDateCSV),
+      ]
+      rows.push(header.map(cell).join(','))
+
       for (const s of group.students) {
         const pct = s.total_lessons > 0
           ? Math.round((s.lessons_attended / s.total_lessons) * 100)
           : 0
+        const dateMap = new Map(s.history.map(h => [h.date, h.status]))
+        const dateCells = allDates.map(d => STATUS_LABEL[dateMap.get(d) ?? 'no_data'] ?? '')
         rows.push([
-          group.name,
-          typeLabel,
           s.name,
           s.total_lessons,
           s.lessons_attended,
           s.lessons_absent,
           `${pct}%`,
           s.brought_instrument,
-        ].join(','))
+          ...dateCells,
+        ].map(cell).join(','))
       }
+
       rows.push('')
     }
 
