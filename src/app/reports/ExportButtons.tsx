@@ -58,16 +58,17 @@ export default function ExportButtons({ reportData, month }: Props) {
     rows.push('')
 
     for (const group of reportData) {
-      rows.push(`קבוצה: ${group.name} (${group.lesson_type === 'group' ? 'קבוצה' : 'יחיד'})`)
-
       // All unique dates for this group, sorted oldest→newest
       const allDates = Array.from(
         new Set(group.students.flatMap(s => s.history.map(h => h.date)))
       ).sort()
 
+      // Group separator + header
+      rows.push(`--- קבוצה: ${group.name} (${group.lesson_type === 'group' ? 'קבוצה' : 'יחיד'}) | ${allDates.length} שיעורים ---`)
       const header = [
-        'תלמיד', 'סה"כ שיעורים', 'הגיע', 'חסר', 'אחוז נוכחות', 'הביא כלי',
+        'תלמיד',
         ...allDates.map(formatDateCSV),
+        'סה"כ שיעורים', 'הגיע', 'חסר', 'אחוז נוכחות', 'הביא כלי',
       ]
       rows.push(header.map(cell).join(','))
 
@@ -79,12 +80,12 @@ export default function ExportButtons({ reportData, month }: Props) {
         const dateCells = allDates.map(d => STATUS_LABEL[dateMap.get(d) ?? 'no_data'] ?? '')
         rows.push([
           s.name,
+          ...dateCells,
           s.total_lessons,
           s.lessons_attended,
           s.lessons_absent,
           `${pct}%`,
           s.brought_instrument,
-          ...dateCells,
         ].map(cell).join(','))
       }
 
