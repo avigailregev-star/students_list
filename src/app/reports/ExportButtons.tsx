@@ -54,42 +54,25 @@ export default function ExportButtons({ reportData, month }: Props) {
     const BOM = '﻿'
     const rows: string[] = []
 
-    rows.push(`דוח נוכחות — ${month}`)
-    rows.push('')
+    // Single flat table — one row per student per lesson date
+    rows.push(['תאריך', 'שם שיעור', 'שם תלמיד', 'הגיע', 'חסר', 'הביא כלי'].map(cell).join(','))
 
     for (const group of reportData) {
-      // All unique dates for this group, sorted oldest→newest
-      const allDates = Array.from(
-        new Set(group.students.flatMap(s => s.history.map(h => h.date)))
-      ).sort()
-
-      // Group separator + header
-      rows.push(`--- קבוצה: ${group.name} (${group.lesson_type === 'group' ? 'קבוצה' : 'יחיד'}) | ${allDates.length} שיעורים ---`)
-      const header = [
-        'תלמיד',
-        ...allDates.map(formatDateCSV),
-        'סה"כ שיעורים', 'הגיע', 'חסר', 'אחוז נוכחות', 'הביא כלי',
-      ]
-      rows.push(header.map(cell).join(','))
-
       for (const s of group.students) {
-        const pct = s.total_lessons > 0
-          ? Math.round((s.lessons_attended / s.total_lessons) * 100)
-          : 0
-        const dateMap = new Map(s.history.map(h => [h.date, h.status]))
-        const dateCells = allDates.map(d => STATUS_LABEL[dateMap.get(d) ?? 'no_data'] ?? '')
-        rows.push([
-          s.name,
-          ...dateCells,
-          s.total_lessons,
-          s.lessons_attended,
-          s.lessons_absent,
-          `${pct}%`,
-          s.brought_instrument,
-        ].map(cell).join(','))
+        for (const h of [...s.history].sort((a, b) => a.date.localeCompare(b.date))) {
+          if (h.status === 'teacher_canceled' || h.status === 'school_event' || h.status === 'no_data') continue
+          const attended = (h.status === 'present' || h.status === 'late') ? 1 : 0
+          const absent   = h.status === 'absent' ? 1 : 0
+          rows.push([
+            formatDateCSV(h.date),
+            group.name,
+            s.name,
+            attended,
+            absent,
+            h.brought ? 1 : 0,
+          ].map(cell).join(','))
+        }
       }
-
-      rows.push('')
     }
 
     const csv = BOM + rows.join('\n')
