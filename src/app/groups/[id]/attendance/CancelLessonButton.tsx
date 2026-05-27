@@ -4,16 +4,15 @@ import { useState, useTransition, useRef } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { cancelLesson, restoreLesson } from './lessonActions'
 
-const ADVANCE_NOTICE_REASON = 'הודעה מראש מתלמיד'
+const ADVANCE_NOTICE_REASON = 'ביטול מוצד (עד פעמיים בשנה)'
 const ADVANCE_NOTICE_LIMIT = 2
 
 const REASONS = [
-  'מחלה',
-  'אירוע משפחתי',
-  'הכשרה מקצועית',
-  'חירום',
+  'מחלת מורה',
+  'ביטול ללא הודעה',
   ADVANCE_NOTICE_REASON,
-  'אחר',
+  'העדרות מורה עם השלמה בתלוש נוכחי',
+  'העדרות מורה עם השלמה עתידית',
 ]
 
 interface Props {
@@ -136,7 +135,7 @@ export default function CancelLessonButton({ lessonId, isCanceled, cancelReason,
                         onClick={() => {
                           if (!disabled) {
                             setReason(r)
-                            if (r !== 'מחלה') setSickLeave(false)
+                            if (r !== 'מחלת מורה') setSickLeave(false)
                           }
                         }}
                         className={`text-right px-4 py-2.5 rounded-xl text-sm font-semibold border-2 transition-colors ${
@@ -175,7 +174,7 @@ export default function CancelLessonButton({ lessonId, isCanceled, cancelReason,
               </div>
 
               {/* Sick leave options */}
-              {reason === 'מחלה' && (
+              {reason === 'מחלת מורה' && (
                 <div className="flex flex-col gap-2">
                   <button
                     type="button"

@@ -14,6 +14,7 @@ type HistoryEntry = {
   brought: boolean
   eventType?: SchoolEventType
   eventName?: string
+  cancelReason?: string
 }
 
 type GroupWithData = Group & {
@@ -73,11 +74,11 @@ export default async function ReportsPage() {
   for (const group of groups as Group[]) {
     const [{ data: lessons }, { data: canceled }] = await Promise.all([
       supabase.from('lessons').select('*').eq('group_id', group.id).eq('is_holiday', false).neq('status', 'teacher_canceled').lte('date', todayStr).order('date', { ascending: false }),
-      supabase.from('lessons').select('id, date').eq('group_id', group.id).eq('status', 'teacher_canceled').lte('date', todayStr).order('date', { ascending: false }),
+      supabase.from('lessons').select('id, date, teacher_absence_reason').eq('group_id', group.id).eq('status', 'teacher_canceled').lte('date', todayStr).order('date', { ascending: false }),
     ])
 
     const lessonList = (lessons ?? []) as Lesson[]
-    const canceledList = (canceled ?? []) as { id: string; date: string }[]
+    const canceledList = (canceled ?? []) as { id: string; date: string; teacher_absence_reason: string | null }[]
     const lessonIds = lessonList.map(l => l.id)
 
     const { data: students } = await supabase
@@ -98,7 +99,7 @@ export default async function ReportsPage() {
           const att = studentAtt.find(a => a.lesson_id === lesson.id)
           return { date: lesson.date, status: att?.status ?? 'no_data', brought: att?.brought_instrument ?? false }
         }),
-        ...canceledList.map(lesson => ({ date: lesson.date, status: 'teacher_canceled', brought: false })),
+        ...canceledList.map(lesson => ({ date: lesson.date, status: 'teacher_canceled', brought: false, cancelReason: lesson.teacher_absence_reason ?? undefined })),
       ].sort((a, b) => b.date.localeCompare(a.date))
 
       return {

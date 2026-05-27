@@ -4,6 +4,7 @@ interface HistoryEntry {
   date: string
   status: string
   brought: boolean
+  cancelReason?: string
 }
 
 interface StudentRow {
@@ -55,20 +56,25 @@ export default function ExportButtons({ reportData, month }: Props) {
     const rows: string[] = []
 
     // Single flat table — one row per student per lesson date
-    rows.push(['תאריך', 'שם שיעור', 'שם תלמיד', 'הגיע', 'חסר', 'הביא כלי'].map(cell).join(','))
+    rows.push(['תאריך', 'שם שיעור', 'שם תלמיד', 'נוכחות', 'הביא כלי'].map(cell).join(','))
 
     for (const group of reportData) {
       for (const s of group.students) {
         for (const h of [...s.history].sort((a, b) => a.date.localeCompare(b.date))) {
-          if (h.status === 'teacher_canceled' || h.status === 'school_event' || h.status === 'no_data') continue
-          const attended = (h.status === 'present' || h.status === 'late') ? 1 : 0
-          const absent   = h.status === 'absent' ? 1 : 0
+          if (h.status === 'school_event' || h.status === 'no_data') continue
+
+          let nokchut: string
+          if (h.status === 'present')          nokchut = 'נוכח'
+          else if (h.status === 'late')        nokchut = 'איחר'
+          else if (h.status === 'absent')      nokchut = 'חסר'
+          else if (h.status === 'teacher_canceled') nokchut = h.cancelReason ?? 'ביטול'
+          else                                 nokchut = ''
+
           rows.push([
             formatDateCSV(h.date),
             group.name,
             s.name,
-            attended,
-            absent,
+            nokchut,
             h.brought ? 1 : 0,
           ].map(cell).join(','))
         }
