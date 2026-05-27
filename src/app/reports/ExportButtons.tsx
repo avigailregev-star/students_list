@@ -112,19 +112,26 @@ export default function ExportButtons({ reportData, month, teacherName }: Props)
 
     rows.push(`שם מורה: ${teacherName}`)
     rows.push('')
-    rows.push(['תאריך', 'שם תלמיד', 'שם קבוצה', 'סיבה'].map(cell).join(','))
+    rows.push(['תאריך', 'שם תלמיד', 'שם קבוצה', 'סטטוס', 'סיבה'].map(cell).join(','))
 
     for (const group of reportData) {
       for (const s of group.students) {
         for (const h of [...s.history].sort((a, b) => a.date.localeCompare(b.date))) {
           if (h.status === 'school_event' || h.status === 'no_data') continue
-          const status = payrollStatus(h)
-          if (!status) continue
+          const pStatus = payrollStatus(h)
+          if (!pStatus) continue
+          let lessonStatus: string
+          if (h.status === 'present')               lessonStatus = 'נכח'
+          else if (h.status === 'late')             lessonStatus = 'איחר'
+          else if (h.status === 'absent')           lessonStatus = 'חסר'
+          else if (h.status === 'teacher_canceled') lessonStatus = h.cancelReason ?? 'ביטול'
+          else                                      lessonStatus = ''
           rows.push([
             formatDateCSV(h.date),
             s.name,
             group.name,
-            status,
+            lessonStatus,
+            pStatus,
           ].map(cell).join(','))
         }
       }
