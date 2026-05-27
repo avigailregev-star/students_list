@@ -6,12 +6,21 @@ import { formatDateHe } from '@/lib/utils/hebrew'
 import { EVENT_COLORS } from '@/lib/utils/eventColors'
 import type { SchoolEventType } from '@/types/database'
 
+type HistoryEntry = {
+  date: string
+  status: string
+  brought: boolean
+  eventType?: SchoolEventType
+  eventName?: string
+  cancelReason?: string
+}
+
 type StudentWithStats = Student & {
   total_lessons: number
   lessons_attended: number
   lessons_absent: number
   brought_instrument: number
-  history: { date: string; status: string; brought: boolean; eventType?: SchoolEventType; eventName?: string }[]
+  history: HistoryEntry[]
 }
 
 type GroupWithData = Group & {
@@ -29,13 +38,62 @@ const STATUS_DOT: Record<string, string> = {
   teacher_canceled: 'bg-orange-400',
 }
 
+function buildDateSummary(students: StudentWithStats[]) {
+  const dateMap = new Map<string, {
+    isSpecial: boolean
+    specialStatus: string
+    eventType?: SchoolEventType
+    eventName?: string
+    cancelReason?: string
+    present: number
+    absent: number
+    late: number
+    total: number
+  }>()
+
+  for (const student of students) {
+    for (const h of student.history) {
+      if (!dateMap.has(h.date)) {
+        const isSpecial = h.status === 'teacher_canceled' || h.status === 'school_event'
+        dateMap.set(h.date, {
+          isSpecial,
+          specialStatus: h.status,
+          eventType: h.eventType,
+          eventName: h.eventName,
+          cancelReason: h.cancelReason,
+          present: 0,
+          absent: 0,
+          late: 0,
+          total: 0,
+        })
+      }
+      const entry = dateMap.get(h.date)!
+      if (!entry.isSpecial) {
+        if (h.status === 'present')      { entry.present++; entry.total++ }
+        else if (h.status === 'late')    { entry.present++; entry.late++; entry.total++ }
+        else if (h.status === 'absent')  { entry.absent++; entry.total++ }
+      }
+    }
+  }
+
+  return [...dateMap.entries()]
+    .sort(([a], [b]) => b.localeCompare(a))
+    .map(([date, stats]) => ({ date, ...stats }))
+}
+
 export default function ReportGroup({ group }: { group: GroupWithData }) {
   const [expandedStudent, setExpandedStudent] = useState<string | null>(null)
+  const [showDates, setShowDates] = useState(false)
+
+  const dateSummary = buildDateSummary(group.students)
 
   return (
     <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
-      {/* Group header */}
-      <div className="px-4 py-3.5 flex items-center justify-between border-b border-gray-50">
+      {/* Group header — clickable to toggle date history */}
+      <button
+        onClick={() => setShowDates(v => !v)}
+        className="w-full px-4 py-3.5 flex items-center justify-between border-b border-gray-50 hover:bg-gray-50 transition-colors text-right"
+      >
         <div className="flex items-center gap-3">
           <div className={`w-10 h-10 rounded-2xl flex items-center justify-center text-white font-bold text-sm ${
             group.lesson_type === 'group' ? 'bg-teal-500' : 'bg-violet-500'
@@ -49,12 +107,65 @@ export default function ReportGroup({ group }: { group: GroupWithData }) {
             </p>
           </div>
         </div>
-        <span className={`text-[10px] font-bold px-2.5 py-1 rounded-xl ${
-          group.lesson_type === 'group' ? 'bg-teal-50 text-teal-600' : 'bg-violet-50 text-violet-600'
-        }`}>
-          {group.lesson_type === 'group' ? 'קבוצה' : 'יחיד'}
-        </span>
-      </div>
+        <div className="flex items-center gap-2 shrink-0">
+          <span className={`text-[10px] font-bold px-2.5 py-1 rounded-xl ${
+            group.lesson_type === 'group' ? 'bg-teal-50 text-teal-600' : 'bg-violet-50 text-violet-600'
+          }`}>
+            {group.lesson_type === 'group' ? 'קבוצה' : 'יחיד'}
+          </span>
+          <span className="text-gray-300 text-xs">{showDates ? '▲' : '▼'}</span>
+        </div>
+      </button>
+
+      {/* Date-level history panel */}
+      {showDates && (
+        <div className="bg-gray-50 px-4 py-3 border-b border-gray-100">
+          <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">היסטוריית שיעורים</p>
+          {dateSummary.length === 0 && (
+            <p className="text-xs text-gray-400">אין שיעורים עדיין</p>
+          )}
+          <div className="flex flex-col gap-2">
+            {dateSummary.map((d, i) => {
+              const date = new Date(d.date + 'T12:00:00')
+
+              if (d.specialStatus === 'school_event' && d.eventType) {
+                const cfg = EVENT_COLORS[d.eventType]
+                return (
+                  <div key={i} className={`flex items-center gap-2 rounded-xl px-3 py-2 border-r-4 ${cfg.bg} ${cfg.border} shadow-[0_1px_3px_0_rgba(0,0,0,0.06)]`}>
+                    <span className={`text-[10px] font-bold uppercase tracking-wide shrink-0 ${cfg.text}`}>{cfg.label}</span>
+                    <span className={`text-xs font-bold flex-1 ${cfg.text}`}>{formatDateHe(date)}</span>
+                    <span className={`text-xs font-bold ${cfg.text}`}>{d.eventName}</span>
+                  </div>
+                )
+              }
+
+              if (d.specialStatus === 'teacher_canceled') {
+                return (
+                  <div key={i} className="flex items-center gap-2 bg-white rounded-xl px-3 py-2 shadow-[0_1px_3px_0_rgba(0,0,0,0.06)]">
+                    <div className="w-2.5 h-2.5 rounded-full shrink-0 bg-orange-400" />
+                    <span className="text-xs font-bold text-gray-700 flex-1">{formatDateHe(date)}</span>
+                    <span className="text-xs font-bold text-orange-500">ביטול מורה</span>
+                  </div>
+                )
+              }
+
+              return (
+                <div key={i} className="flex items-center gap-2 bg-white rounded-xl px-3 py-2 shadow-[0_1px_3px_0_rgba(0,0,0,0.06)]">
+                  <div className="w-2.5 h-2.5 rounded-full shrink-0 bg-emerald-500" />
+                  <span className="text-xs font-bold text-gray-700 flex-1">{formatDateHe(date)}</span>
+                  {d.late > 0 && (
+                    <span className="text-[10px] bg-amber-50 text-amber-600 px-1.5 py-0.5 rounded-lg font-bold">{d.late} איחרו</span>
+                  )}
+                  <span className="text-xs font-bold text-emerald-500">{d.present} הגיעו</span>
+                  {d.absent > 0 && (
+                    <span className="text-xs font-bold text-red-400">{d.absent} חסרו</span>
+                  )}
+                </div>
+              )
+            })}
+          </div>
+        </div>
+      )}
 
       {/* Students */}
       <div className="divide-y divide-gray-50">

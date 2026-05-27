@@ -11,10 +11,12 @@ import type { Group, GroupSchedule, Holiday, AttendanceStatus, Lesson } from '@/
 
 interface Props {
   params: Promise<{ id: string }>
+  searchParams: Promise<{ date?: string }>
 }
 
-export default async function AttendancePage({ params }: Props) {
+export default async function AttendancePage({ params, searchParams }: Props) {
   const { id } = await params
+  const { date: dateParam } = await searchParams
   const supabase = await createClient()
 
   const { data: { user } } = await supabase.auth.getUser()
@@ -33,7 +35,9 @@ export default async function AttendancePage({ params }: Props) {
   const { data: holidaysData } = await supabase.from('holidays').select('*')
   const holidays = (holidaysData ?? []) as Holiday[]
 
-  const lessonDate = getLastLessonDate(typedGroup.group_schedules) ?? new Date()
+  const lessonDate = dateParam
+    ? new Date(dateParam + 'T12:00:00')
+    : (getLastLessonDate(typedGroup.group_schedules) ?? new Date())
   const holidayCheck = isHolidayDate(lessonDate, holidays)
 
   const matchingSchedule = typedGroup.group_schedules.find(
