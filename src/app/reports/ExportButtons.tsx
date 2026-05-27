@@ -26,6 +26,7 @@ interface GroupRow {
 interface Props {
   reportData: GroupRow[]
   month: string
+  teacherName: string
 }
 
 const STATUS_LABEL: Record<string, string> = {
@@ -50,7 +51,21 @@ function cell(val: string | number): string {
     : s
 }
 
-export default function ExportButtons({ reportData, month }: Props) {
+function payrollStatus(h: HistoryEntry): string {
+  if (h.status === 'teacher_canceled') {
+    const r = h.cancelReason ?? ''
+    if (r === 'מחלת מורה')                                  return 'אישור מחלה'
+    if (r === 'ביטול מוצד (עד פעמיים בשנה)')               return 'לא לתשלום'
+    if (r === 'העדרות מורה עם השלמה עתידית')                return 'לא לתשלום'
+    if (r === 'ביטול ללא הודעה')                            return 'לתשלום'
+    if (r === 'העדרות מורה עם השלמה בתלוש נוכחי')          return 'לתשלום'
+    return 'לא לתשלום'
+  }
+  if (h.status === 'present' || h.status === 'late' || h.status === 'absent') return 'לתשלום'
+  return ''
+}
+
+export default function ExportButtons({ reportData, month, teacherName }: Props) {
   function exportCSV() {
     const BOM = '﻿'
     const rows: string[] = []
@@ -91,12 +106,46 @@ export default function ExportButtons({ reportData, month }: Props) {
     URL.revokeObjectURL(url)
   }
 
+  function exportPayroll() {
+    const BOM = '﻿'
+    const rows: string[] = []
+
+    rows.push(`שם מורה: ${teacherName}`)
+    rows.push('')
+    rows.push(['תאריך', 'שם תלמיד', 'שם קבוצה', 'סיבה'].map(cell).join(','))
+
+    for (const group of reportData) {
+      for (const s of group.students) {
+        for (const h of [...s.history].sort((a, b) => a.date.localeCompare(b.date))) {
+          if (h.status === 'school_event' || h.status === 'no_data') continue
+          const status = payrollStatus(h)
+          if (!status) continue
+          rows.push([
+            formatDateCSV(h.date),
+            s.name,
+            group.name,
+            status,
+          ].map(cell).join(','))
+        }
+      }
+    }
+
+    const csv = BOM + rows.join('\n')
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `חשבות-שכר-${month}.csv`
+    a.click()
+    URL.revokeObjectURL(url)
+  }
+
   function printReport() {
     window.print()
   }
 
   return (
-    <div className="flex gap-2 mt-1">
+    <div className="flex gap-2 mt-1 flex-wrap">
       <button
         onClick={exportCSV}
         className="flex items-center gap-1.5 bg-white border border-teal-200 text-teal-600 text-xs font-bold px-3 py-2 rounded-xl hover:bg-teal-50 transition-colors shadow-sm"
@@ -107,6 +156,15 @@ export default function ExportButtons({ reportData, month }: Props) {
           <line x1="12" y1="15" x2="12" y2="3" />
         </svg>
         ייצוא לאקסל / שיטס
+      </button>
+      <button
+        onClick={exportPayroll}
+        className="flex items-center gap-1.5 bg-white border border-violet-200 text-violet-600 text-xs font-bold px-3 py-2 rounded-xl hover:bg-violet-50 transition-colors shadow-sm"
+      >
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/>
+        </svg>
+        חשבות שכר
       </button>
       <button
         onClick={printReport}

@@ -66,6 +66,9 @@ export default async function ReportsPage() {
     )
   }
 
+  const { data: teacherData } = await supabase.from('teachers').select('name').eq('id', user.id).single()
+  const teacherName = teacherData?.name ?? ''
+
   const events = await getEventsForTeacher()
 
   const reportData: GroupWithData[] = []
@@ -155,7 +158,7 @@ export default async function ReportsPage() {
           </div>
         </div>
         <p className="text-sm text-teal-100 mt-0.5 mr-12">{groups.length} קבוצות</p>
-        <ExportButtons reportData={reportData} month={monthLabel} />
+        <ExportButtons reportData={reportData} month={monthLabel} teacherName={teacherName} />
       </div>
 
       {/* Print header — visible only when printing */}
