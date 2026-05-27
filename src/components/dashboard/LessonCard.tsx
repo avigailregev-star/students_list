@@ -10,7 +10,7 @@ interface Props {
 export default function LessonCard({ slot, isNext, hideTime }: Props) {
   return (
     <Link
-      href={`/groups/${slot.groupId}/attendance?date=${slot.date.toISOString().slice(0, 10)}`}
+      href={`/groups/${slot.groupId}/attendance?date=${slot.date.getFullYear()}-${String(slot.date.getMonth() + 1).padStart(2, '0')}-${String(slot.date.getDate()).padStart(2, '0')}`}
       className={`bg-white rounded-2xl p-4 flex items-center gap-3 shadow-sm active:opacity-80 transition-opacity ${
         isNext ? 'ring-2 ring-teal-400' : ''
       }`}
