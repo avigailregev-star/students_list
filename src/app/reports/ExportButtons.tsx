@@ -71,7 +71,7 @@ export default function ExportButtons({ reportData, month, teacherName }: Props)
     const rows: string[] = []
 
     // Single flat table — one row per student per lesson date
-    rows.push(['תאריך', 'שם שיעור', 'שם תלמיד', 'נוכחות', 'הביא כלי'].map(cell).join(','))
+    rows.push(['תאריך', 'שם שיעור', 'שם תלמיד', 'נוכחות', 'איחור', 'הביא כלי'].map(cell).join(','))
 
     for (const group of reportData) {
       for (const s of group.students) {
@@ -79,17 +79,18 @@ export default function ExportButtons({ reportData, month, teacherName }: Props)
           if (h.status === 'school_event' || h.status === 'no_data') continue
 
           let nokchut: string
-          if (h.status === 'present')          nokchut = 'נוכח'
-          else if (h.status === 'late')        nokchut = 'איחר'
-          else if (h.status === 'absent')      nokchut = 'חסר'
+          if (h.status === 'present')               nokchut = 'נוכח'
+          else if (h.status === 'late')             nokchut = 'איחר'
+          else if (h.status === 'absent')           nokchut = 'חסר'
           else if (h.status === 'teacher_canceled') nokchut = h.cancelReason ?? 'ביטול'
-          else                                 nokchut = ''
+          else                                      nokchut = ''
 
           rows.push([
             formatDateCSV(h.date),
             group.name,
             s.name,
             nokchut,
+            h.status === 'late' ? 1 : 0,
             h.brought ? 1 : 0,
           ].map(cell).join(','))
         }
@@ -112,28 +113,33 @@ export default function ExportButtons({ reportData, month, teacherName }: Props)
 
     rows.push(`שם מורה: ${teacherName}`)
     rows.push('')
-    rows.push(['תאריך', 'שם תלמיד', 'שם קבוצה', 'סטטוס', 'סיבה'].map(cell).join(','))
+    rows.push(['תאריך', 'שם קבוצה', 'סטטוס', 'סיבה'].map(cell).join(','))
 
     for (const group of reportData) {
+      // One row per lesson (deduplicate by date — take first student's entry)
+      const seenDates = new Map<string, HistoryEntry>()
       for (const s of group.students) {
-        for (const h of [...s.history].sort((a, b) => a.date.localeCompare(b.date))) {
-          if (h.status === 'school_event' || h.status === 'no_data') continue
-          const pStatus = payrollStatus(h)
-          if (!pStatus) continue
-          let lessonStatus: string
-          if (h.status === 'present')               lessonStatus = 'נכח'
-          else if (h.status === 'late')             lessonStatus = 'איחר'
-          else if (h.status === 'absent')           lessonStatus = 'חסר'
-          else if (h.status === 'teacher_canceled') lessonStatus = h.cancelReason ?? 'ביטול'
-          else                                      lessonStatus = ''
-          rows.push([
-            formatDateCSV(h.date),
-            s.name,
-            group.name,
-            lessonStatus,
-            pStatus,
-          ].map(cell).join(','))
+        for (const h of s.history) {
+          if (!seenDates.has(h.date)) seenDates.set(h.date, h)
         }
+      }
+
+      for (const [, h] of [...seenDates.entries()].sort(([a], [b]) => a.localeCompare(b))) {
+        if (h.status === 'school_event' || h.status === 'no_data') continue
+        const pStatus = payrollStatus(h)
+        if (!pStatus) continue
+        let lessonStatus: string
+        if (h.status === 'present')               lessonStatus = 'נכח'
+        else if (h.status === 'late')             lessonStatus = 'איחר'
+        else if (h.status === 'absent')           lessonStatus = 'חסר'
+        else if (h.status === 'teacher_canceled') lessonStatus = h.cancelReason ?? 'ביטול'
+        else                                      lessonStatus = ''
+        rows.push([
+          formatDateCSV(h.date),
+          group.name,
+          lessonStatus,
+          pStatus,
+        ].map(cell).join(','))
       }
     }
 
