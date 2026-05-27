@@ -125,7 +125,11 @@ export default function ExportButtons({ reportData, month, teacherName }: Props)
       const seenDates = new Map<string, HistoryEntry>()
       for (const s of group.students) {
         for (const h of s.history) {
-          if (!seenDates.has(h.date)) seenDates.set(h.date, h)
+          if (!seenDates.has(h.date)) {
+            seenDates.set(h.date, h)
+          } else if (h.status === 'teacher_canceled') {
+            seenDates.set(h.date, h)
+          }
         }
       }
 

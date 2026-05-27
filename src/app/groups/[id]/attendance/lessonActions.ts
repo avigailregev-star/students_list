@@ -44,6 +44,8 @@ export async function restoreLesson(lessonId: string) {
       teacher_absence_reason: null,
       is_sick_leave: false,
       admin_approval_status: null,
+      cancellation_notes: null,
+      sick_leave_document_url: null,
     })
     .eq('id', lessonId)
 

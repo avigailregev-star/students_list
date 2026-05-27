@@ -72,7 +72,8 @@ export default async function ReportsPage() {
   const events = await getEventsForTeacher()
 
   const reportData: GroupWithData[] = []
-  const todayStr = new Date().toISOString().slice(0, 10)
+  const todayDate = new Date()
+  const todayStr = `${todayDate.getFullYear()}-${String(todayDate.getMonth() + 1).padStart(2, '0')}-${String(todayDate.getDate()).padStart(2, '0')}`
 
   for (const group of groups as Group[]) {
     const [{ data: lessons }, { data: canceled }] = await Promise.all([
