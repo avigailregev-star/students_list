@@ -173,10 +173,29 @@ export default async function ReportsPage() {
         <p className="text-sm text-gray-500 mt-0.5">{groups.length} קבוצות</p>
       </div>
 
-      <div className="px-4 py-5 flex flex-col gap-4 max-w-md mx-auto w-full print:max-w-full print:px-6">
-        {reportData.map(group => (
-          <ReportGroup key={group.id} group={group} />
-        ))}
+      <div className="px-4 py-5 flex flex-col gap-3 max-w-md mx-auto w-full print:max-w-full print:px-6">
+        {reportData.map((group, i) => {
+          const dayLabels: Record<number, string> = { 0: 'ראשון', 1: 'שני', 2: 'שלישי', 3: 'רביעי', 4: 'חמישי', 5: 'שישי', 6: 'שבת' }
+          const schedules = (group as GroupWithData & { group_schedules?: { day_of_week: number }[] }).group_schedules
+          const day = schedules?.[0]?.day_of_week
+          const prevSchedules = i > 0 ? (reportData[i - 1] as GroupWithData & { group_schedules?: { day_of_week: number }[] }).group_schedules : null
+          const prevDay = prevSchedules?.[0]?.day_of_week
+          const showDayHeader = day !== undefined && day !== prevDay
+          return (
+            <div key={group.id}>
+              {showDayHeader && (
+                <div className={`flex items-center gap-3 ${i > 0 ? 'mt-3' : ''} mb-2`}>
+                  <div className="w-8 h-8 rounded-xl bg-teal-500 flex items-center justify-center shrink-0">
+                    <span className="text-white text-xs font-bold">{dayLabels[day]?.charAt(0)}</span>
+                  </div>
+                  <p className="text-sm font-bold text-gray-700">יום {dayLabels[day]}</p>
+                  <div className="flex-1 h-px bg-gray-200" />
+                </div>
+              )}
+              <ReportGroup group={group} />
+            </div>
+          )
+        })}
       </div>
 
       <BottomNav />
