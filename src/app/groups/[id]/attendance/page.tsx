@@ -31,6 +31,7 @@ export default async function AttendancePage({ params, searchParams }: Props) {
 
   if (error || !group) notFound()
   const typedGroup = group as Group & { group_schedules: GroupSchedule[] }
+  if (typedGroup.group_schedules.length === 0) notFound()
 
   const { data: holidaysData } = await supabase.from('holidays').select('*')
   const holidays = (holidaysData ?? []) as Holiday[]

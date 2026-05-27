@@ -124,7 +124,7 @@ export default async function ReportsPage() {
     for (const ev of events) {
       const start = new Date(ev.start_date + 'T12:00:00')
       const end   = new Date(ev.end_date   + 'T12:00:00')
-      for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+      for (let d = new Date(start); d <= end; d = new Date(d.getTime() + 86400000)) {
         const ds = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`
         if (ds > todayStr) continue
         if (scheduledDays.includes(d.getDay()) && !seenEventDates.has(ds)) {
