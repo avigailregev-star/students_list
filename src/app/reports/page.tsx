@@ -141,6 +141,12 @@ export default async function ReportsPage() {
     reportData.push({ ...group, students: studentsWithEventHistory, total_lessons: lessonList.length, canceled_lessons: canceledList.length })
   }
 
+  reportData.sort((a, b) => {
+    const dayA = (a as GroupWithData & { group_schedules?: { day_of_week: number }[] }).group_schedules?.[0]?.day_of_week ?? 7
+    const dayB = (b as GroupWithData & { group_schedules?: { day_of_week: number }[] }).group_schedules?.[0]?.day_of_week ?? 7
+    return dayA - dayB
+  })
+
   const now = new Date()
   const monthLabel = now.toLocaleDateString('he-IL', { month: 'long', year: 'numeric' })
 

@@ -63,9 +63,6 @@ export default function ReportGroup({ group }: { group: GroupWithData }) {
         )}
         {group.students.map(student => {
           const canceledCount = student.history.filter(h => h.status === 'teacher_canceled').length
-          const pct = student.total_lessons > 0
-            ? Math.round((student.lessons_attended / student.total_lessons) * 100)
-            : 0
           const isExpanded = expandedStudent === student.id
 
           return (
@@ -79,21 +76,6 @@ export default function ReportGroup({ group }: { group: GroupWithData }) {
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-semibold text-gray-900 truncate">{student.name}</p>
-                  <div className="flex items-center gap-2 mt-0.5">
-                    <div className="flex-1 h-1.5 bg-gray-100 rounded-full overflow-hidden">
-                      <div
-                        className={`h-full rounded-full transition-all ${
-                          pct >= 80 ? 'bg-emerald-400' : pct >= 60 ? 'bg-amber-400' : 'bg-red-400'
-                        }`}
-                        style={{ width: `${pct}%` }}
-                      />
-                    </div>
-                    <span className={`text-xs font-bold tabular-nums ${
-                      pct >= 80 ? 'text-emerald-500' : pct >= 60 ? 'text-amber-500' : 'text-red-500'
-                    }`}>
-                      {pct}%
-                    </span>
-                  </div>
                 </div>
                 <div className="flex gap-3 text-center shrink-0">
                   <div>
