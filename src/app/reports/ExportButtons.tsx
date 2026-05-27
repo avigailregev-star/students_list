@@ -117,6 +117,9 @@ export default function ExportButtons({ reportData, month, teacherName }: Props)
     rows.push('')
     rows.push(['תאריך', 'שם קבוצה', 'סטטוס', 'סיבה'].map(cell).join(','))
 
+    type PayrollRow = { date: string; cols: string[] }
+    const dataRows: PayrollRow[] = []
+
     for (const group of reportData) {
       // One row per lesson (deduplicate by date — take first student's entry)
       const seenDates = new Map<string, HistoryEntry>()
@@ -126,7 +129,7 @@ export default function ExportButtons({ reportData, month, teacherName }: Props)
         }
       }
 
-      for (const [, h] of [...seenDates.entries()].sort(([a], [b]) => a.localeCompare(b))) {
+      for (const [, h] of seenDates.entries()) {
         if (h.status === 'school_event' || h.status === 'no_data') continue
         const pStatus = payrollStatus(h)
         if (!pStatus) continue
@@ -136,14 +139,15 @@ export default function ExportButtons({ reportData, month, teacherName }: Props)
         else if (h.status === 'absent')           lessonStatus = 'חסר'
         else if (h.status === 'teacher_canceled') lessonStatus = h.cancelReason ?? 'ביטול'
         else                                      lessonStatus = ''
-        rows.push([
-          formatDateCSV(h.date),
-          group.name,
-          lessonStatus,
-          pStatus,
-        ].map(cell).join(','))
+        dataRows.push({
+          date: h.date,
+          cols: [formatDateCSV(h.date), group.name, lessonStatus, pStatus].map(cell),
+        })
       }
     }
+
+    dataRows.sort((a, b) => a.date.localeCompare(b.date))
+    for (const r of dataRows) rows.push(r.cols.join(','))
 
     const csv = BOM + rows.join('\n')
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
