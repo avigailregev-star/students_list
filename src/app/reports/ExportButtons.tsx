@@ -70,12 +70,15 @@ export default function ExportButtons({ reportData, month, teacherName }: Props)
     const BOM = '﻿'
     const rows: string[] = []
 
-    // Single flat table — one row per student per lesson date
+    // Single flat table — one row per student per lesson date, sorted by date
     rows.push(['תאריך', 'שם שיעור', 'שם תלמיד', 'נוכחות', 'איחור', 'הביא כלי'].map(cell).join(','))
+
+    type DataRow = { date: string; cols: (string | number)[] }
+    const dataRows: DataRow[] = []
 
     for (const group of reportData) {
       for (const s of group.students) {
-        for (const h of [...s.history].sort((a, b) => a.date.localeCompare(b.date))) {
+        for (const h of s.history) {
           if (h.status === 'school_event' || h.status === 'no_data') continue
 
           let nokchut: string
@@ -85,17 +88,16 @@ export default function ExportButtons({ reportData, month, teacherName }: Props)
           else if (h.status === 'teacher_canceled') nokchut = h.cancelReason ?? 'ביטול'
           else                                      nokchut = ''
 
-          rows.push([
-            formatDateCSV(h.date),
-            group.name,
-            s.name,
-            nokchut,
-            h.status === 'late' ? 1 : 0,
-            h.brought ? 1 : 0,
-          ].map(cell).join(','))
+          dataRows.push({
+            date: h.date,
+            cols: [formatDateCSV(h.date), group.name, s.name, nokchut, h.status === 'late' ? 1 : 0, h.brought ? 1 : 0],
+          })
         }
       }
     }
+
+    dataRows.sort((a, b) => a.date.localeCompare(b.date))
+    for (const r of dataRows) rows.push(r.cols.map(cell).join(','))
 
     const csv = BOM + rows.join('\n')
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
