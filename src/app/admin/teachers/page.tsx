@@ -10,7 +10,7 @@ export default async function AdminTeachersPage() {
   // Fetch all teachers with group counts
   const { data: teachers } = await supabase
     .from('teachers')
-    .select('id, name, email, role, created_at')
+    .select('id, name, email, role, is_pending, created_at')
     .order('created_at', { ascending: true })
 
   const teacherList = teachers ?? []

@@ -15,7 +15,7 @@ export default async function TeacherDetailPage({ params }: Props) {
 
   const { data: teacher } = await supabase
     .from('teachers')
-    .select('id, name, email, role, created_at')
+    .select('id, name, email, role, is_pending, created_at')
     .eq('id', id)
     .single()
 
