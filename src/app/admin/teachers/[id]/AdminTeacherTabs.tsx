@@ -6,6 +6,7 @@ import { LESSON_TYPE_CONFIG } from '@/lib/utils/lessonTypes'
 import { DAYS_HE } from '@/lib/utils/hebrew'
 import { deleteGroup } from './groupActions'
 import AdminGroupSheet from './AdminGroupSheet'
+import AdminAvailabilityClient from './AdminAvailabilityClient'
 
 interface Props {
   teacherId: string
@@ -112,56 +113,7 @@ export default function AdminTeacherTabs({ teacherId, groups, ranges, completedL
 
       {/* Availability tab */}
       {activeTab === 'availability' && (
-        <div className="flex flex-col gap-3">
-          {ranges.length === 0 && (
-            <p className="text-sm text-gray-400 text-center py-4">המורה לא הגדיר טווחי זמינות עדיין.</p>
-          )}
-          {ranges.map(range => {
-            const matched = groups.filter(g => {
-              const sched = g.group_schedules?.[0]
-              if (!sched) return false
-              return (
-                sched.day_of_week === range.day_of_week &&
-                sched.start_time >= range.start_time &&
-                sched.start_time < range.end_time
-              )
-            })
-            return (
-              <div key={range.id} className="bg-white rounded-2xl shadow-sm overflow-hidden">
-                <div className="flex justify-between items-center px-4 py-3 bg-green-50 border-b border-green-100">
-                  <div>
-                    <span className="text-sm font-bold text-green-900">{DAYS_HE[range.day_of_week]}</span>
-                    <span className="text-xs text-green-700 ml-2">{range.start_time.slice(0, 5)} – {range.end_time.slice(0, 5)}</span>
-                  </div>
-                  <button
-                    onClick={() => openCreate({ dayOfWeek: range.day_of_week, startTime: range.start_time.slice(0, 5) })}
-                    className="bg-teal-500 text-white text-xs font-bold px-3 py-1.5 rounded-xl hover:bg-teal-600 transition-colors"
-                  >
-                    + שבץ שיעור
-                  </button>
-                </div>
-                <div className="px-4 py-3 flex flex-col gap-2">
-                  {matched.length === 0 && (
-                    <p className="text-xs text-gray-400 italic">אין שיעורים משובצים בטווח זה</p>
-                  )}
-                  {matched.map(g => {
-                    const cfg = LESSON_TYPE_CONFIG[g.lesson_type]
-                    const sched = g.group_schedules[0]
-                    return (
-                      <div key={g.id} className="flex items-center gap-2">
-                        <div className={`w-2.5 h-2.5 rounded-full shrink-0 ${cfg?.bg ?? 'bg-gray-400'}`} />
-                        <span className="text-sm font-semibold text-gray-800">{g.name}</span>
-                        <span className="text-xs text-gray-400">
-                          {sched.start_time.slice(0, 5)}{sched.end_time ? `–${sched.end_time.slice(0, 5)}` : ''} · {g.students?.length ?? 0} תלמידים
-                        </span>
-                      </div>
-                    )
-                  })}
-                </div>
-              </div>
-            )
-          })}
-        </div>
+        <AdminAvailabilityClient teacherId={teacherId} initialRanges={ranges} />
       )}
 
       {/* Stats tab */}
