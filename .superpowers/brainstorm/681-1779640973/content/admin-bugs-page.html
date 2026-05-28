@@ -1,0 +1,60 @@
+<h2>דף הבאגים בפאנל האדמין</h2>
+<p class="subtitle">כך תיראה רשימת הדיווחים ב-/admin/bugs</p>
+
+<div class="mockup">
+  <div class="mockup-header">students-list.vercel.app/admin/bugs</div>
+  <div class="mockup-body" style="direction:rtl;font-family:sans-serif;background:#f9fafb;padding:0">
+
+    <!-- Header -->
+    <div style="background:linear-gradient(135deg,#14b8a6,#0d9488);color:white;padding:20px 16px;border-radius:0 0 20px 20px">
+      <div style="font-size:11px;font-weight:700;letter-spacing:2px;opacity:0.8;margin-bottom:4px">ניהול</div>
+      <div style="font-size:20px;font-weight:800">דיווחי שגיאות</div>
+      <div style="font-size:12px;opacity:0.8;margin-top:2px">3 דיווחים חדשים</div>
+    </div>
+
+    <div style="padding:16px;display:flex;flex-direction:column;gap:10px">
+
+      <!-- Bug card - new -->
+      <div style="background:white;border-radius:14px;padding:14px;box-shadow:0 1px 4px rgba(0,0,0,0.08);border-right:4px solid #ef4444">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px">
+          <span style="font-size:10px;font-weight:700;background:#fef2f2;color:#ef4444;padding:2px 8px;border-radius:20px">חדש</span>
+          <span style="font-weight:700;font-size:14px">פנינה כהן</span>
+        </div>
+        <div style="font-size:13px;font-weight:600;color:#111;margin-bottom:4px">שגיאה בשמירת נוכחות</div>
+        <div style="font-size:12px;color:#6b7280;margin-bottom:6px">״לחצתי על שמירה ופתאום הדף נעלם״</div>
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <span style="font-size:11px;color:#9ca3af">/groups/abc123/attendance · לפני 5 דק׳</span>
+          <span style="font-size:11px;background:#f3f4f6;color:#6b7280;padding:3px 10px;border-radius:8px;cursor:pointer">סמן כטופל</span>
+        </div>
+      </div>
+
+      <!-- Bug card - new -->
+      <div style="background:white;border-radius:14px;padding:14px;box-shadow:0 1px 4px rgba(0,0,0,0.08);border-right:4px solid #ef4444">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px">
+          <span style="font-size:10px;font-weight:700;background:#fef2f2;color:#ef4444;padding:2px 8px;border-radius:20px">חדש</span>
+          <span style="font-weight:700;font-size:14px">רחל לוי</span>
+        </div>
+        <div style="font-size:13px;font-weight:600;color:#111;margin-bottom:4px">הדף לא נטען</div>
+        <div style="font-size:12px;color:#6b7280;margin-bottom:6px">ללא תיאור</div>
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <span style="font-size:11px;color:#9ca3af">/groups/def456 · לפני 2 שע׳</span>
+          <span style="font-size:11px;background:#f3f4f6;color:#6b7280;padding:3px 10px;border-radius:8px;cursor:pointer">סמן כטופל</span>
+        </div>
+      </div>
+
+      <!-- Bug card - resolved -->
+      <div style="background:white;border-radius:14px;padding:14px;box-shadow:0 1px 4px rgba(0,0,0,0.06);opacity:0.6;border-right:4px solid #d1d5db">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px">
+          <span style="font-size:10px;font-weight:700;background:#f3f4f6;color:#9ca3af;padding:2px 8px;border-radius:20px">טופל</span>
+          <span style="font-weight:700;font-size:14px">שרה מזרחי</span>
+        </div>
+        <div style="font-size:13px;font-weight:600;color:#111;margin-bottom:4px">שגיאה בכניסה למערכת</div>
+        <div style="font-size:12px;color:#6b7280;margin-bottom:6px">״לא הצלחתי להתחבר בבוקר״</div>
+        <div style="font-size:11px;color:#9ca3af">/login · לפני 3 ימים</div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<p class="subtitle" style="margin-top:16px">כל דיווח מכיל: שם המורה · תיאורה · הדף שבו הייתה · שעה · כפתור "סמן כטופל"</p>

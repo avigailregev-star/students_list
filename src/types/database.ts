@@ -1,9 +1,10 @@
 export type Teacher = {
   id: string
   name: string
-  email: string
+  email: string | null
   phone: string | null
   role: 'admin' | 'teacher'
+  is_pending: boolean
   created_at: string
 }
 

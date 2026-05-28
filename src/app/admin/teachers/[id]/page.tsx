@@ -80,7 +80,12 @@ export default async function TeacherDetailPage({ params }: Props) {
       </div>
 
       <div className="px-4 py-5 flex flex-col gap-4 pb-24">
-        <EditTeacherForm teacherId={teacher.id} initialName={teacher.name} />
+        <EditTeacherForm
+          teacherId={teacher.id}
+          initialName={teacher.name}
+          isPending={teacher.is_pending ?? false}
+          email={teacher.email ?? null}
+        />
         <AdminTeacherTabs
           teacherId={teacher.id}
           groups={groups}

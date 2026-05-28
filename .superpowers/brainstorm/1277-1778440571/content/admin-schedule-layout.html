@@ -1,0 +1,61 @@
+<h2>איפה האדמין רואה את הטווחים ומשבץ שיעורים?</h2>
+<p class="subtitle">בחרי את המיקום שמרגיש הכי נכון</p>
+
+<div class="cards">
+
+  <!-- Option A -->
+  <div class="card" data-choice="a" onclick="toggleSelect(this)">
+    <div class="card-image" style="background:#f0fdf4;padding:12px 14px;direction:rtl">
+      <div style="background:linear-gradient(135deg,#2dd4bf,#0d9488);color:white;border-radius:12px;padding:8px 12px;font-size:11px;font-weight:700;margin-bottom:8px">עמוד שיבוץ · /admin/schedule</div>
+      <div style="font-size:10px;color:#374151;font-weight:600;margin-bottom:6px">📋 כל המורים</div>
+      <div style="background:white;border-radius:8px;padding:8px;margin-bottom:4px;border:1px solid #e5e7eb">
+        <div style="font-size:10px;font-weight:700;color:#111827">מיכל כהן</div>
+        <div style="font-size:9px;color:#6b7280;margin:2px 0">ראשון 09:00–12:00 · שלישי 14:00–17:00</div>
+        <div style="display:flex;gap:4px;margin-top:4px">
+          <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:4px;padding:2px 6px;font-size:8px;color:#059669">+ שבץ שיעור</div>
+          <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:4px;padding:2px 6px;font-size:8px;color:#059669">+ שבץ שיעור</div>
+        </div>
+      </div>
+      <div style="background:white;border-radius:8px;padding:8px;border:1px solid #e5e7eb">
+        <div style="font-size:10px;font-weight:700;color:#111827">יוסף לוי</div>
+        <div style="font-size:9px;color:#6b7280;margin:2px 0">שני 10:00–13:00</div>
+        <div style="display:flex;gap:4px;margin-top:4px">
+          <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:4px;padding:2px 6px;font-size:8px;color:#059669">+ שבץ שיעור</div>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>עמוד שיבוץ נפרד</h3>
+      <p>עמוד חדש <strong>/admin/schedule</strong> מציג את כל המורים עם הטווחים שלהם. לחיצה על טווח פותחת את הטופס ליצירת קבוצה.</p>
+      <p style="margin-top:6px;font-size:12px;color:#059669">✓ מבט-על על כל המורים · נוח לשיבוץ בכמות</p>
+    </div>
+  </div>
+
+  <!-- Option B -->
+  <div class="card" data-choice="b" onclick="toggleSelect(this)">
+    <div class="card-image" style="background:#f0fdf4;padding:12px 14px;direction:rtl">
+      <div style="background:linear-gradient(135deg,#2dd4bf,#0d9488);color:white;border-radius:12px;padding:8px 12px;font-size:11px;font-weight:700;margin-bottom:8px">מורה · מיכל כהן · /admin/teachers/[id]</div>
+      <div style="display:flex;gap:4px;margin-bottom:8px">
+        <div style="background:#0d9488;color:white;border-radius:6px;padding:3px 8px;font-size:9px;font-weight:700">קבוצות</div>
+        <div style="background:#f3f4f6;color:#374151;border-radius:6px;padding:3px 8px;font-size:9px">זמינות</div>
+      </div>
+      <div style="background:white;border-radius:8px;padding:8px;margin-bottom:4px;border:1px solid #e5e7eb">
+        <div style="font-size:9px;color:#6b7280;margin-bottom:4px">טווחי זמינות</div>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:3px">
+          <span style="font-size:10px;color:#111827">ראשון · 09:00 – 12:00</span>
+          <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:4px;padding:2px 6px;font-size:8px;color:#059669">+ שבץ</div>
+        </div>
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <span style="font-size:10px;color:#111827">שלישי · 14:00 – 17:00</span>
+          <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:4px;padding:2px 6px;font-size:8px;color:#059669">+ שבץ</div>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>בתוך עמוד המורה</h3>
+      <p>טאב חדש <strong>"זמינות"</strong> בעמוד המורה הקיים. האדמין נכנס למורה, רואה הטווחים שלו, ולוחץ "+ שבץ" על כל טווח.</p>
+      <p style="margin-top:6px;font-size:12px;color:#6366f1">✓ פחות ניווט · הכל על מורה אחד במקום אחד</p>
+    </div>
+  </div>
+
+</div>

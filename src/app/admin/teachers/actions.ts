@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { requireAdmin as _requireAdmin } from '@/lib/auth'
+import { createAdminClient } from '@/lib/supabase/admin'
 
 async function requireAdmin() {
   const { supabase } = await _requireAdmin('/admin')
@@ -21,6 +22,41 @@ export async function updateTeacher(formData: FormData) {
     .eq('id', teacherId)
 
   if (error) throw new Error('שגיאה בעדכון המורה')
+  revalidatePath('/admin/teachers')
+}
+
+export async function createPendingTeacher(name: string): Promise<string | void> {
+  await _requireAdmin('/admin')
+  const supabase = createAdminClient()
+
+  const { error } = await supabase
+    .from('teachers')
+    .insert({ name, role: 'teacher', is_pending: true })
+
+  if (error) return `שגיאה: ${error.message}`
+  revalidatePath('/admin/teachers')
+}
+
+export async function inviteTeacher(pendingId: string, email: string, name: string): Promise<string | void> {
+  await _requireAdmin('/admin')
+  const supabase = createAdminClient()
+
+  // Create auth user with the SAME UUID as the pending profile
+  const { error: authError } = await supabase.auth.admin.createUser({
+    id: pendingId,
+    email,
+    email_confirm: true,
+    user_metadata: { name },
+  })
+  if (authError) return `שגיאה ביצירת חשבון: ${authError.message}`
+
+  // Mark teacher as active and set email
+  const { error: dbError } = await supabase
+    .from('teachers')
+    .update({ email, is_pending: false })
+    .eq('id', pendingId)
+
+  if (dbError) return `שגיאה בעדכון: ${dbError.message}`
   revalidatePath('/admin/teachers')
 }
 

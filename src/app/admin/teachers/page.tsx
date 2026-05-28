@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import { requireAdmin } from '@/lib/auth'
 import { createAdminClient } from '@/lib/supabase/admin'
+import AddTeacherButton from './AddTeacherButton'
 
 export default async function AdminTeachersPage() {
   await requireAdmin()
@@ -62,15 +63,20 @@ export default async function AdminTeachersPage() {
             href={`/admin/teachers/${teacher.id}`}
             className="bg-white rounded-2xl shadow-sm px-4 py-3.5 flex items-center gap-3 hover:shadow-md transition-shadow"
           >
-            <div className="w-11 h-11 rounded-2xl bg-teal-500 flex items-center justify-center text-white font-bold text-base shrink-0">
+            <div className={`w-11 h-11 rounded-2xl flex items-center justify-center text-white font-bold text-base shrink-0 ${teacher.is_pending ? 'bg-gray-400' : 'bg-teal-500'}`}>
               {teacher.name.charAt(0)}
             </div>
             <div className="flex-1 min-w-0">
               <p className="text-sm font-bold text-gray-900 truncate">{teacher.name}</p>
-              <p className="text-xs text-gray-400 mt-0.5 truncate">{teacher.email}</p>
+              <p className="text-xs text-gray-400 mt-0.5 truncate">
+                {teacher.is_pending ? 'ממתינה לרישום' : (teacher.email ?? '')}
+              </p>
             </div>
             <div className="text-left shrink-0 flex flex-col items-end gap-1">
-              <span className="text-[10px] text-gray-400">{countMap[teacher.id] ?? 0} קבוצות</span>
+              {teacher.is_pending
+                ? <span className="text-[10px] font-bold text-amber-500 bg-amber-50 px-2 py-0.5 rounded-full">ממתין</span>
+                : <span className="text-[10px] text-gray-400">{countMap[teacher.id] ?? 0} קבוצות</span>
+              }
             </div>
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#d1d5db" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <polyline points="15 18 9 12 15 6"/>
@@ -81,9 +87,10 @@ export default async function AdminTeachersPage() {
         {teacherList.filter(t => t.role === 'teacher').length === 0 && (
           <div className="text-center py-12 text-gray-400">
             <p className="text-sm">אין מורים עדיין</p>
-            <p className="text-xs mt-1">שתפי את קישור האפליקציה עם המורים</p>
           </div>
         )}
+
+        <AddTeacherButton />
       </div>
     </div>
   )

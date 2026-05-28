@@ -1,0 +1,79 @@
+<h2>מה יוצג בטאב "זמינות"?</h2>
+<p class="subtitle">כשהאדמין לוחץ על הטאב של מורה</p>
+
+<div class="cards">
+
+  <div class="card" data-choice="a" onclick="toggleSelect(this)">
+    <div class="card-image" style="background:#f8fafc;padding:14px;direction:rtl">
+      <div style="font-size:10px;color:#6b7280;font-weight:600;margin-bottom:8px;text-transform:uppercase;letter-spacing:.5px">טווחי זמינות</div>
+
+      <div style="background:white;border-radius:10px;padding:10px 12px;margin-bottom:6px;border:1px solid #e5e7eb;display:flex;justify-content:space-between;align-items:center">
+        <div>
+          <div style="font-size:11px;font-weight:700;color:#111827">ראשון</div>
+          <div style="font-size:10px;color:#6b7280">09:00 – 12:00</div>
+        </div>
+        <div style="background:#0d9488;color:white;border-radius:8px;padding:5px 10px;font-size:10px;font-weight:700">+ שבץ שיעור</div>
+      </div>
+
+      <div style="background:white;border-radius:10px;padding:10px 12px;margin-bottom:6px;border:1px solid #e5e7eb;display:flex;justify-content:space-between;align-items:center">
+        <div>
+          <div style="font-size:11px;font-weight:700;color:#111827">שלישי</div>
+          <div style="font-size:10px;color:#6b7280">14:00 – 17:00</div>
+        </div>
+        <div style="background:#0d9488;color:white;border-radius:8px;padding:5px 10px;font-size:10px;font-weight:700">+ שבץ שיעור</div>
+      </div>
+
+      <div style="background:white;border-radius:10px;padding:10px 12px;border:1px solid #e5e7eb;display:flex;justify-content:space-between;align-items:center">
+        <div>
+          <div style="font-size:11px;font-weight:700;color:#111827">חמישי</div>
+          <div style="font-size:10px;color:#6b7280">08:00 – 11:00</div>
+        </div>
+        <div style="background:#0d9488;color:white;border-radius:8px;padding:5px 10px;font-size:10px;font-weight:700">+ שבץ שיעור</div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>רשימת טווחים בלבד</h3>
+      <p>מציג רק את הטווחים שהמורה הגדיר. לחיצה על "+ שבץ שיעור" פותחת את הטופס עם היום ושעת ההתחלה מולאו מראש.</p>
+    </div>
+  </div>
+
+  <div class="card" data-choice="b" onclick="toggleSelect(this)">
+    <div class="card-image" style="background:#f8fafc;padding:14px;direction:rtl">
+      <div style="font-size:10px;color:#6b7280;font-weight:600;margin-bottom:8px;text-transform:uppercase;letter-spacing:.5px">טווחי זמינות</div>
+
+      <div style="background:white;border-radius:10px;padding:10px 12px;margin-bottom:6px;border:1px solid #e5e7eb">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+          <div>
+            <div style="font-size:11px;font-weight:700;color:#111827">ראשון · 09:00 – 12:00</div>
+          </div>
+          <div style="background:#0d9488;color:white;border-radius:8px;padding:4px 8px;font-size:9px;font-weight:700">+ שבץ</div>
+        </div>
+        <div style="border-top:1px solid #f3f4f6;padding-top:6px">
+          <div style="display:flex;align-items:center;gap:6px;margin-bottom:3px">
+            <div style="width:6px;height:6px;background:#0d9488;border-radius:50%;flex-shrink:0"></div>
+            <div style="font-size:9px;color:#374151">09:00–09:45 · תזמורת א׳ (4 תלמידים)</div>
+          </div>
+          <div style="display:flex;align-items:center;gap:6px">
+            <div style="width:6px;height:6px;background:#0d9488;border-radius:50%;flex-shrink:0"></div>
+            <div style="font-size:9px;color:#374151">10:00–10:30 · שיעור פרטי — דנה</div>
+          </div>
+        </div>
+      </div>
+
+      <div style="background:white;border-radius:10px;padding:10px 12px;border:1px solid #e5e7eb">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+          <div style="font-size:11px;font-weight:700;color:#111827">שלישי · 14:00 – 17:00</div>
+          <div style="background:#0d9488;color:white;border-radius:8px;padding:4px 8px;font-size:9px;font-weight:700">+ שבץ</div>
+        </div>
+        <div style="border-top:1px solid #f3f4f6;padding-top:6px">
+          <div style="font-size:9px;color:#9ca3af;font-style:italic">אין שיעורים משובצים</div>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>טווחים + שיעורים קיימים</h3>
+      <p>כל טווח מציג גם אילו קבוצות/שיעורים כבר משובצים בתוכו. האדמין רואה מה תפוס ומה פנוי לפני שמשבץ.</p>
+    </div>
+  </div>
+
+</div>
