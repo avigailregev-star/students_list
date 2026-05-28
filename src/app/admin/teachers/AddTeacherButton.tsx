@@ -32,7 +32,7 @@ export default function AddTeacherButton() {
 
       {open && (
         <div className="fixed inset-0 bg-black/40 z-50 flex items-end" onClick={() => setOpen(false)}>
-          <div className="bg-white w-full rounded-t-3xl p-5 pb-8" onClick={e => e.stopPropagation()}>
+          <div className="bg-white w-full rounded-t-3xl p-5 pb-28 max-h-[90dvh] overflow-y-auto" onClick={e => e.stopPropagation()}>
             <div className="w-10 h-1 bg-gray-200 rounded-full mx-auto mb-5" />
             <h2 className="text-lg font-bold text-gray-900 mb-4">הוספת מורה חדשה</h2>
 
