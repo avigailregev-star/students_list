@@ -2,6 +2,7 @@ import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import EditTeacherForm from './EditTeacherForm'
 import AdminTeacherTabs from './AdminTeacherTabs'
+import DeleteTeacherButton from './DeleteTeacherButton'
 import { requireAdmin } from '@/lib/auth'
 import { createAdminClient } from '@/lib/supabase/admin'
 import type { GroupWithSchedulesAndStudents, TeacherAvailabilityRange } from '@/types/database'
@@ -93,6 +94,7 @@ export default async function TeacherDetailPage({ params }: Props) {
           completedLessons={completedLessons ?? 0}
           canceledLessons={canceledLessons ?? 0}
         />
+        <DeleteTeacherButton teacherId={teacher.id} />
       </div>
     </div>
   )
