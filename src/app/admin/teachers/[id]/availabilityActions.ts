@@ -6,7 +6,12 @@ import { requireAdmin } from '@/lib/auth'
 
 export async function adminAddAvailabilityRange(formData: FormData, teacherId: string): Promise<string | void> {
   await requireAdmin()
-  const supabase = createAdminClient()
+  let supabase: ReturnType<typeof createAdminClient>
+  try {
+    supabase = createAdminClient()
+  } catch (e) {
+    return `שגיאת הגדרה: SUPABASE_SERVICE_ROLE_KEY חסר. פנה למנהל המערכת.`
+  }
 
   const dayOfWeek = parseInt(formData.get('day_of_week') as string, 10)
   const startTime = formData.get('start_time') as string

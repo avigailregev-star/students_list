@@ -27,13 +27,18 @@ export async function updateTeacher(formData: FormData) {
 
 export async function createPendingTeacher(name: string): Promise<string | void> {
   await _requireAdmin('/admin')
-  const supabase = createAdminClient()
+  let supabase: ReturnType<typeof createAdminClient>
+  try {
+    supabase = createAdminClient()
+  } catch (e) {
+    return `שגיאת הגדרה: SUPABASE_SERVICE_ROLE_KEY חסר. פנה למנהל המערכת.`
+  }
 
   const { error } = await supabase
     .from('teachers')
     .insert({ name, role: 'teacher', is_pending: true })
 
-  if (error) return `שגיאה: ${error.message}`
+  if (error) return `שגיאת DB: ${error.message}`
   revalidatePath('/admin/teachers')
 }
 
