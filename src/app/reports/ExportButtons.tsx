@@ -1,5 +1,7 @@
 'use client'
 
+import * as XLSX from 'xlsx'
+
 interface HistoryEntry {
   date: string
   status: string
@@ -29,26 +31,9 @@ interface Props {
   teacherName: string
 }
 
-const STATUS_LABEL: Record<string, string> = {
-  present:          'הגיע',
-  late:             'איחר',
-  absent:           'חסר',
-  teacher_canceled: 'ביטול',
-  school_event:     'אירוע',
-  excused:          'מוצדק',
-  no_data:          '',
-}
-
-function formatDateCSV(dateStr: string): string {
+function formatDateStr(dateStr: string): string {
   const d = new Date(dateStr + 'T12:00:00')
   return `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${String(d.getFullYear()).slice(2)}`
-}
-
-function cell(val: string | number): string {
-  const s = String(val)
-  return s.includes(',') || s.includes('"') || s.includes('\n')
-    ? `"${s.replace(/"/g, '""')}"`
-    : s
 }
 
 function payrollStatus(h: HistoryEntry): string {
@@ -65,13 +50,17 @@ function payrollStatus(h: HistoryEntry): string {
   return ''
 }
 
-export default function ExportButtons({ reportData, month, teacherName }: Props) {
-  function exportCSV() {
-    const BOM = '﻿'
-    const rows: string[] = []
+function downloadXlsx(rows: (string | number)[][], filename: string, colWidths: number[]) {
+  const ws = XLSX.utils.aoa_to_sheet(rows)
+  ws['!cols'] = colWidths.map(w => ({ wch: w }))
+  const wb = XLSX.utils.book_new()
+  XLSX.utils.book_append_sheet(wb, ws, 'דוח')
+  XLSX.writeFile(wb, filename)
+}
 
-    // Single flat table — one row per student per lesson date, sorted by date
-    rows.push(['תאריך', 'שם שיעור', 'שם תלמיד', 'נוכחות', 'איחור', 'הביא כלי'].map(cell).join(','))
+export default function ExportButtons({ reportData, month, teacherName }: Props) {
+  function exportAttendance() {
+    const header = ['תאריך', 'שם שיעור', 'שם תלמיד', 'נוכחות', 'איחור', 'הביא כלי']
 
     type DataRow = { date: string; cols: (string | number)[] }
     const dataRows: DataRow[] = []
@@ -90,38 +79,22 @@ export default function ExportButtons({ reportData, month, teacherName }: Props)
 
           dataRows.push({
             date: h.date,
-            cols: [formatDateCSV(h.date), group.name, s.name, nokchut, h.status === 'late' ? 1 : 0, h.brought ? 1 : 0],
+            cols: [formatDateStr(h.date), group.name, s.name, nokchut, h.status === 'late' ? 1 : 0, h.brought ? 1 : 0],
           })
         }
       }
     }
 
     dataRows.sort((a, b) => a.date.localeCompare(b.date))
-    for (const r of dataRows) rows.push(r.cols.map(cell).join(','))
-
-    const csv = BOM + rows.join('\n')
-    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = `דוח-נוכחות-${month}.csv`
-    a.click()
-    URL.revokeObjectURL(url)
+    const rows = [header, ...dataRows.map(r => r.cols)]
+    downloadXlsx(rows, `דוח-נוכחות-${month}.xlsx`, [12, 30, 20, 15, 8, 10])
   }
 
   function exportPayroll() {
-    const BOM = '﻿'
-    const rows: string[] = []
-
-    rows.push(`שם מורה: ${teacherName}`)
-    rows.push('')
-    rows.push(['תאריך', 'שם קבוצה', 'סטטוס', 'סיבה'].map(cell).join(','))
-
-    type PayrollRow = { date: string; cols: string[] }
+    type PayrollRow = { date: string; cols: (string | number)[] }
     const dataRows: PayrollRow[] = []
 
     for (const group of reportData) {
-      // One row per lesson (deduplicate by date — take first student's entry)
       const seenDates = new Map<string, HistoryEntry>()
       for (const s of group.students) {
         for (const h of s.history) {
@@ -145,22 +118,20 @@ export default function ExportButtons({ reportData, month, teacherName }: Props)
         else                                      lessonStatus = ''
         dataRows.push({
           date: h.date,
-          cols: [formatDateCSV(h.date), group.name, lessonStatus, pStatus].map(cell),
+          cols: [formatDateStr(h.date), group.name, lessonStatus, pStatus],
         })
       }
     }
 
     dataRows.sort((a, b) => a.date.localeCompare(b.date))
-    for (const r of dataRows) rows.push(r.cols.join(','))
 
-    const csv = BOM + rows.join('\n')
-    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = `חשבות-שכר-${month}.csv`
-    a.click()
-    URL.revokeObjectURL(url)
+    const rows: (string | number)[][] = [
+      [`שם מורה: ${teacherName}`],
+      [],
+      ['תאריך', 'שם קבוצה', 'סטטוס', 'סיבה'],
+      ...dataRows.map(r => r.cols),
+    ]
+    downloadXlsx(rows, `חשבות-שכר-${month}.xlsx`, [12, 30, 25, 15])
   }
 
   function printReport() {
@@ -170,7 +141,7 @@ export default function ExportButtons({ reportData, month, teacherName }: Props)
   return (
     <div className="flex gap-2 mt-1 flex-wrap">
       <button
-        onClick={exportCSV}
+        onClick={exportAttendance}
         className="flex items-center gap-1.5 bg-white border border-teal-200 text-teal-600 text-xs font-bold px-3 py-2 rounded-xl hover:bg-teal-50 transition-colors shadow-sm"
       >
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
