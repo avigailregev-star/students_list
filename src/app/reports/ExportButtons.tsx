@@ -203,15 +203,19 @@ export default function ExportButtons({ reportData, month, teacherName }: Props)
     rows.push(blank())
     rows.push(['חתימת המורה: _______________', '', '', '', 'חתימת מנהל: _______________', '', '', '', ''])
 
+    // הופכים את סדר העמודות כדי שהטבלה תיראה RTL גם בגוגל שיטס ללא הגדרה ידנית
+    const finalRows = rows.map(row => [...row].reverse())
+
+    // מיזוגים במיקומים ההפוכים: עמודה c → עמודה (COLS-1-c)
     const merges: XLSX.Range[] = [
-      { s: { r: 0, c: 0 }, e: { r: 0, c: COLS - 1 } }, // כותרת ראשית
-      { s: { r: 4, c: 2 }, e: { r: 4, c: COLS - 1 } }, // "פעילות"
+      { s: { r: 0, c: 0 }, e: { r: 0, c: COLS - 1 } },       // כותרת ראשית — שורה שלמה
+      { s: { r: 4, c: 0 }, e: { r: 4, c: COLS - 3 } },        // "פעילות" — עמודות 0–6
     ]
 
     downloadXlsx(
-      rows,
+      finalRows,
       `חשבות-שכר-${month}.xlsx`,
-      [8, 6, 13, 13, 12, 18, 12, 18, 10],
+      [10, 18, 12, 18, 12, 13, 13, 6, 8],  // רוחבים הפוכים
       merges,
     )
   }
