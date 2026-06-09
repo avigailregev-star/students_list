@@ -102,8 +102,8 @@ export default function ExportButtons({ reportData, month, teacherName }: Props)
     function mapType(t: string): ColKey | null {
       if (t === 'individual_45') return 'individual_45'
       if (t === 'individual_60') return 'individual_60'
-      if (t === 'melodies_individual' || t === 'melodies_group') return 'melodies'
-      if (t === 'orchestra' || t === 'choir' || t === 'group') return 'ensemble'
+      if (t === 'melodies_individual' || t === 'melodies_group' || t === 'group') return 'melodies'
+      if (t === 'orchestra' || t === 'choir') return 'ensemble'
       if (t === 'theory') return 'theory'
       return null
     }
