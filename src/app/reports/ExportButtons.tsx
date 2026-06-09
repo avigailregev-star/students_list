@@ -36,23 +36,16 @@ function formatDateStr(dateStr: string): string {
   return `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${String(d.getFullYear()).slice(2)}`
 }
 
-function payrollStatus(h: HistoryEntry): string {
-  if (h.status === 'teacher_canceled') {
-    const r = h.cancelReason ?? ''
-    if (r === 'מחלת מורה')                                  return 'אישור מחלה'
-    if (r === 'ביטול מוצד (עד פעמיים בשנה)')               return 'לא לתשלום'
-    if (r === 'העדרות מורה עם השלמה עתידית')                return 'לא לתשלום'
-    if (r === 'ביטול ללא הודעה')                            return 'לתשלום'
-    if (r === 'העדרות מורה עם השלמה בתלוש נוכחי')          return 'לתשלום'
-    return 'לא לתשלום'
-  }
-  if (h.status === 'present' || h.status === 'late' || h.status === 'absent') return 'לתשלום'
-  return ''
-}
-
-function downloadXlsx(rows: (string | number)[][], filename: string, colWidths: number[]) {
+function downloadXlsx(
+  rows: (string | number)[][],
+  filename: string,
+  colWidths: number[],
+  merges?: XLSX.Range[],
+) {
   const ws = XLSX.utils.aoa_to_sheet(rows)
   ws['!cols'] = colWidths.map(w => ({ wch: w }))
+  ws['!views'] = [{ rightToLeft: true }]
+  if (merges) ws['!merges'] = merges
   const wb = XLSX.utils.book_new()
   XLSX.utils.book_append_sheet(wb, ws, 'דוח')
   XLSX.writeFile(wb, filename)
@@ -91,47 +84,136 @@ export default function ExportButtons({ reportData, month, teacherName }: Props)
   }
 
   function exportPayroll() {
-    type PayrollRow = { date: string; cols: (string | number)[] }
-    const dataRows: PayrollRow[] = []
+    const parts = month.split('-')
+    const year = parseInt(parts[0])
+    const monthNum = parseInt(parts[1])
+    const daysInMonth = new Date(year, monthNum, 0).getDate()
+
+    const hebrewDays = ['ראשון', 'שני', 'שלישי', 'רביעי', 'חמישי', 'שישי', 'שבת']
+    const hebrewMonths = ['ינואר', 'פברואר', 'מרץ', 'אפריל', 'מאי', 'יוני', 'יולי', 'אוגוסט', 'ספטמבר', 'אוקטובר', 'נובמבר', 'דצמבר']
+    const monthDisplay = hebrewMonths[monthNum - 1]
+
+    type ColKey = 'individual_45' | 'individual_60' | 'melodies' | 'ensemble' | 'theory' | 'makeup'
+    const mkEmpty = (): Record<ColKey, number> => ({
+      individual_45: 0, individual_60: 0, melodies: 0, ensemble: 0, theory: 0, makeup: 0,
+    })
+
+    function mapType(t: string): ColKey | null {
+      if (t === 'individual_45') return 'individual_45'
+      if (t === 'individual_60') return 'individual_60'
+      if (t === 'melodies_individual' || t === 'melodies_group') return 'melodies'
+      if (t === 'orchestra' || t === 'choir' || t === 'group') return 'ensemble'
+      if (t === 'theory') return 'theory'
+      return null
+    }
+
+    const dayCounts = new Map<number, Record<ColKey, number>>()
+    for (let d = 1; d <= 31; d++) dayCounts.set(d, mkEmpty())
+    const sickDates = new Set<string>()
 
     for (const group of reportData) {
       const seenDates = new Map<string, HistoryEntry>()
       for (const s of group.students) {
         for (const h of s.history) {
-          if (!seenDates.has(h.date)) {
-            seenDates.set(h.date, h)
-          } else if (h.status === 'teacher_canceled') {
-            seenDates.set(h.date, h)
-          }
+          if (!seenDates.has(h.date)) seenDates.set(h.date, h)
+          else if (h.status === 'teacher_canceled') seenDates.set(h.date, h)
         }
       }
 
-      for (const [, h] of seenDates.entries()) {
+      for (const [dateStr, h] of seenDates) {
+        if (!dateStr.startsWith(month)) continue
         if (h.status === 'school_event' || h.status === 'no_data') continue
-        const pStatus = payrollStatus(h)
-        if (!pStatus) continue
-        let lessonStatus: string
-        if (h.status === 'present')               lessonStatus = 'נכח'
-        else if (h.status === 'late')             lessonStatus = 'איחר'
-        else if (h.status === 'absent')           lessonStatus = 'חסר'
-        else if (h.status === 'teacher_canceled') lessonStatus = h.cancelReason ?? 'ביטול'
-        else                                      lessonStatus = ''
-        dataRows.push({
-          date: h.date,
-          cols: [formatDateStr(h.date), group.name, lessonStatus, pStatus],
-        })
+        if (h.status === 'teacher_canceled') {
+          if (h.cancelReason === 'מחלת מורה') sickDates.add(dateStr)
+          continue
+        }
+        const dayNum = parseInt(dateStr.split('-')[2])
+        const counts = dayCounts.get(dayNum)
+        const col = mapType(group.lesson_type)
+        if (counts && col) counts[col]++
       }
     }
 
-    dataRows.sort((a, b) => a.date.localeCompare(b.date))
+    const dayAbbrev = ["א'", "ב'", "ג'", "ד'", "ה'", "ו'", "ש'"]
+    const COLS = 9
+    const blank = (): (string | number)[] => new Array(COLS).fill('')
 
-    const rows: (string | number)[][] = [
-      [`שם מורה: ${teacherName}`],
-      [],
-      ['תאריך', 'שם קבוצה', 'סטטוס', 'סיבה'],
-      ...dataRows.map(r => r.cols),
+    const rows: (string | number)[][] = []
+    // Row 0: כותרת ראשית
+    rows.push(['קונסרבטוריון דימונה - מבית רשת המרכזים הקהילתיים', '', '', '', '', '', '', '', ''])
+    // Row 1: חודש + שנה + ת.ז
+    rows.push([`דו"ח עבודה לחודש: ${monthDisplay}`, '', '', `שנה: ${year}`, '', 'ת.ז:', '', '', ''])
+    // Row 2: פרטי עובד
+    rows.push([`שם ומשפחה: ${teacherName}`, '', '', '', 'תפקיד:', '', 'עיר מגורים:', '', ''])
+    // Row 3: ריק
+    rows.push(blank())
+    // Row 4: "פעילות" מעל עמודות השיעורים
+    rows.push(['', '', 'פעילות', '', '', '', '', '', ''])
+    // Row 5: כותרות עמודות
+    rows.push(['תאריך', 'יום', "פרטני 45 דק'", "פרטני 60 דק'", 'מנגינות', 'הרכבים/תזמורות', 'תיאוריה', 'השלמות/החלפות', 'סה"כ'])
+    // Row 6: "מס' שיעורים" תחת כל עמודת שיעור
+    rows.push(['', '', "מס' שיעורים", "מס' שיעורים", "מס' שיעורים", "מס' שיעורים", "מס' שיעורים", "מס' שיעורים", ''])
+    // Row 7: ריק
+    rows.push(blank())
+
+    const totals = mkEmpty()
+    let grandTotal = 0
+
+    for (let d = 1; d <= 31; d++) {
+      if (d > daysInMonth) {
+        rows.push([d, '', '', '', '', '', '', '', ''])
+        continue
+      }
+      const dayName = dayAbbrev[new Date(year, monthNum - 1, d).getDay()]
+      const c = dayCounts.get(d)!
+      const rowTotal = c.individual_45 + c.individual_60 + c.melodies + c.ensemble + c.theory + c.makeup
+      totals.individual_45 += c.individual_45
+      totals.individual_60 += c.individual_60
+      totals.melodies += c.melodies
+      totals.ensemble += c.ensemble
+      totals.theory += c.theory
+      totals.makeup += c.makeup
+      grandTotal += rowTotal
+      rows.push([
+        d,
+        dayName,
+        c.individual_45 || '',
+        c.individual_60 || '',
+        c.melodies || '',
+        c.ensemble || '',
+        c.theory || '',
+        c.makeup || '',
+        rowTotal || '',
+      ])
+    }
+
+    rows.push([
+      'סה"כ', '',
+      totals.individual_45 || '',
+      totals.individual_60 || '',
+      totals.melodies || '',
+      totals.ensemble || '',
+      totals.theory || '',
+      totals.makeup || '',
+      grandTotal || '',
+    ])
+    rows.push(blank())
+    rows.push(['ימי בחירה/חופשה:', '', '', '', '', '', '', '', ''])
+    rows.push(['ימי מחלה:', sickDates.size || '', '', '', '', '', '', '', ''])
+    rows.push(blank())
+    rows.push(['חתימת המורה: _______________', '', '', '', 'חתימת מנהל: _______________', '', '', '', ''])
+
+    const merges: XLSX.Range[] = [
+      { s: { r: 0, c: 0 }, e: { r: 0, c: COLS - 1 } }, // כותרת ראשית
+      { s: { r: 4, c: 2 }, e: { r: 4, c: COLS - 1 } }, // "פעילות"
     ]
-    downloadXlsx(rows, `חשבות-שכר-${month}.xlsx`, [12, 30, 25, 15])
+
+    downloadXlsx(
+      rows,
+      `חשבות-שכר-${month}.xlsx`,
+      [8, 6, 13, 13, 12, 18, 12, 18, 10],
+      merges,
+    )
   }
 
   function printReport() {

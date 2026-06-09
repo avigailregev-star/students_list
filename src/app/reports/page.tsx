@@ -149,6 +149,7 @@ export default async function ReportsPage() {
   })
 
   const now = new Date()
+  const monthKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
   const monthLabel = now.toLocaleDateString('he-IL', { month: 'long', year: 'numeric' })
 
   return (
@@ -165,7 +166,7 @@ export default async function ReportsPage() {
           </div>
         </div>
         <p className="text-sm text-teal-100 mt-0.5 mr-12">{groups.length} קבוצות</p>
-        <ExportButtons reportData={reportData} month={monthLabel} teacherName={teacherName} />
+        <ExportButtons reportData={reportData} month={monthKey} teacherName={teacherName} />
       </div>
 
       {/* Print header — visible only when printing */}
