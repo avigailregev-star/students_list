@@ -1,5 +1,6 @@
 'use client'
 
+import Link from 'next/link'
 import * as XLSX from 'xlsx'
 
 interface HistoryEntry {
@@ -246,6 +247,16 @@ export default function ExportButtons({ reportData, month, teacherName }: Props)
         </svg>
         חשבות שכר
       </button>
+      <Link
+        href="/reports/payroll"
+        className="flex items-center gap-1.5 bg-white border border-violet-200 text-violet-600 text-xs font-bold px-3 py-2 rounded-xl hover:bg-violet-50 transition-colors shadow-sm"
+      >
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/>
+          <line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/>
+        </svg>
+        כל החודשים
+      </Link>
       <button
         onClick={printReport}
         className="flex items-center gap-1.5 bg-white border border-gray-200 text-gray-600 text-xs font-bold px-3 py-2 rounded-xl hover:bg-gray-50 transition-colors shadow-sm"
