@@ -5,7 +5,7 @@ import type { MonthPayroll, DayCount } from './page'
 const DAY_ABBREV = ["א'", "ב'", "ג'", "ד'", "ה'", "ו'", "ש'"]
 
 function total(c: DayCount) {
-  return c.individual_45 + c.individual_60 + c.melodies + c.ensemble + c.theory + c.makeup
+  return c.individual_45 + c.individual_60 + c.melodies + c.ensemble + c.theory + c.darcha + c.makeup
 }
 
 export default function PayrollView({ months, teacherName }: { months: MonthPayroll[]; teacherName: string }) {
@@ -41,8 +41,9 @@ export default function PayrollView({ months, teacherName }: { months: MonthPayr
 }
 
 function MonthTable({ month, teacherName }: { month: MonthPayroll; teacherName: string }) {
-  const totals: DayCount = { individual_45: 0, individual_60: 0, melodies: 0, ensemble: 0, theory: 0, makeup: 0 }
+  const totals: DayCount = { individual_45: 0, individual_60: 0, melodies: 0, ensemble: 0, theory: 0, darcha: 0, makeup: 0 }
   let grandTotal = 0
+  let workDays = 0
   for (let d = 1; d <= month.daysInMonth; d++) {
     const c = month.dayCounts[d]
     totals.individual_45 += c.individual_45
@@ -50,8 +51,11 @@ function MonthTable({ month, teacherName }: { month: MonthPayroll; teacherName: 
     totals.melodies += c.melodies
     totals.ensemble += c.ensemble
     totals.theory += c.theory
+    totals.darcha += c.darcha
     totals.makeup += c.makeup
-    grandTotal += total(c)
+    const dayTotal = total(c)
+    grandTotal += dayTotal
+    if (dayTotal > 0) workDays++
   }
 
   const th = 'border border-gray-400 px-1 py-1 text-center text-[10px] font-bold bg-gray-100'
@@ -60,10 +64,10 @@ function MonthTable({ month, teacherName }: { month: MonthPayroll; teacherName: 
 
   return (
     <div dir="rtl" className="overflow-x-auto">
-      <table className="w-full border-collapse min-w-[580px]" style={{ direction: 'rtl' }}>
+      <table className="w-full border-collapse min-w-[640px]" style={{ direction: 'rtl' }}>
         <thead>
           <tr>
-            <th colSpan={9} className="border border-gray-400 py-2 text-center text-sm font-bold bg-gray-50">
+            <th colSpan={10} className="border border-gray-400 py-2 text-center text-sm font-bold bg-gray-50">
               קונסרבטוריון דימונה - מבית רשת המרכזים הקהילתיים
             </th>
           </tr>
@@ -71,26 +75,26 @@ function MonthTable({ month, teacherName }: { month: MonthPayroll; teacherName: 
             <td colSpan={4} className={tdL}>דו&quot;ח עבודה לחודש: {month.label}</td>
             <td colSpan={2} className={td}>שנה: {month.year}</td>
             <td className={tdL}>ת.ז:</td>
-            <td colSpan={2} className={td}></td>
+            <td colSpan={3} className={td}></td>
           </tr>
           <tr>
             <td colSpan={3} className={tdL}>שם ומשפחה: {teacherName}</td>
-            <td colSpan={3} className={tdL}>תפקיד: _______________</td>
+            <td colSpan={4} className={tdL}>תפקיד: _______________</td>
             <td colSpan={3} className={tdL}>עיר מגורים: _______________</td>
           </tr>
           <tr>
             <th colSpan={2} className={`${th} bg-gray-50`}></th>
-            <th colSpan={6} className={`${th} bg-violet-50 text-violet-700`}>פעילות</th>
+            <th colSpan={7} className={`${th} bg-violet-50 text-violet-700`}>פעילות</th>
             <th className={`${th} bg-gray-50`}></th>
           </tr>
           <tr>
-            {['תאריך','יום',"פרטני 45 דק'",'פרטני 60 דק\'','מנגינות','הרכבים/תזמורות','תיאוריה','השלמות/החלפות','סה"כ'].map(h => (
+            {['תאריך','יום',"פרטני 45 דק'",'פרטני 60 דק\'','מנגינות','הרכבים/תזמורות','תיאוריה','דרכא לימן','השלמות/החלפות','סה"כ'].map(h => (
               <th key={h} className={th}>{h}</th>
             ))}
           </tr>
           <tr>
             <th colSpan={2} className="border border-gray-300 bg-gray-50"></th>
-            {[...Array(6)].map((_, i) => (
+            {[...Array(7)].map((_, i) => (
               <th key={i} className="border border-gray-300 px-1 py-0.5 text-center text-[9px] font-normal text-gray-400 bg-gray-50">
                 מס&apos; שיעורים
               </th>
@@ -111,7 +115,7 @@ function MonthTable({ month, teacherName }: { month: MonthPayroll; teacherName: 
                 <td className={`${td} ${isOver ? 'text-gray-300' : ''}`}>{d}</td>
                 <td className={td}>{isOver ? '' : DAY_ABBREV[dow]}</td>
                 {isOver ? (
-                  [...Array(7)].map((_, i) => <td key={i} className={`${td} bg-gray-50`}></td>)
+                  [...Array(8)].map((_, i) => <td key={i} className={`${td} bg-gray-50`}></td>)
                 ) : (
                   <>
                     <td className={td}>{c.individual_45 || ''}</td>
@@ -119,6 +123,7 @@ function MonthTable({ month, teacherName }: { month: MonthPayroll; teacherName: 
                     <td className={td}>{c.melodies || ''}</td>
                     <td className={td}>{c.ensemble || ''}</td>
                     <td className={td}>{c.theory || ''}</td>
+                    <td className={td}>{c.darcha || ''}</td>
                     <td className={td}>{c.makeup || ''}</td>
                     <td className={`${td} font-bold`}>{rowTotal || ''}</td>
                   </>
@@ -135,22 +140,27 @@ function MonthTable({ month, teacherName }: { month: MonthPayroll; teacherName: 
             <td className={`${td} font-bold`}>{totals.melodies || ''}</td>
             <td className={`${td} font-bold`}>{totals.ensemble || ''}</td>
             <td className={`${td} font-bold`}>{totals.theory || ''}</td>
+            <td className={`${td} font-bold`}>{totals.darcha || ''}</td>
             <td className={`${td} font-bold`}>{totals.makeup || ''}</td>
             <td className={`${td} font-bold`}>{grandTotal || ''}</td>
           </tr>
           <tr>
+            <td colSpan={4} className={tdL}>סך ימי עבודה: {workDays || '___'}</td>
+            <td colSpan={6} className={td}></td>
+          </tr>
+          <tr>
             <td colSpan={4} className={tdL}>ימי בחירה/חופשה: ___</td>
-            <td colSpan={5} className={td}></td>
+            <td colSpan={6} className={td}></td>
           </tr>
           <tr>
             <td colSpan={4} className={tdL}>ימי מחלה: {month.sickDays || '___'}</td>
-            <td colSpan={5} className={td}></td>
+            <td colSpan={6} className={td}></td>
           </tr>
           <tr>
-            <td colSpan={9} className="py-3"></td>
+            <td colSpan={10} className="py-3"></td>
           </tr>
           <tr>
-            <td colSpan={4} className={tdL}>חתימת המורה: _______________</td>
+            <td colSpan={5} className={tdL}>חתימת המורה: _______________</td>
             <td colSpan={5} className={tdL}>חתימת מנהל: _______________</td>
           </tr>
         </tfoot>

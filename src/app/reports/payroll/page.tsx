@@ -10,6 +10,7 @@ export type DayCount = {
   melodies: number
   ensemble: number
   theory: number
+  darcha: number
   makeup: number
 }
 
@@ -31,6 +32,7 @@ function mapType(t: string): keyof DayCount | null {
   if (t === 'melodies_individual' || t === 'melodies_group' || t === 'group') return 'melodies'
   if (t === 'orchestra' || t === 'choir') return 'ensemble'
   if (t === 'theory') return 'theory'
+  if (t === 'darcha') return 'darcha'
   return null
 }
 
@@ -84,7 +86,7 @@ export default async function PayrollPage() {
       const [y, m] = key.split('-').map(Number)
       const dayCounts: Record<number, DayCount> = {}
       for (let d = 1; d <= 31; d++) {
-        dayCounts[d] = { individual_45: 0, individual_60: 0, melodies: 0, ensemble: 0, theory: 0, makeup: 0 }
+        dayCounts[d] = { individual_45: 0, individual_60: 0, melodies: 0, ensemble: 0, theory: 0, darcha: 0, makeup: 0 }
       }
       monthsMap.set(key, {
         key,

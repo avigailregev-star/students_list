@@ -94,9 +94,9 @@ export default function ExportButtons({ reportData, month, teacherName }: Props)
     const hebrewMonths = ['ינואר', 'פברואר', 'מרץ', 'אפריל', 'מאי', 'יוני', 'יולי', 'אוגוסט', 'ספטמבר', 'אוקטובר', 'נובמבר', 'דצמבר']
     const monthDisplay = hebrewMonths[monthNum - 1]
 
-    type ColKey = 'individual_45' | 'individual_60' | 'melodies' | 'ensemble' | 'theory' | 'makeup'
+    type ColKey = 'individual_45' | 'individual_60' | 'melodies' | 'ensemble' | 'theory' | 'darcha' | 'makeup'
     const mkEmpty = (): Record<ColKey, number> => ({
-      individual_45: 0, individual_60: 0, melodies: 0, ensemble: 0, theory: 0, makeup: 0,
+      individual_45: 0, individual_60: 0, melodies: 0, ensemble: 0, theory: 0, darcha: 0, makeup: 0,
     })
 
     function mapType(t: string): ColKey | null {
@@ -105,6 +105,7 @@ export default function ExportButtons({ reportData, month, teacherName }: Props)
       if (t === 'melodies_individual' || t === 'melodies_group' || t === 'group') return 'melodies'
       if (t === 'orchestra' || t === 'choir') return 'ensemble'
       if (t === 'theory') return 'theory'
+      if (t === 'darcha') return 'darcha'
       return null
     }
 
@@ -136,45 +137,48 @@ export default function ExportButtons({ reportData, month, teacherName }: Props)
     }
 
     const dayAbbrev = ["א'", "ב'", "ג'", "ד'", "ה'", "ו'", "ש'"]
-    const COLS = 9
+    const COLS = 10
     const blank = (): (string | number)[] => new Array(COLS).fill('')
 
     const rows: (string | number)[][] = []
     // Row 0: כותרת ראשית
-    rows.push(['קונסרבטוריון דימונה - מבית רשת המרכזים הקהילתיים', '', '', '', '', '', '', '', ''])
+    rows.push(['קונסרבטוריון דימונה - מבית רשת המרכזים הקהילתיים', '', '', '', '', '', '', '', '', ''])
     // Row 1: חודש + שנה + ת.ז
-    rows.push([`דו"ח עבודה לחודש: ${monthDisplay}`, '', '', `שנה: ${year}`, '', 'ת.ז:', '', '', ''])
+    rows.push([`דו"ח עבודה לחודש: ${monthDisplay}`, '', '', `שנה: ${year}`, '', 'ת.ז:', '', '', '', ''])
     // Row 2: פרטי עובד
-    rows.push([`שם ומשפחה: ${teacherName}`, '', '', '', 'תפקיד:', '', 'עיר מגורים:', '', ''])
+    rows.push([`שם ומשפחה: ${teacherName}`, '', '', '', 'תפקיד:', '', 'עיר מגורים:', '', '', ''])
     // Row 3: ריק
     rows.push(blank())
     // Row 4: "פעילות" מעל עמודות השיעורים
-    rows.push(['', '', 'פעילות', '', '', '', '', '', ''])
+    rows.push(['', '', 'פעילות', '', '', '', '', '', '', ''])
     // Row 5: כותרות עמודות
-    rows.push(['תאריך', 'יום', "פרטני 45 דק'", "פרטני 60 דק'", 'מנגינות', 'הרכבים/תזמורות', 'תיאוריה', 'השלמות/החלפות', 'סה"כ'])
+    rows.push(['תאריך', 'יום', "פרטני 45 דק'", "פרטני 60 דק'", 'מנגינות', 'הרכבים/תזמורות', 'תיאוריה', 'דרכא לימן', 'השלמות/החלפות', 'סה"כ'])
     // Row 6: "מס' שיעורים" תחת כל עמודת שיעור
-    rows.push(['', '', "מס' שיעורים", "מס' שיעורים", "מס' שיעורים", "מס' שיעורים", "מס' שיעורים", "מס' שיעורים", ''])
+    rows.push(['', '', "מס' שיעורים", "מס' שיעורים", "מס' שיעורים", "מס' שיעורים", "מס' שיעורים", "מס' שיעורים", "מס' שיעורים", ''])
     // Row 7: ריק
     rows.push(blank())
 
     const totals = mkEmpty()
     let grandTotal = 0
+    let workDays = 0
 
     for (let d = 1; d <= 31; d++) {
       if (d > daysInMonth) {
-        rows.push([d, '', '', '', '', '', '', '', ''])
+        rows.push([d, '', '', '', '', '', '', '', '', ''])
         continue
       }
       const dayName = dayAbbrev[new Date(year, monthNum - 1, d).getDay()]
       const c = dayCounts.get(d)!
-      const rowTotal = c.individual_45 + c.individual_60 + c.melodies + c.ensemble + c.theory + c.makeup
+      const rowTotal = c.individual_45 + c.individual_60 + c.melodies + c.ensemble + c.theory + c.darcha + c.makeup
       totals.individual_45 += c.individual_45
       totals.individual_60 += c.individual_60
       totals.melodies += c.melodies
       totals.ensemble += c.ensemble
       totals.theory += c.theory
+      totals.darcha += c.darcha
       totals.makeup += c.makeup
       grandTotal += rowTotal
+      if (rowTotal > 0) workDays++
       rows.push([
         d,
         dayName,
@@ -183,6 +187,7 @@ export default function ExportButtons({ reportData, month, teacherName }: Props)
         c.melodies || '',
         c.ensemble || '',
         c.theory || '',
+        c.darcha || '',
         c.makeup || '',
         rowTotal || '',
       ])
@@ -195,14 +200,16 @@ export default function ExportButtons({ reportData, month, teacherName }: Props)
       totals.melodies || '',
       totals.ensemble || '',
       totals.theory || '',
+      totals.darcha || '',
       totals.makeup || '',
       grandTotal || '',
     ])
     rows.push(blank())
-    rows.push(['ימי בחירה/חופשה:', '', '', '', '', '', '', '', ''])
-    rows.push(['ימי מחלה:', sickDates.size || '', '', '', '', '', '', '', ''])
+    rows.push(['סך ימי עבודה:', workDays || '', '', '', '', '', '', '', '', ''])
+    rows.push(['ימי בחירה/חופשה:', '', '', '', '', '', '', '', '', ''])
+    rows.push(['ימי מחלה:', sickDates.size || '', '', '', '', '', '', '', '', ''])
     rows.push(blank())
-    rows.push(['חתימת המורה: _______________', '', '', '', 'חתימת מנהל: _______________', '', '', '', ''])
+    rows.push(['חתימת המורה: _______________', '', '', '', '', 'חתימת מנהל: _______________', '', '', '', ''])
 
     // הופכים את סדר העמודות כדי שהטבלה תיראה RTL גם בגוגל שיטס ללא הגדרה ידנית
     const finalRows = rows.map(row => [...row].reverse())
@@ -216,7 +223,7 @@ export default function ExportButtons({ reportData, month, teacherName }: Props)
     downloadXlsx(
       finalRows,
       `חשבות-שכר-${month}.xlsx`,
-      [10, 18, 12, 18, 12, 13, 13, 6, 8],  // רוחבים הפוכים
+      [10, 18, 12, 12, 18, 12, 13, 13, 6, 8],  // רוחבים הפוכים (סה"כ, השלמות, דרכא, תיאוריה, הרכבים, מנגינות, פ60, פ45, יום, תאריך)
       merges,
     )
   }

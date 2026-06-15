@@ -9,6 +9,7 @@ export const LESSON_TYPE_CONFIG: Record<LessonType, { label: string; color: stri
   choir:             { label: 'מקהלה',            color: 'text-pink-700',   bg: 'bg-pink-500'   },
   melodies_individual:{ label: 'מנגינות פרטני',  color: 'text-emerald-700',bg: 'bg-emerald-500'},
   melodies_group:    { label: 'מנגינות קבוצתי',  color: 'text-cyan-700',   bg: 'bg-cyan-500'   },
+  darcha:            { label: 'דרכא לימן',        color: 'text-orange-700', bg: 'bg-orange-500' },
 }
 
 export const LESSON_TYPE_OPTIONS = Object.entries(LESSON_TYPE_CONFIG) as [LessonType, { label: string; color: string; bg: string }][]

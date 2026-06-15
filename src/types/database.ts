@@ -24,6 +24,7 @@ export type LessonType =
   | 'choir'
   | 'melodies_individual'
   | 'melodies_group'
+  | 'darcha'
 
 export type Group = {
   id: string
