@@ -2,7 +2,7 @@
 
 import { useState, useTransition, useMemo } from 'react'
 import { createEvent, deleteEvent } from './calendarActions'
-import type { SchoolEvent, SchoolEventType, Teacher } from '@/types/database'
+import type { SchoolEvent, SchoolEventType, Teacher, Holiday } from '@/types/database'
 
 const MONTHS_HE = ['ינואר','פברואר','מרץ','אפריל','מאי','יוני','יולי','אוגוסט','ספטמבר','אוקטובר','נובמבר','דצמבר']
 const DAYS_HE   = ['א','ב','ג','ד','ה','ו','ש']
@@ -35,9 +35,10 @@ function toDateStr(d: Date) {
 interface Props {
   events: SchoolEvent[]
   teachers: Teacher[]
+  holidays: Pick<Holiday, 'date' | 'name'>[]
 }
 
-export default function CalendarClient({ events, teachers }: Props) {
+export default function CalendarClient({ events, teachers, holidays }: Props) {
   const schoolYear = getSchoolYear()
   const [addOpen, setAddOpen] = useState(false)
   const [selectedDate, setSelectedDate] = useState('')
@@ -63,15 +64,23 @@ export default function CalendarClient({ events, teachers }: Props) {
     return m
   }, [events])
 
-  // School year: Sep–Aug (12 months)
-  const months = useMemo(() => {
-    const result = []
-    for (let i = 0; i < 12; i++) {
-      const monthIndex = (8 + i) % 12
-      const year = i < 4 ? schoolYear : schoolYear + 1
-      result.push({ monthIndex, year })
-    }
-    return result
+  // Build a map: dateStr → holiday name
+  const holidayMap = useMemo(() => {
+    const m: Record<string, string> = {}
+    for (const h of holidays) m[h.date] = h.name
+    return m
+  }, [holidays])
+
+  // Two school years: current + next
+  const schoolYears = useMemo(() => {
+    return [schoolYear, schoolYear + 1].map(sy => ({
+      label: `שנת לימודים ${sy}–${sy + 1}`,
+      months: Array.from({ length: 12 }, (_, i) => {
+        const monthIndex = (8 + i) % 12
+        const year = i < 4 ? sy : sy + 1
+        return { monthIndex, year }
+      }),
+    }))
   }, [schoolYear])
 
   function openAdd(dateStr: string) {
@@ -154,59 +163,69 @@ export default function CalendarClient({ events, teachers }: Props) {
         </div>
       )}
 
-      {/* Monthly grids */}
-      {months.map(({ monthIndex, year }) => {
-        const firstDay = new Date(year, monthIndex, 1)
-        const daysInMonth = new Date(year, monthIndex + 1, 0).getDate()
-        // In Israel week starts Sunday (0). getDay() returns 0=Sun
-        const startPad = firstDay.getDay()
+      {/* Monthly grids — two school years */}
+      {schoolYears.map(({ label, months }) => (
+        <div key={label}>
+          <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3 mt-2">{label}</p>
+          {months.map(({ monthIndex, year }) => {
+            const firstDay = new Date(year, monthIndex, 1)
+            const daysInMonth = new Date(year, monthIndex + 1, 0).getDate()
+            const startPad = firstDay.getDay()
 
-        return (
-          <div key={`${year}-${monthIndex}`} className="bg-white rounded-2xl shadow-sm overflow-hidden">
-            <div className="px-4 py-3 border-b border-gray-50">
-              <p className="text-sm font-bold text-gray-800">{MONTHS_HE[monthIndex]} {year}</p>
-            </div>
-            <div className="p-3">
-              {/* Day headers */}
-              <div className="grid grid-cols-7 mb-1">
-                {DAYS_HE.map(d => (
-                  <div key={d} className="text-center text-[10px] font-bold text-gray-400 py-1">{d}</div>
-                ))}
+            return (
+              <div key={`${year}-${monthIndex}`} className="bg-white rounded-2xl shadow-sm overflow-hidden mb-4">
+                <div className="px-4 py-3 border-b border-gray-100">
+                  <p className="text-sm font-bold text-gray-800">{MONTHS_HE[monthIndex]} {year}</p>
+                </div>
+                <div className="p-3">
+                  {/* Day headers */}
+                  <div className="grid grid-cols-7 mb-1">
+                    {DAYS_HE.map(d => (
+                      <div key={d} className="text-center text-[10px] font-bold text-gray-400 py-1">{d}</div>
+                    ))}
+                  </div>
+                  {/* Day cells — bordered grid */}
+                  <div className="grid grid-cols-7 border-t border-r border-gray-200 rounded-lg overflow-hidden">
+                    {Array.from({ length: startPad }).map((_, i) => (
+                      <div key={`pad-${i}`} className="border-b border-l border-gray-200 h-9" />
+                    ))}
+                    {Array.from({ length: daysInMonth }).map((_, i) => {
+                      const day = i + 1
+                      const dateStr = `${year}-${String(monthIndex+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`
+                      const dayEvents = eventMap[dateStr]
+                      const ev = dayEvents?.[0]
+                      const dow = new Date(year, monthIndex, day).getDay()
+                      const isWeekend = dow === 5 || dow === 6
+                      const isToday = dateStr === toDateStr(new Date())
+                      const holidayName = holidayMap[dateStr]
+
+                      let cellClass = 'text-gray-700 hover:bg-gray-50'
+                      if (isWeekend) cellClass = 'text-gray-300 bg-gray-50'
+                      if (ev) cellClass = `${EVENT_CONFIG[ev.event_type].bg} ${EVENT_CONFIG[ev.event_type].text} font-bold`
+                      if (isToday && !ev) cellClass = 'bg-teal-50 text-teal-600 font-bold'
+
+                      return (
+                        <button
+                          key={day}
+                          onClick={() => !isWeekend && openAdd(dateStr)}
+                          disabled={isWeekend}
+                          title={ev?.name ?? holidayName}
+                          className={`border-b border-l border-gray-200 h-9 flex flex-col items-center justify-center text-xs transition-colors relative disabled:cursor-default ${cellClass}`}
+                        >
+                          {day}
+                          {holidayName && !ev && (
+                            <span className="absolute bottom-0.5 w-1 h-1 rounded-full bg-amber-400" />
+                          )}
+                        </button>
+                      )
+                    })}
+                  </div>
+                </div>
               </div>
-              {/* Day cells */}
-              <div className="grid grid-cols-7 gap-0.5">
-                {Array.from({ length: startPad }).map((_, i) => <div key={`pad-${i}`} />)}
-                {Array.from({ length: daysInMonth }).map((_, i) => {
-                  const day = i + 1
-                  const dateStr = `${year}-${String(monthIndex+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`
-                  const dayEvents = eventMap[dateStr]
-                  const ev = dayEvents?.[0]
-                  const dow = new Date(year, monthIndex, day).getDay()
-                  const isWeekend = dow === 5 || dow === 6
-                  const isToday = dateStr === toDateStr(new Date())
-
-                  let cellClass = 'text-gray-700 hover:bg-gray-50'
-                  if (isWeekend) cellClass = 'text-gray-300'
-                  if (ev) cellClass = `${EVENT_CONFIG[ev.event_type].bg} ${EVENT_CONFIG[ev.event_type].text} font-bold`
-                  if (isToday && !ev) cellClass += ' ring-2 ring-teal-400 ring-inset rounded-lg'
-
-                  return (
-                    <button
-                      key={day}
-                      onClick={() => !isWeekend && openAdd(dateStr)}
-                      disabled={isWeekend}
-                      className={`aspect-square flex items-center justify-center text-xs rounded-lg transition-colors ${cellClass} disabled:cursor-default`}
-                      title={ev?.name}
-                    >
-                      {day}
-                    </button>
-                  )
-                })}
-              </div>
-            </div>
-          </div>
-        )
-      })}
+            )
+          })}
+        </div>
+      ))}
 
       {/* Add event bottom sheet */}
       {addOpen && (

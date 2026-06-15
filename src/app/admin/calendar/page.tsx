@@ -1,18 +1,22 @@
 import Link from 'next/link'
 import CalendarClient from './CalendarClient'
-import type { SchoolEvent } from '@/types/database'
+import type { SchoolEvent, Holiday } from '@/types/database'
 import { requireAdmin } from '@/lib/auth'
 import { getTeachersForAdmin } from '@/lib/queries/teachers'
 
 export default async function AdminCalendarPage() {
   const { supabase } = await requireAdmin()
 
-  const [eventsResult, teachers] = await Promise.all([
+  const [eventsResult, teachers, holidaysResult] = await Promise.all([
     supabase
       .from('school_events')
       .select('*')
       .order('start_date', { ascending: true }),
     getTeachersForAdmin(),
+    supabase
+      .from('holidays')
+      .select('date, name')
+      .order('date', { ascending: true }),
   ])
 
   return (
@@ -35,6 +39,7 @@ export default async function AdminCalendarPage() {
       <CalendarClient
         events={(eventsResult.data ?? []) as SchoolEvent[]}
         teachers={teachers}
+        holidays={(holidaysResult.data ?? []) as Pick<Holiday, 'date' | 'name'>[]}
       />
     </div>
   )
