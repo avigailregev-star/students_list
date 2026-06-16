@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useTransition } from 'react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import type { Message } from '@/types/database'
 import { sendMessage } from './messageActions'
@@ -17,6 +18,7 @@ export default function MyRoomClient({ roomName, initialMessages, userId }: Prop
   const [content, setContent] = useState('')
   const [sendError, setSendError] = useState('')
   const [isPending, startTransition] = useTransition()
+  const router = useRouter()
 
   useEffect(() => {
     const supabase = createClient()
@@ -45,6 +47,7 @@ export default function MyRoomClient({ roomName, initialMessages, userId }: Prop
     setSendError('')
     startTransition(async () => {
       const result = await sendMessage(content)
+      if (result.error === 'unauthorized') { router.push('/login'); return }
       if (result.error) { setSendError(result.error); return }
       setContent('')
     })

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useTransition } from 'react'
+import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { replyToMessage } from './messageActions'
 
@@ -23,7 +23,7 @@ export default function MessagesInboxClient({ initialMessages }: Props) {
   const [messages, setMessages] = useState<MessageWithTeacher[]>(initialMessages)
   const [replyTexts, setReplyTexts] = useState<Record<string, string>>({})
   const [errors, setErrors] = useState<Record<string, string>>({})
-  const [isPending, startTransition] = useTransition()
+  const [pendingIds, setPendingIds] = useState<Set<string>>(new Set())
 
   useEffect(() => {
     const supabase = createClient()
@@ -44,17 +44,17 @@ export default function MessagesInboxClient({ initialMessages }: Props) {
     return () => { supabase.removeChannel(channel) }
   }, [])
 
-  function handleReply(id: string) {
+  async function handleReply(id: string) {
     const reply = replyTexts[id] ?? ''
     setErrors(prev => ({ ...prev, [id]: '' }))
-    startTransition(async () => {
-      const result = await replyToMessage(id, reply)
-      if (result.error) {
-        setErrors(prev => ({ ...prev, [id]: result.error! }))
-        return
-      }
-      setReplyTexts(prev => ({ ...prev, [id]: '' }))
-    })
+    setPendingIds(prev => new Set(prev).add(id))
+    const result = await replyToMessage(id, reply)
+    setPendingIds(prev => { const s = new Set(prev); s.delete(id); return s })
+    if (result.error) {
+      setErrors(prev => ({ ...prev, [id]: result.error! }))
+      return
+    }
+    setReplyTexts(prev => ({ ...prev, [id]: '' }))
   }
 
   const pending = messages.filter(m => m.status === 'pending')
@@ -95,7 +95,7 @@ export default function MessagesInboxClient({ initialMessages }: Props) {
               )}
               <button
                 onClick={() => handleReply(msg.id)}
-                disabled={isPending || !(replyTexts[msg.id] ?? '').trim()}
+                disabled={pendingIds.has(msg.id) || !(replyTexts[msg.id] ?? '').trim()}
                 className="mt-2 px-4 py-1.5 bg-teal-500 text-white text-sm font-bold rounded-xl hover:bg-teal-600 disabled:opacity-40 transition-colors"
               >
                 ענה
