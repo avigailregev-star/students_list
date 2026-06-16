@@ -77,6 +77,17 @@ export default function AdminNav({ bugsCount = 0 }: { bugsCount?: number }) {
       ),
     },
     {
+      href: '/admin/rooms',
+      label: 'חדרים',
+      icon: (
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+          <line x1="9" y1="22" x2="9" y2="12"/>
+          <line x1="15" y1="22" x2="15" y2="12"/>
+        </svg>
+      ),
+    },
+    {
       href: '/admin/sick-leave',
       label: 'מחלות',
       icon: (
