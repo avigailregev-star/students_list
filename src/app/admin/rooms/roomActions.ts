@@ -1,9 +1,11 @@
 'use server'
 
+import { requireAdmin } from '@/lib/auth'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { revalidatePath } from 'next/cache'
 
 export async function addRoom(name: string): Promise<{ error?: string }> {
+  await requireAdmin()
   if (!name.trim()) return { error: 'שם החדר לא יכול להיות ריק' }
   const supabase = createAdminClient()
   const { error } = await supabase.from('rooms').insert({ name: name.trim() })
@@ -13,12 +15,14 @@ export async function addRoom(name: string): Promise<{ error?: string }> {
 }
 
 export async function deleteRoom(id: string): Promise<{ error?: string }> {
+  await requireAdmin()
   const supabase = createAdminClient()
   // Check for active assignments first
-  const { count } = await supabase
+  const { count, error: countError } = await supabase
     .from('teacher_room_assignments')
     .select('id', { count: 'exact', head: true })
     .eq('room_id', id)
+  if (countError) return { error: 'שגיאה בבדיקת השיבוצים: ' + countError.message }
   if ((count ?? 0) > 0) return { error: 'לא ניתן למחוק חדר עם שיבוצים פעילים. הסירי את השיבוצים תחילה.' }
   const { error } = await supabase.from('rooms').delete().eq('id', id)
   if (error) return { error: error.message }
@@ -31,6 +35,7 @@ export async function assignRoom(
   teacherId: string,
   dayOfWeek: number
 ): Promise<{ error?: string }> {
+  await requireAdmin()
   const supabase = createAdminClient()
   // Upsert: if (room_id, day_of_week) already exists, update teacher_id
   const { error } = await supabase
@@ -48,6 +53,7 @@ export async function removeAssignment(
   roomId: string,
   dayOfWeek: number
 ): Promise<{ error?: string }> {
+  await requireAdmin()
   const supabase = createAdminClient()
   const { error } = await supabase
     .from('teacher_room_assignments')
