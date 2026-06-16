@@ -1,13 +1,16 @@
 'use server'
 
-import { requireAdmin } from '@/lib/auth'
-import { createAdminClient } from '@/lib/supabase/admin'
+import { requireAdmin as _requireAdmin } from '@/lib/auth'
 import { revalidatePath } from 'next/cache'
 
+async function requireAdmin() {
+  const { supabase } = await _requireAdmin('/admin')
+  return supabase
+}
+
 export async function addRoom(name: string): Promise<{ error?: string }> {
-  await requireAdmin()
+  const supabase = await requireAdmin()
   if (!name.trim()) return { error: 'שם החדר לא יכול להיות ריק' }
-  const supabase = createAdminClient()
   const { error } = await supabase.from('rooms').insert({ name: name.trim() })
   if (error) return { error: error.message }
   revalidatePath('/admin/rooms')
@@ -15,8 +18,7 @@ export async function addRoom(name: string): Promise<{ error?: string }> {
 }
 
 export async function deleteRoom(id: string): Promise<{ error?: string }> {
-  await requireAdmin()
-  const supabase = createAdminClient()
+  const supabase = await requireAdmin()
   // Check for active assignments first
   const { count, error: countError } = await supabase
     .from('teacher_room_assignments')
@@ -35,8 +37,7 @@ export async function assignRoom(
   teacherId: string,
   dayOfWeek: number
 ): Promise<{ error?: string }> {
-  await requireAdmin()
-  const supabase = createAdminClient()
+  const supabase = await requireAdmin()
   // Upsert: if (room_id, day_of_week) already exists, update teacher_id
   const { error } = await supabase
     .from('teacher_room_assignments')
@@ -53,8 +54,7 @@ export async function removeAssignment(
   roomId: string,
   dayOfWeek: number
 ): Promise<{ error?: string }> {
-  await requireAdmin()
-  const supabase = createAdminClient()
+  const supabase = await requireAdmin()
   const { error } = await supabase
     .from('teacher_room_assignments')
     .delete()
