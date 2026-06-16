@@ -28,7 +28,7 @@ const items = [
     ),
   },
   {
-    href: '/rooms',
+    href: '/my-room',
     label: 'חדרים',
     icon: (active: boolean) => (
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={active ? '#14b8a6' : '#9ca3af'} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">

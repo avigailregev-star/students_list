@@ -29,7 +29,7 @@ function BugIcon() {
   )
 }
 
-export default function AdminNav({ bugsCount = 0 }: { bugsCount?: number }) {
+export default function AdminNav({ bugsCount = 0, messagesCount = 0 }: { bugsCount?: number; messagesCount?: number }) {
   const pathname = usePathname()
   const router = useRouter()
 
@@ -86,6 +86,16 @@ export default function AdminNav({ bugsCount = 0 }: { bugsCount?: number }) {
           <line x1="15" y1="22" x2="15" y2="12"/>
         </svg>
       ),
+    },
+    {
+      href: '/admin/messages',
+      label: 'הודעות',
+      icon: (
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+        </svg>
+      ),
+      badge: messagesCount,
     },
     {
       href: '/admin/sick-leave',
