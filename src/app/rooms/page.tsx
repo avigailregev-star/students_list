@@ -9,6 +9,9 @@ export default async function RoomsPage() {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
+  const { data: teacher } = await supabase.from('teachers').select('role').eq('id', user.id).single()
+  const isAdmin = teacher?.role === 'admin'
+
   const [{ data: roomsRaw }, { data: assignmentsRaw }, { data: teachersRaw }] = await Promise.all([
     supabase.from('rooms').select('*').order('name'),
     supabase.from('teacher_room_assignments').select('*'),
@@ -33,7 +36,7 @@ export default async function RoomsPage() {
         teachers={teachers}
         currentUserId={user.id}
       />
-      <BottomNav />
+      <BottomNav isAdmin={isAdmin}/>
     </div>
   )
 }
