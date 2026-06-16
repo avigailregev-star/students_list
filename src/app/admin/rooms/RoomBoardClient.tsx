@@ -218,14 +218,14 @@ export default function RoomBoardClient({ rooms, assignments, teachers }: Props)
                               {/* Popover */}
                               {isActive && (
                                 <div
-                                  style={{ top: activeCell!.top, right: activeCell!.right, maxHeight: `calc(100vh - ${activeCell!.top}px - 12px)` }}
-                                  className="fixed z-50 bg-white rounded-2xl shadow-xl border border-gray-100 min-w-[160px] flex flex-col overflow-hidden"
+                                  style={{ top: activeCell!.top, right: activeCell!.right }}
+                                  className="fixed z-50 bg-white rounded-2xl shadow-xl border border-gray-100 min-w-[160px] overflow-hidden"
                                   onClick={e => e.stopPropagation()}
                                 >
-                                  <div className="px-3 py-2 bg-teal-500 text-white text-xs font-bold shrink-0">
+                                  <div className="px-3 py-2 bg-teal-500 text-white text-xs font-bold">
                                     {d.label} · {room.name}
                                   </div>
-                                  <div className="py-1 overflow-y-auto flex-1 min-h-0">
+                                  <div className="py-1 max-h-48 overflow-y-auto">
                                     {teachers.map(t => {
                                       const c = teacherColorMap.get(t.id)!
                                       const isCurrent = assignment?.teacher_id === t.id
