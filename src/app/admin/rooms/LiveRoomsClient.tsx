@@ -38,11 +38,11 @@ function timeToMinutes(t: string) {
 export default function LiveRoomsClient({ rooms, assignments, teachers }: Props) {
   const [statuses, setStatuses] = useState<RoomStatus[]>([])
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null)
-
-  const teacherMap = new Map(teachers.map(t => [t.id, t.name]))
+  const [isLoading, setIsLoading] = useState(true)
 
   const fetchLiveData = useCallback(async () => {
     const supabase = createClient()
+    const teacherMap = new Map(teachers.map(t => [t.id, t.name]))
     const today = todayStr()
     const dow = new Date().getDay()
 
@@ -66,6 +66,7 @@ export default function LiveRoomsClient({ rooms, assignments, teachers }: Props)
         room, teacherName: null, lessonType: null,
         startTime: null, endTime: null, isOccupied: false, nextLessonTime: null,
       })))
+      setIsLoading(false)
       setLastUpdated(new Date())
       return
     }
@@ -123,6 +124,7 @@ export default function LiveRoomsClient({ rooms, assignments, teachers }: Props)
       }
     })
 
+    setIsLoading(false)
     setStatuses(newStatuses)
     setLastUpdated(new Date())
   }, [rooms, assignments, teachers])
@@ -150,8 +152,11 @@ export default function LiveRoomsClient({ rooms, assignments, teachers }: Props)
     }
   }, [fetchLiveData])
 
-  if (statuses.length === 0) {
+  if (isLoading) {
     return <div className="text-sm text-gray-400 text-center py-8">טוען...</div>
+  }
+  if (statuses.length === 0) {
+    return <div className="text-sm text-gray-400 text-center py-8">אין חדרים מוגדרים</div>
   }
 
   return (
