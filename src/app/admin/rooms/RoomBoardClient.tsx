@@ -34,7 +34,7 @@ export default function RoomBoardClient({ rooms, assignments, teachers }: Props)
   const [newRoomName, setNewRoomName] = useState('')
   const [roomError, setRoomError] = useState('')
   const [isPending, startTransition] = useTransition()
-  const [activeCell, setActiveCell] = useState<{ roomId: string; dow: number; top: number; right: number } | null>(null)
+  const [activeCell, setActiveCell] = useState<{ roomId: string; dow: number; top?: number; bottom?: number; right: number } | null>(null)
   const [cellError, setCellError] = useState('')
 
   const teacherColorMap = new Map(
@@ -73,10 +73,13 @@ export default function RoomBoardClient({ rooms, assignments, teachers }: Props)
       setActiveCell(null)
     } else {
       const rect = e.currentTarget.getBoundingClientRect()
+      const spaceBelow = window.innerHeight - rect.bottom
+      const openUpward = spaceBelow < 300
       setActiveCell({
         roomId,
         dow,
-        top: rect.bottom + 4,
+        top: openUpward ? undefined : rect.bottom + 4,
+        bottom: openUpward ? window.innerHeight - rect.top + 4 : undefined,
         right: window.innerWidth - rect.right,
       })
     }
@@ -218,7 +221,7 @@ export default function RoomBoardClient({ rooms, assignments, teachers }: Props)
                               {/* Popover */}
                               {isActive && (
                                 <div
-                                  style={{ top: activeCell!.top, right: activeCell!.right }}
+                                  style={{ top: activeCell!.top, bottom: activeCell!.bottom, right: activeCell!.right }}
                                   className="fixed z-50 bg-white rounded-2xl shadow-xl border border-gray-100 min-w-[160px] max-h-[280px] overflow-y-auto"
                                   onClick={e => e.stopPropagation()}
                                 >
