@@ -110,6 +110,20 @@ export type TeacherAvailabilityRange = {
   created_at: string
 }
 
+export type Room = {
+  id: string
+  name: string
+  created_at: string
+}
+
+export type TeacherRoomAssignment = {
+  id: string
+  teacher_id: string
+  room_id: string
+  day_of_week: number // 0=Sun … 5=Fri
+  created_at: string
+}
+
 // Joined types used in queries
 export type GroupWithSchedules = Group & {
   group_schedules: GroupSchedule[]
