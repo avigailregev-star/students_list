@@ -34,7 +34,7 @@ export default function RoomBoardClient({ rooms, assignments, teachers }: Props)
   const [newRoomName, setNewRoomName] = useState('')
   const [roomError, setRoomError] = useState('')
   const [isPending, startTransition] = useTransition()
-  const [activeCell, setActiveCell] = useState<{ roomId: string; dow: number } | null>(null)
+  const [activeCell, setActiveCell] = useState<{ roomId: string; dow: number; top: number; right: number } | null>(null)
   const [cellError, setCellError] = useState('')
 
   const teacherColorMap = new Map(
@@ -67,12 +67,18 @@ export default function RoomBoardClient({ rooms, assignments, teachers }: Props)
     })
   }
 
-  function handleCellClick(roomId: string, dow: number) {
+  function handleCellClick(e: React.MouseEvent<HTMLButtonElement>, roomId: string, dow: number) {
     setCellError('')
     if (activeCell?.roomId === roomId && activeCell?.dow === dow) {
       setActiveCell(null)
     } else {
-      setActiveCell({ roomId, dow })
+      const rect = e.currentTarget.getBoundingClientRect()
+      setActiveCell({
+        roomId,
+        dow,
+        top: rect.bottom + 4,
+        right: window.innerWidth - rect.right,
+      })
     }
   }
 
@@ -195,9 +201,9 @@ export default function RoomBoardClient({ rooms, assignments, teachers }: Props)
                           const isActive = activeCell?.roomId === room.id && activeCell?.dow === d.dow
 
                           return (
-                            <td key={d.dow} className="p-1 text-center relative">
+                            <td key={d.dow} className="p-1 text-center">
                               <button
-                                onClick={() => handleCellClick(room.id, d.dow)}
+                                onClick={e => handleCellClick(e, room.id, d.dow)}
                                 className={`w-full rounded-lg px-1 py-2 text-[11px] font-semibold transition-colors border ${
                                   isActive
                                     ? 'ring-2 ring-teal-400 border-teal-300 bg-teal-50'
@@ -212,7 +218,8 @@ export default function RoomBoardClient({ rooms, assignments, teachers }: Props)
                               {/* Popover */}
                               {isActive && (
                                 <div
-                                  className="absolute z-50 top-full mt-1 right-0 bg-white rounded-2xl shadow-xl border border-gray-100 min-w-[160px] overflow-hidden"
+                                  style={{ top: activeCell!.top, right: activeCell!.right }}
+                                  className="fixed z-50 bg-white rounded-2xl shadow-xl border border-gray-100 min-w-[160px] overflow-hidden"
                                   onClick={e => e.stopPropagation()}
                                 >
                                   <div className="px-3 py-2 bg-teal-500 text-white text-xs font-bold">
