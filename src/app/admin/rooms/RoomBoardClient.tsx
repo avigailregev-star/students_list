@@ -225,7 +225,7 @@ export default function RoomBoardClient({ rooms, assignments, teachers }: Props)
                                   <div className="px-3 py-2 bg-teal-500 text-white text-xs font-bold shrink-0">
                                     {d.label} · {room.name}
                                   </div>
-                                  <div className="py-1 overflow-y-auto">
+                                  <div className="py-1 overflow-y-auto flex-1 min-h-0">
                                     {teachers.map(t => {
                                       const c = teacherColorMap.get(t.id)!
                                       const isCurrent = assignment?.teacher_id === t.id
