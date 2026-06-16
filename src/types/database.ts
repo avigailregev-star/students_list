@@ -124,6 +124,16 @@ export type TeacherRoomAssignment = {
   created_at: string
 }
 
+export type Message = {
+  id: string
+  teacher_id: string
+  content: string
+  reply: string | null
+  status: 'pending' | 'replied'
+  created_at: string
+  replied_at: string | null
+}
+
 // Joined types used in queries
 export type GroupWithSchedules = Group & {
   group_schedules: GroupSchedule[]
