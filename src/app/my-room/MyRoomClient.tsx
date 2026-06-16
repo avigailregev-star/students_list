@@ -18,6 +18,7 @@ export default function MyRoomClient({ roomName, initialMessages, userId }: Prop
   const [content, setContent] = useState('')
   const [sendError, setSendError] = useState('')
   const [isPending, startTransition] = useTransition()
+  const [replyToast, setReplyToast] = useState(false)
   const router = useRouter()
 
   useEffect(() => {
@@ -36,11 +37,25 @@ export default function MyRoomClient({ roomName, initialMessages, userId }: Prop
           .eq('teacher_id', userId)
           .order('created_at', { ascending: false })
           .limit(10)
-        if (data) setMessages(data as Message[])
+        if (data) {
+          const newMessages = data as Message[]
+          setMessages(prev => {
+            const prevPending = new Set(prev.filter(m => m.status === 'pending').map(m => m.id))
+            const gotReply = newMessages.some(m => m.status === 'replied' && prevPending.has(m.id))
+            if (gotReply) setReplyToast(true)
+            return newMessages
+          })
+        }
       })
       .subscribe()
     return () => { supabase.removeChannel(channel) }
   }, [userId])
+
+  useEffect(() => {
+    if (!replyToast) return
+    const t = setTimeout(() => setReplyToast(false), 4000)
+    return () => clearTimeout(t)
+  }, [replyToast])
 
   function handleSend() {
     if (!content.trim()) return
@@ -55,6 +70,15 @@ export default function MyRoomClient({ roomName, initialMessages, userId }: Prop
 
   return (
     <div className="px-4 py-5 flex flex-col gap-4" dir="rtl">
+      {/* Reply toast */}
+      {replyToast && (
+        <div className="fixed top-4 inset-x-4 z-50 bg-emerald-500 text-white rounded-2xl px-4 py-3 shadow-lg flex items-center gap-3 animate-in slide-in-from-top-2 duration-300">
+          <span className="text-xl">✉️</span>
+          <p className="text-sm font-bold">התקבלה תשובה מהמזכירות!</p>
+          <button onClick={() => setReplyToast(false)} className="mr-auto text-white/70 hover:text-white text-lg leading-none">×</button>
+        </div>
+      )}
+
       {/* Room card */}
       {roomName ? (
         <div className="bg-emerald-500 text-white rounded-2xl px-5 py-5 shadow-sm shadow-emerald-200">
