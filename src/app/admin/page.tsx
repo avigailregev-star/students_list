@@ -1,4 +1,5 @@
 import { requireAdmin } from '@/lib/auth'
+import PendingMessagesCard from './PendingMessagesCard'
 
 export const dynamic = 'force-dynamic'
 
@@ -11,9 +12,10 @@ export default async function AdminHomePage() {
     .eq('id', user.id)
     .single()
 
-  const [{ count: teacherCount }, { count: pendingCount }] = await Promise.all([
+  const [{ count: teacherCount }, { count: pendingCount }, { count: pendingMessagesCount }] = await Promise.all([
     supabase.from('teachers').select('*', { count: 'exact', head: true }).eq('role', 'teacher'),
     supabase.from('lessons').select('*', { count: 'exact', head: true }).eq('admin_approval_status', 'pending'),
+    supabase.from('messages').select('*', { count: 'exact', head: true }).eq('status', 'pending'),
   ])
 
   return (
@@ -49,6 +51,8 @@ export default async function AdminHomePage() {
             </svg>
           </a>
         )}
+
+        <PendingMessagesCard initialCount={pendingMessagesCount ?? 0} />
 
         {/* Quick links */}
         <div className="flex flex-col gap-2">
