@@ -38,6 +38,7 @@ export async function assignRoom(
   dayOfWeek: number
 ): Promise<{ error?: string }> {
   const supabase = await requireAdmin()
+  if (dayOfWeek < 0 || dayOfWeek > 6) return { error: 'יום בשבוע לא תקין' }
   // Upsert: if (room_id, day_of_week) already exists, update teacher_id
   const { error } = await supabase
     .from('teacher_room_assignments')
@@ -55,6 +56,7 @@ export async function removeAssignment(
   dayOfWeek: number
 ): Promise<{ error?: string }> {
   const supabase = await requireAdmin()
+  if (dayOfWeek < 0 || dayOfWeek > 6) return { error: 'יום בשבוע לא תקין' }
   const { error } = await supabase
     .from('teacher_room_assignments')
     .delete()
