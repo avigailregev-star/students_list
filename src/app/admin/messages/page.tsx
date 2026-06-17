@@ -1,5 +1,6 @@
 import { requireAdmin } from '@/lib/auth'
 import MessagesInboxClient from './MessagesInboxClient'
+import type { VacationRequestWithTeacher } from '@/types/database'
 
 export const dynamic = 'force-dynamic'
 
@@ -11,19 +12,6 @@ type MessageWithTeacher = {
   status: 'pending' | 'replied'
   created_at: string
   replied_at: string | null
-  teachers: { name: string } | null
-}
-
-type VacationRequestWithTeacher = {
-  id: string
-  teacher_id: string
-  start_date: string
-  end_date: string
-  note: string | null
-  status: 'pending' | 'approved' | 'rejected'
-  admin_note: string | null
-  created_at: string
-  decided_at: string | null
   teachers: { name: string } | null
 }
 

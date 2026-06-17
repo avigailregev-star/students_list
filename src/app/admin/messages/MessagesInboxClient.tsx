@@ -5,6 +5,7 @@ import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { replyToMessage } from './messageActions'
 import { decideVacationRequest } from './vacationActions'
+import type { VacationRequestWithTeacher } from '@/types/database'
 
 type MessageWithTeacher = {
   id: string
@@ -14,19 +15,6 @@ type MessageWithTeacher = {
   status: 'pending' | 'replied'
   created_at: string
   replied_at: string | null
-  teachers: { name: string } | null
-}
-
-type VacationRequestWithTeacher = {
-  id: string
-  teacher_id: string
-  start_date: string
-  end_date: string
-  note: string | null
-  status: 'pending' | 'approved' | 'rejected'
-  admin_note: string | null
-  created_at: string
-  decided_at: string | null
   teachers: { name: string } | null
 }
 

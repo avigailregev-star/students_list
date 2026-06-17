@@ -146,6 +146,10 @@ export type VacationRequest = {
   decided_at: string | null
 }
 
+export type VacationRequestWithTeacher = VacationRequest & {
+  teachers: { name: string } | null
+}
+
 // Joined types used in queries
 export type GroupWithSchedules = Group & {
   group_schedules: GroupSchedule[]
