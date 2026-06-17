@@ -83,6 +83,12 @@ export default function LoginPage() {
       // login
       const { data, error } = await supabase.auth.signInWithPassword({ email, password })
       if (error) throw error
+
+      // Save this tab's session so the middleware can inject it into server requests,
+      // giving each browser tab an independent server-side session.
+      const { data: { session } } = await supabase.auth.getSession()
+      if (session) sessionStorage.setItem('_sb_tab_session', btoa(JSON.stringify(session)))
+
       const role = (data.user?.user_metadata as Record<string, string>)?.role
       window.location.href = role === 'admin' ? '/admin' : (role ? '/' : '/redirect')
 
