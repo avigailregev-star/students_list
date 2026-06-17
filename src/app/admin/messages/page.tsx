@@ -14,6 +14,19 @@ type MessageWithTeacher = {
   teachers: { name: string } | null
 }
 
+type VacationRequestWithTeacher = {
+  id: string
+  teacher_id: string
+  start_date: string
+  end_date: string
+  note: string | null
+  status: 'pending' | 'approved' | 'rejected'
+  admin_note: string | null
+  created_at: string
+  decided_at: string | null
+  teachers: { name: string } | null
+}
+
 export default async function AdminMessagesPage() {
   const { supabase } = await requireAdmin()
 
@@ -22,7 +35,13 @@ export default async function AdminMessagesPage() {
     .select('*, teachers(name)')
     .order('created_at', { ascending: false })
 
+  const { data: vacationsRaw } = await supabase
+    .from('vacation_requests')
+    .select('*, teachers(name)')
+    .order('created_at', { ascending: false })
+
   const messages = (messagesRaw ?? []) as MessageWithTeacher[]
+  const vacationRequests = (vacationsRaw ?? []) as VacationRequestWithTeacher[]
 
   return (
     <div className="flex flex-col min-h-screen">
@@ -30,7 +49,7 @@ export default async function AdminMessagesPage() {
         <p className="text-xs font-semibold text-teal-100 uppercase tracking-widest">ניהול</p>
         <h1 className="text-xl font-bold">הודעות מורים</h1>
       </div>
-      <MessagesInboxClient initialMessages={messages} />
+      <MessagesInboxClient initialMessages={messages} initialVacationRequests={vacationRequests} />
     </div>
   )
 }
