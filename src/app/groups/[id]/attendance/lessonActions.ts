@@ -2,7 +2,9 @@
 
 import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { redirect } from 'next/navigation'
+import { deleteGCalEvent } from '@/lib/googleCalendar'
 
 export async function cancelLesson(formData: FormData) {
   const supabase = await createClient()
@@ -30,6 +32,21 @@ export async function cancelLesson(formData: FormData) {
   if (error) throw new Error('שגיאה בביטול השיעור')
 
   revalidatePath('/')
+
+  // Delete from teacher's Google Calendar (fire-and-forget)
+  void (async () => {
+    try {
+      const admin = createAdminClient()
+      const { data: lesson } = await admin
+        .from('lessons').select('google_event_id').eq('id', lessonId).single()
+      if (lesson?.google_event_id) {
+        await deleteGCalEvent(user.id, lesson.google_event_id)
+        await admin.from('lessons').update({ google_event_id: null }).eq('id', lessonId)
+      }
+    } catch (e) {
+      console.error('cancelLesson: google delete failed', e)
+    }
+  })()
 }
 
 export async function restoreLesson(lessonId: string) {
