@@ -1,7 +1,9 @@
 // src/app/admin/messages/vacationActions.ts
 'use server'
 import { requireAdmin as _requireAdmin } from '@/lib/auth'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { revalidatePath } from 'next/cache'
+import { pushSchoolEvent } from '@/lib/googleCalendar'
 
 async function requireAdmin() {
   const { supabase } = await _requireAdmin('/admin')
@@ -26,5 +28,29 @@ export async function decideVacationRequest(
 
   if (error) return { error: 'שגיאה בעדכון הבקשה: ' + error.message }
   revalidatePath('/admin/messages')
+
+  if (status === 'approved') {
+    void (async () => {
+      try {
+        const admin = createAdminClient()
+        const { data: req } = await admin
+          .from('vacation_requests')
+          .select('teacher_id, start_date, end_date')
+          .eq('id', id)
+          .single()
+        if (req) {
+          await pushSchoolEvent(req.teacher_id, {
+            id: `vacation-${id}`,
+            name: 'חופשה מאושרת',
+            startDate: req.start_date,
+            endDate: req.end_date,
+          })
+        }
+      } catch (e) {
+        console.error('decideVacationRequest: google push failed', e)
+      }
+    })()
+  }
+
   return {}
 }
