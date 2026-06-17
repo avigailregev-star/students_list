@@ -12,10 +12,11 @@ export default async function AdminHomePage() {
     .eq('id', user.id)
     .single()
 
-  const [{ count: teacherCount }, { count: pendingCount }, { count: pendingMessagesCount }] = await Promise.all([
+  const [{ count: teacherCount }, { count: pendingCount }, { count: pendingMessagesCount }, { count: googleAlertsCount }] = await Promise.all([
     supabase.from('teachers').select('*', { count: 'exact', head: true }).eq('role', 'teacher'),
     supabase.from('lessons').select('*', { count: 'exact', head: true }).eq('admin_approval_status', 'pending'),
     supabase.from('messages').select('*', { count: 'exact', head: true }).eq('status', 'pending'),
+    supabase.from('google_sync_alerts').select('*', { count: 'exact', head: true }).eq('resolved', false),
   ])
 
   return (
@@ -53,6 +54,25 @@ export default async function AdminHomePage() {
         )}
 
         <PendingMessagesCard initialCount={pendingMessagesCount ?? 0} />
+
+        {(googleAlertsCount ?? 0) > 0 && (
+          <a href="/admin/google-alerts" className="bg-blue-50 border border-blue-200 rounded-2xl px-4 py-3 flex items-center gap-3">
+            <div className="w-9 h-9 bg-blue-100 rounded-xl flex items-center justify-center shrink-0">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+                <line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/>
+                <line x1="3" y1="10" x2="21" y2="10"/>
+              </svg>
+            </div>
+            <div className="flex-1">
+              <p className="text-sm font-bold text-blue-700">{googleAlertsCount} שיעורים נמחקו ביומן גוגל</p>
+              <p className="text-xs text-blue-400">לחצי לטיפול</p>
+            </div>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <polyline points="15 18 9 12 15 6"/>
+            </svg>
+          </a>
+        )}
 
         {/* Quick links */}
         <div className="flex flex-col gap-2">
