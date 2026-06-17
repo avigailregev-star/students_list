@@ -185,6 +185,8 @@ export default async function ReportsPage() {
         <p className="text-sm text-gray-500 mt-0.5">{groups.length} קבוצות</p>
       </div>
 
+      <VacationSection initialRequests={vacationRequests} />
+
       <div className="px-4 py-5 flex flex-col gap-3 max-w-md mx-auto w-full print:max-w-full print:px-6">
         {reportData.map((group, i) => {
           const dayLabels: Record<number, string> = { 0: 'ראשון', 1: 'שני', 2: 'שלישי', 3: 'רביעי', 4: 'חמישי', 5: 'שישי', 6: 'שבת' }
@@ -209,8 +211,6 @@ export default async function ReportsPage() {
           )
         })}
       </div>
-
-      <VacationSection initialRequests={vacationRequests} />
 
       <BottomNav />
     </div>

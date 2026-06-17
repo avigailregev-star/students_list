@@ -5,7 +5,7 @@ import { DAYS_HE } from '@/lib/utils/hebrew'
 import { addAvailabilityRange, deleteAvailabilityRange } from './actions'
 import type { TeacherAvailabilityRange } from '@/types/database'
 
-function RangeRow({ range, onDeleted }: { range: TeacherAvailabilityRange; onDeleted: () => void }) {
+function RangeRow({ range, onDeleted, isAdmin }: { range: TeacherAvailabilityRange; onDeleted: () => void; isAdmin: boolean }) {
   const [isPending, startTransition] = useTransition()
   const start = range.start_time.slice(0, 5)
   const end = range.end_time.slice(0, 5)
@@ -13,23 +13,27 @@ function RangeRow({ range, onDeleted }: { range: TeacherAvailabilityRange; onDel
   return (
     <div className="flex items-center justify-between px-4 py-3 border-b border-gray-50 last:border-none">
       <span className="text-sm font-semibold text-gray-800">{start} – {end}</span>
-      <button
-        disabled={isPending}
-        onClick={() => startTransition(async () => { await deleteAvailabilityRange(range.id); onDeleted() })}
-        className="w-7 h-7 rounded-lg bg-red-50 flex items-center justify-center hover:bg-red-100 transition-colors disabled:opacity-40"
-      >
-        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#ef4444" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-          <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
-        </svg>
-      </button>
+      {isAdmin && (
+        <button
+          disabled={isPending}
+          onClick={() => startTransition(async () => { await deleteAvailabilityRange(range.id); onDeleted() })}
+          className="w-7 h-7 rounded-lg bg-red-50 flex items-center justify-center hover:bg-red-100 transition-colors disabled:opacity-40"
+        >
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#ef4444" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+          </svg>
+        </button>
+      )}
     </div>
   )
 }
 
-function AddRangeForm({ onAdded }: { onAdded: () => void }) {
+function AddRangeForm({ onAdded, isAdmin }: { onAdded: () => void; isAdmin: boolean }) {
   const [open, setOpen] = useState(false)
   const [isPending, startTransition] = useTransition()
   const [error, setError] = useState<string | null>(null)
+
+  if (!isAdmin) return null
 
   if (!open) {
     return (
@@ -92,7 +96,7 @@ function AddRangeForm({ onAdded }: { onAdded: () => void }) {
   )
 }
 
-export default function AvailabilityClient({ initialRanges }: { initialRanges: TeacherAvailabilityRange[] }) {
+export default function AvailabilityClient({ initialRanges, isAdmin = false }: { initialRanges: TeacherAvailabilityRange[]; isAdmin?: boolean }) {
   const [ranges, setRanges] = useState(initialRanges)
 
   function refreshFromServer() { window.location.reload() }
@@ -120,12 +124,12 @@ export default function AvailabilityClient({ initialRanges }: { initialRanges: T
             <span className="text-xs text-gray-400">{dayRanges.length} טווח{dayRanges.length !== 1 ? 'ים' : ''}</span>
           </div>
           {dayRanges.map(r => (
-            <RangeRow key={r.id} range={r} onDeleted={refreshFromServer}/>
+            <RangeRow key={r.id} range={r} onDeleted={refreshFromServer} isAdmin={isAdmin}/>
           ))}
         </div>
       ))}
 
-      <AddRangeForm onAdded={refreshFromServer}/>
+      <AddRangeForm onAdded={refreshFromServer} isAdmin={isAdmin}/>
     </div>
   )
 }

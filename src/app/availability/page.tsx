@@ -27,7 +27,7 @@ export default async function AvailabilityPage() {
         </div>
       )}
 
-      <AvailabilityClient initialRanges={ranges}/>
+      <AvailabilityClient initialRanges={ranges} isAdmin={isAdmin}/>
 
       <BottomNav isAdmin={isAdmin}/>
     </div>
