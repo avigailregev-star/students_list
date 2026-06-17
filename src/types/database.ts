@@ -75,6 +75,7 @@ export type Lesson = {
   cancellation_notes: string | null
   notes: string | null
   created_at: string
+  google_event_id: string | null
 }
 
 export type AttendanceStatus = 'present' | 'absent' | 'late' | 'excused'
@@ -99,6 +100,7 @@ export type SchoolEvent = {
   name: string
   created_by: string | null
   created_at: string
+  google_event_id: string | null
 }
 
 export type TeacherAvailabilityRange = {
@@ -148,6 +150,31 @@ export type VacationRequest = {
 
 export type VacationRequestWithTeacher = VacationRequest & {
   teachers: { name: string } | null
+}
+
+export type GoogleToken = {
+  user_id: string
+  refresh_token: string
+  calendar_id: string
+  created_at: string
+  updated_at: string
+}
+
+export type GoogleEventAssignment = {
+  id: string
+  school_event_id: string
+  teacher_id: string
+  google_event_id: string
+  created_at: string
+}
+
+export type GoogleSyncAlert = {
+  id: string
+  teacher_id: string
+  lesson_id: string
+  type: 'deleted_in_google'
+  resolved: boolean
+  created_at: string
 }
 
 // Joined types used in queries
