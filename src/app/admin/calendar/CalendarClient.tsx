@@ -2,6 +2,7 @@
 
 import { useState, useTransition, useMemo } from 'react'
 import { createEvent, deleteEvent } from './calendarActions'
+import { repushAllEvents } from './repushAction'
 import type { SchoolEvent, SchoolEventType, Teacher, Holiday } from '@/types/database'
 
 const MONTHS_HE = ['ינואר','פברואר','מרץ','אפריל','מאי','יוני','יולי','אוגוסט','ספטמבר','אוקטובר','נובמבר','דצמבר']
@@ -36,6 +37,21 @@ interface Props {
   events: SchoolEvent[]
   teachers: Teacher[]
   holidays: Pick<Holiday, 'date' | 'name'>[]
+}
+
+function RepushButton() {
+  const [isPending, startTransition] = useTransition()
+  const [done, setDone] = useState(false)
+
+  return (
+    <button
+      onClick={() => startTransition(async () => { await repushAllEvents(); setDone(true) })}
+      disabled={isPending}
+      className="text-xs font-semibold px-3 py-1.5 rounded-xl bg-teal-100 text-teal-700 hover:bg-teal-200 transition-colors disabled:opacity-50"
+    >
+      {isPending ? 'שולח...' : done ? 'נשלח ✓' : 'סנכרן עם גוגל'}
+    </button>
+  )
 }
 
 export default function CalendarClient({ events, teachers, holidays }: Props) {
@@ -117,14 +133,15 @@ export default function CalendarClient({ events, teachers, holidays }: Props) {
 
   return (
     <div className="px-4 py-5 flex flex-col gap-5">
-      {/* Legend */}
-      <div className="flex flex-wrap gap-2">
+      {/* Legend + sync button */}
+      <div className="flex flex-wrap gap-2 items-center">
         {(Object.entries(EVENT_CONFIG) as [SchoolEventType, typeof EVENT_CONFIG[SchoolEventType]][]).map(([type, cfg]) => (
           <span key={type} className={`flex items-center gap-1.5 text-[11px] font-semibold px-2.5 py-1 rounded-xl ${cfg.bg} ${cfg.text}`}>
             <span className={`w-2 h-2 rounded-full ${cfg.dot}`} />
             {cfg.label}
           </span>
         ))}
+        <RepushButton />
       </div>
 
       {/* Upcoming events list */}

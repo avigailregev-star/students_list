@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache'
 import { requireAdmin as _requireAdmin } from '@/lib/auth'
 import type { SchoolEventType } from '@/types/database'
+import { pushSchoolEvent, deleteGCalEvent } from '@/lib/googleCalendar'
 
 const AUTO_SYNC_TYPES: SchoolEventType[] = ['holiday', 'vacation']
 
@@ -50,13 +51,66 @@ export async function createEvent(formData: FormData) {
 
   revalidatePath('/admin/calendar')
   revalidatePath('/')
+
+  // Push to admin's Google Calendar (fire-and-forget)
+  void (async () => {
+    try {
+      const gcalId = await pushSchoolEvent(userId, {
+        id: event.id, name: name!, startDate: startDate!, endDate: endDate!,
+      })
+      if (gcalId) {
+        await supabase.from('school_events').update({ google_event_id: gcalId }).eq('id', event.id)
+      }
+
+      // Push to teachers' Google Calendars
+      let teacherIdsToPush: string[] = teacherIds
+      if (AUTO_SYNC_TYPES.includes(eventType as SchoolEventType)) {
+        const { data: allTeachers } = await supabase
+          .from('teachers').select('id').eq('role', 'teacher')
+        teacherIdsToPush = (allTeachers ?? []).map(t => t.id)
+      }
+      for (const tid of teacherIdsToPush) {
+        const tGcalId = await pushSchoolEvent(tid, {
+          id: event.id, name: name!, startDate: startDate!, endDate: endDate!,
+        })
+        if (tGcalId) {
+          await supabase.from('google_event_assignments').insert({
+            school_event_id: event.id, teacher_id: tid, google_event_id: tGcalId,
+          })
+        }
+      }
+    } catch (e) {
+      console.error('createEvent: google push failed', e)
+    }
+  })()
 }
 
 export async function deleteEvent(eventId: string) {
-  const { supabase } = await requireAdmin()
+  const { supabase, userId } = await requireAdmin()
+
+  // Fetch GCal IDs before deletion (FK cascade will remove assignments)
+  const { data: ev } = await supabase
+    .from('school_events').select('google_event_id').eq('id', eventId).single()
+  const { data: assignments } = await supabase
+    .from('google_event_assignments')
+    .select('teacher_id, google_event_id')
+    .eq('school_event_id', eventId)
+
   // Assignments cascade-delete via FK
   const { error } = await supabase.from('school_events').delete().eq('id', eventId)
   if (error) throw new Error('שגיאה במחיקת האירוע')
   revalidatePath('/admin/calendar')
   revalidatePath('/')
+
+  // Delete from Google Calendars (fire-and-forget)
+  void (async () => {
+    try {
+      if (ev?.google_event_id) await deleteGCalEvent(userId, ev.google_event_id)
+      for (const a of assignments ?? []) {
+        await deleteGCalEvent(a.teacher_id, a.google_event_id)
+      }
+    } catch (e) {
+      console.error('deleteEvent: google delete failed', e)
+    }
+  })()
 }
