@@ -22,7 +22,7 @@ export default async function TeacherDetailPage({ params }: Props) {
 
   if (!teacher) notFound()
 
-  const [{ data: groupsRaw }, { data: rangesRaw }] = await Promise.all([
+  const [{ data: groupsRaw }, { data: rangesRaw }, { data: googleToken }] = await Promise.all([
     supabase
       .from('groups')
       .select('*, group_schedules(*), students(*)')
@@ -34,6 +34,11 @@ export default async function TeacherDetailPage({ params }: Props) {
       .eq('teacher_id', id)
       .order('day_of_week', { ascending: true })
       .order('start_time', { ascending: true }),
+    supabase
+      .from('google_tokens')
+      .select('calendar_id')
+      .eq('user_id', id)
+      .single(),
   ])
 
   const groups = ((groupsRaw ?? []) as GroupWithSchedulesAndStudents[]).map(g => ({
@@ -87,6 +92,21 @@ export default async function TeacherDetailPage({ params }: Props) {
           isPending={teacher.is_pending ?? false}
           email={teacher.email ?? null}
         />
+        <div className="bg-white rounded-2xl shadow-sm px-4 py-3 flex items-center gap-3">
+          <div className={`w-9 h-9 rounded-xl flex items-center justify-center ${googleToken ? 'bg-emerald-100' : 'bg-gray-100'}`}>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={googleToken ? '#10b981' : '#9ca3af'} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+              <line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/>
+              <line x1="3" y1="10" x2="21" y2="10"/>
+            </svg>
+          </div>
+          <div>
+            <p className="text-xs font-bold text-gray-500">יומן גוגל</p>
+            <p className={`text-sm font-semibold ${googleToken ? 'text-emerald-600' : 'text-gray-400'}`}>
+              {googleToken ? 'מחובר' : 'לא מחובר'}
+            </p>
+          </div>
+        </div>
         <AdminTeacherTabs
           teacherId={teacher.id}
           groups={groups}
