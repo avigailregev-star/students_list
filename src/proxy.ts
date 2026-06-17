@@ -83,8 +83,11 @@ export async function proxy(request: NextRequest) {
   const isAuthRoute = pathname.startsWith('/auth/')
   const isResetPage = pathname === '/reset-password'
   const isRedirectPage = pathname === '/redirect'
-  // ?switch=1 lets Tab 2 reach the login page even when a shared cookie exists
-  const isSwitchRequest = request.nextUrl.searchParams.has('switch')
+  // If this tab already sent its own session, it's "logged in" in this tab.
+  // Only then do we redirect away from /login. Hard navigations (new tab,
+  // address bar, F5) have no header, so they can always reach /login freely —
+  // this is what lets Tab 2 log in as a different user without ?switch=1.
+  const tabHasSession = !!request.headers.get('x-tab-session')
 
   if (!user && !isLoginPage && !isAuthRoute && !isResetPage && !isRedirectPage) {
     const url = request.nextUrl.clone()
@@ -92,7 +95,7 @@ export async function proxy(request: NextRequest) {
     return NextResponse.redirect(url)
   }
 
-  if (user && isLoginPage && !isSwitchRequest) {
+  if (user && isLoginPage && tabHasSession) {
     const url = request.nextUrl.clone()
     url.pathname = '/redirect'
     return NextResponse.redirect(url)
