@@ -2,7 +2,8 @@ import { createBrowserClient } from '@supabase/ssr'
 
 let _client: ReturnType<typeof createBrowserClient> | undefined
 
-function getTabStorageKey(): string {
+function getTabStorageKey(): string | undefined {
+  if (typeof window === 'undefined') return undefined
   const existing = window.sessionStorage.getItem('_sb_tab_key')
   if (existing) return existing
   const key = `sb-auth-${Math.random().toString(36).slice(2)}`
@@ -16,7 +17,7 @@ export function createClient() {
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
       auth: {
-        storage: window.sessionStorage,
+        storage: typeof window !== 'undefined' ? window.sessionStorage : undefined,
         storageKey: getTabStorageKey(),
       },
     }

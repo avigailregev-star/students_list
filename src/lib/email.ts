@@ -1,11 +1,5 @@
 import { Resend } from 'resend'
 
-if (!process.env.RESEND_API_KEY) {
-  console.warn('[email] RESEND_API_KEY is not set — emails will not be sent')
-}
-
-const resend = new Resend(process.env.RESEND_API_KEY)
-
 interface BugEmailParams {
   teacherName: string
   errorMessage: string
@@ -23,8 +17,12 @@ function escapeHtml(s: string): string {
 }
 
 export async function sendBugReportEmail(params: BugEmailParams) {
-  if (!process.env.RESEND_API_KEY) return
+  if (!process.env.RESEND_API_KEY) {
+    console.warn('[email] RESEND_API_KEY is not set — emails will not be sent')
+    return
+  }
 
+  const resend = new Resend(process.env.RESEND_API_KEY)
   const { teacherName, errorMessage, pageUrl, userDescription, createdAt } = params
 
   try {
