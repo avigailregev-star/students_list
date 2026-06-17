@@ -9,7 +9,8 @@ create table vacation_requests (
   status text not null default 'pending' check (status in ('pending', 'approved', 'rejected')),
   admin_note text,
   created_at timestamptz default now(),
-  decided_at timestamptz
+  decided_at timestamptz,
+  check (end_date >= start_date)
 );
 
 alter table vacation_requests enable row level security;
