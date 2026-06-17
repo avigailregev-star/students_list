@@ -134,6 +134,18 @@ export type Message = {
   replied_at: string | null
 }
 
+export type VacationRequest = {
+  id: string
+  teacher_id: string
+  start_date: string   // "YYYY-MM-DD"
+  end_date: string     // "YYYY-MM-DD"
+  note: string | null
+  status: 'pending' | 'approved' | 'rejected'
+  admin_note: string | null
+  created_at: string
+  decided_at: string | null
+}
+
 // Joined types used in queries
 export type GroupWithSchedules = Group & {
   group_schedules: GroupSchedule[]
