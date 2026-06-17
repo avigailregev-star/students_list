@@ -7,6 +7,8 @@ import ExportButtons from './ExportButtons'
 import BottomNav from '@/components/layout/BottomNav'
 import { getEventsForTeacher } from '@/lib/queries/events'
 import type { GroupSchedule, SchoolEventType } from '@/types/database'
+import VacationSection from './VacationSection'
+import type { VacationRequest } from '@/types/database'
 
 type HistoryEntry = {
   date: string
@@ -33,6 +35,13 @@ export default async function ReportsPage() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
+
+  const { data: vacationsRaw } = await supabase
+    .from('vacation_requests')
+    .select('*')
+    .eq('teacher_id', user.id)
+    .order('created_at', { ascending: false })
+  const vacationRequests = (vacationsRaw ?? []) as VacationRequest[]
 
   const { data: groups } = await supabase
     .from('groups')
@@ -62,6 +71,7 @@ export default async function ReportsPage() {
           </svg>
           <p className="text-sm">אין קבוצות עדיין</p>
         </div>
+        <VacationSection initialRequests={vacationRequests} />
       </div>
     )
   }
@@ -199,6 +209,8 @@ export default async function ReportsPage() {
           )
         })}
       </div>
+
+      <VacationSection initialRequests={vacationRequests} />
 
       <BottomNav />
     </div>
