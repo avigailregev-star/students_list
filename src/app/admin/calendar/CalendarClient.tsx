@@ -238,11 +238,14 @@ export default function CalendarClient({ events, teachers, holidays }: Props) {
                           onClick={() => !isWeekend && openAdd(dateStr)}
                           disabled={isWeekend}
                           title={ev?.name ?? holidayName}
-                          className={`border-b border-l border-gray-200 h-9 flex flex-col items-center justify-center text-xs transition-colors relative disabled:cursor-default ${cellClass}`}
+                          className={`border-b border-l border-gray-200 min-h-[2.25rem] py-1 flex flex-col items-center justify-center gap-0.5 text-xs transition-colors relative disabled:cursor-default ${cellClass}`}
                         >
-                          {day}
+                          <span>{day}</span>
+                          {ev && (
+                            <span className="text-[8px] font-semibold leading-tight px-0.5 text-center max-w-full truncate w-full text-center">{ev.name}</span>
+                          )}
                           {holidayName && !ev && (
-                            <span className="absolute bottom-0.5 w-1 h-1 rounded-full bg-amber-400" />
+                            <span className="text-[8px] leading-tight text-amber-600 px-0.5 text-center max-w-full truncate w-full text-center">{holidayName}</span>
                           )}
                         </button>
                       )
