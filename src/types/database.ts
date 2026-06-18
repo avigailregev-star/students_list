@@ -123,6 +123,8 @@ export type TeacherRoomAssignment = {
   teacher_id: string
   room_id: string
   day_of_week: number // 0=Sun … 5=Fri
+  start_time: string | null
+  end_time: string | null
   created_at: string
 }
 

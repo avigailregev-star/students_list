@@ -36,6 +36,8 @@ export default function RoomBoardClient({ rooms, assignments, teachers }: Props)
   const [isPending, startTransition] = useTransition()
   const [activeCell, setActiveCell] = useState<{ roomId: string; dow: number; top?: number; bottom?: number; right: number } | null>(null)
   const [cellError, setCellError] = useState('')
+  const [startTime, setStartTime] = useState('')
+  const [endTime, setEndTime] = useState('')
 
   const teacherColorMap = new Map(
     teachers.map((t, i) => [t.id, TEACHER_COLORS[i % TEACHER_COLORS.length]])
@@ -72,6 +74,10 @@ export default function RoomBoardClient({ rooms, assignments, teachers }: Props)
     if (activeCell?.roomId === roomId && activeCell?.dow === dow) {
       setActiveCell(null)
     } else {
+      const key = `${roomId}-${dow}`
+      const existing = assignmentMap.get(key)
+      setStartTime(existing?.start_time?.slice(0, 5) ?? '')
+      setEndTime(existing?.end_time?.slice(0, 5) ?? '')
       const rect = e.currentTarget.getBoundingClientRect()
       const spaceBelow = window.innerHeight - rect.bottom
       const openUpward = spaceBelow < 300
@@ -89,7 +95,7 @@ export default function RoomBoardClient({ rooms, assignments, teachers }: Props)
     if (!activeCell) return
     setCellError('')
     startTransition(async () => {
-      const result = await assignRoom(activeCell.roomId, teacherId, activeCell.dow)
+      const result = await assignRoom(activeCell.roomId, teacherId, activeCell.dow, startTime, endTime)
       if (result.error) { setCellError(result.error); return }
       setActiveCell(null)
     })
@@ -207,7 +213,7 @@ export default function RoomBoardClient({ rooms, assignments, teachers }: Props)
                             <td key={d.dow} className="p-1 text-center">
                               <button
                                 onClick={e => handleCellClick(e, room.id, d.dow)}
-                                className={`w-full rounded-lg px-1 py-2 text-[11px] font-semibold transition-colors border ${
+                                className={`w-full rounded-lg px-1 py-1.5 text-[11px] font-semibold transition-colors border flex flex-col items-center gap-0.5 ${
                                   isActive
                                     ? 'ring-2 ring-teal-400 border-teal-300 bg-teal-50'
                                     : teacher && color
@@ -215,7 +221,12 @@ export default function RoomBoardClient({ rooms, assignments, teachers }: Props)
                                     : 'border-dashed border-gray-200 text-gray-300 hover:border-gray-300 hover:text-gray-400'
                                 }`}
                               >
-                                {teacher ? teacher.name : '+ שבץ'}
+                                <span>{teacher ? teacher.name : '+ שבץ'}</span>
+                                {assignment?.start_time && (
+                                  <span className="text-[9px] opacity-70 font-normal">
+                                    {assignment.start_time.slice(0,5)}{assignment.end_time ? `–${assignment.end_time.slice(0,5)}` : ''}
+                                  </span>
+                                )}
                               </button>
 
                               {/* Popover */}
@@ -227,6 +238,23 @@ export default function RoomBoardClient({ rooms, assignments, teachers }: Props)
                                 >
                                   <div className="sticky top-0 px-3 py-2 bg-teal-500 text-white text-xs font-bold">
                                     {d.label} · {room.name}
+                                  </div>
+                                  <div className="px-3 py-2 border-b border-gray-100 flex gap-2 items-center">
+                                    <input
+                                      type="time"
+                                      value={startTime}
+                                      onChange={e => setStartTime(e.target.value)}
+                                      className="flex-1 border border-gray-200 rounded-lg px-2 py-1 text-xs focus:outline-none focus:border-teal-400"
+                                      placeholder="התחלה"
+                                    />
+                                    <span className="text-gray-300 text-xs">—</span>
+                                    <input
+                                      type="time"
+                                      value={endTime}
+                                      onChange={e => setEndTime(e.target.value)}
+                                      className="flex-1 border border-gray-200 rounded-lg px-2 py-1 text-xs focus:outline-none focus:border-teal-400"
+                                      placeholder="סיום"
+                                    />
                                   </div>
                                   <div className="py-1">
                                     {teachers.map(t => {
