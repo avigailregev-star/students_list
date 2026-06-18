@@ -2,7 +2,6 @@
 
 import { useState, useTransition, useMemo } from 'react'
 import { createEvent, deleteEvent } from './calendarActions'
-import { repushAllEvents } from './repushAction'
 import type { SchoolEvent, SchoolEventType, Teacher, Holiday } from '@/types/database'
 
 const MONTHS_HE = ['ינואר','פברואר','מרץ','אפריל','מאי','יוני','יולי','אוגוסט','ספטמבר','אוקטובר','נובמבר','דצמבר']
@@ -15,6 +14,20 @@ const EVENT_CONFIG: Record<SchoolEventType, { label: string; bg: string; dot: st
   school_start:{ label: 'פתיחת שנה', bg: 'bg-teal-100',   dot: 'bg-teal-500',   text: 'text-teal-700'   },
   school_end:  { label: 'סיום שנה',  bg: 'bg-violet-100', dot: 'bg-violet-500', text: 'text-violet-700' },
   concert:     { label: 'קונצרט',     bg: 'bg-pink-100',   dot: 'bg-pink-500',   text: 'text-pink-700'   },
+}
+
+function toGCalDate(dateStr: string) {
+  return dateStr.replace(/-/g, '')
+}
+
+function buildGCalUrl(name: string, startDate: string, endDate: string) {
+  const start = toGCalDate(startDate)
+  // Google Calendar end date is exclusive — add 1 day
+  const end = new Date(endDate + 'T12:00:00Z')
+  end.setUTCDate(end.getUTCDate() + 1)
+  const endStr = end.toISOString().slice(0, 10).replace(/-/g, '')
+  const params = new URLSearchParams({ action: 'TEMPLATE', text: name, dates: `${start}/${endStr}` })
+  return `https://calendar.google.com/calendar/render?${params}`
 }
 
 function getSchoolYear() {
@@ -39,20 +52,6 @@ interface Props {
   holidays: Pick<Holiday, 'date' | 'name'>[]
 }
 
-function RepushButton() {
-  const [isPending, startTransition] = useTransition()
-  const [done, setDone] = useState(false)
-
-  return (
-    <button
-      onClick={() => startTransition(async () => { await repushAllEvents(); setDone(true) })}
-      disabled={isPending}
-      className="text-xs font-semibold px-3 py-1.5 rounded-xl bg-teal-100 text-teal-700 hover:bg-teal-200 transition-colors disabled:opacity-50"
-    >
-      {isPending ? 'שולח...' : done ? 'נשלח ✓' : 'סנכרן עם גוגל'}
-    </button>
-  )
-}
 
 export default function CalendarClient({ events, teachers, holidays }: Props) {
   const schoolYear = getSchoolYear()
@@ -133,7 +132,7 @@ export default function CalendarClient({ events, teachers, holidays }: Props) {
 
   return (
     <div className="px-4 py-5 flex flex-col gap-5">
-      {/* Legend + sync button */}
+      {/* Legend */}
       <div className="flex flex-wrap gap-2 items-center">
         {(Object.entries(EVENT_CONFIG) as [SchoolEventType, typeof EVENT_CONFIG[SchoolEventType]][]).map(([type, cfg]) => (
           <span key={type} className={`flex items-center gap-1.5 text-[11px] font-semibold px-2.5 py-1 rounded-xl ${cfg.bg} ${cfg.text}`}>
@@ -141,7 +140,6 @@ export default function CalendarClient({ events, teachers, holidays }: Props) {
             {cfg.label}
           </span>
         ))}
-        <RepushButton />
       </div>
 
       {/* Upcoming events list */}
@@ -161,6 +159,19 @@ export default function CalendarClient({ events, teachers, holidays }: Props) {
                       {ev.start_date}{isSame ? '' : ` עד ${ev.end_date}`}
                     </p>
                   </div>
+                  <a
+                    href={buildGCalUrl(ev.name, ev.start_date, ev.end_date)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="w-7 h-7 rounded-lg bg-white/50 hover:bg-white/80 flex items-center justify-center transition-colors shrink-0"
+                    title="פתח ביומן גוגל"
+                  >
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
+                      <polyline points="15 3 21 3 21 9"/>
+                      <line x1="10" y1="14" x2="21" y2="3"/>
+                    </svg>
+                  </a>
                   <button
                     onClick={() => startTransition(async () => {
                       try { await deleteEvent(ev.id) }
