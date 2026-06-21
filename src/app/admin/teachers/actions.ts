@@ -4,7 +4,6 @@ import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { requireAdmin as _requireAdmin } from '@/lib/auth'
 import { createAdminClient } from '@/lib/supabase/admin'
-import { sendTeacherInviteEmail } from '@/lib/email'
 
 async function requireAdmin() {
   const { supabase } = await _requireAdmin('/admin')
@@ -47,36 +46,24 @@ export async function inviteTeacher(pendingId: string, email: string, name: stri
   await _requireAdmin('/admin')
   const supabase = createAdminClient()
 
-  // Create auth user with the SAME UUID as the pending profile
-  const { error: authError } = await supabase.auth.admin.createUser({
-    id: pendingId,
-    email,
-    email_confirm: true,
-    user_metadata: { name },
+  // Supabase sends the invite email automatically via its own email service
+  const { data: inviteData, error: inviteError } = await supabase.auth.admin.inviteUserByEmail(email, {
+    data: { name },
+    redirectTo: `${process.env.NEXT_PUBLIC_APP_URL}/`,
   })
-  if (authError) return `שגיאה ביצירת חשבון: ${authError.message}`
+  if (inviteError) return `שגיאה בשליחת ההזמנה: ${inviteError.message}`
 
-  // Generate a password-setup link and email it to the teacher
-  const { data: linkData } = await supabase.auth.admin.generateLink({
-    type: 'recovery',
-    email,
-  })
-  if (linkData?.properties?.action_link) {
-    await sendTeacherInviteEmail({
-      teacherEmail: email,
-      teacherName: name,
-      inviteLink: linkData.properties.action_link,
-    })
-  }
+  const newUserId = inviteData.user.id
 
-  // Mark teacher as active and set email
+  // Replace the pending placeholder with the real auth user UUID
+  await supabase.from('teachers').delete().eq('id', pendingId)
   const { error: dbError } = await supabase
     .from('teachers')
-    .update({ email, is_pending: false })
-    .eq('id', pendingId)
+    .insert({ id: newUserId, name, email, role: 'teacher', is_pending: false })
 
-  if (dbError) return `שגיאה בעדכון: ${dbError.message}`
+  if (dbError) return `שגיאה בשמירה: ${dbError.message}`
   revalidatePath('/admin/teachers')
+  redirect(`/admin/teachers/${newUserId}`)
 }
 
 export async function resetTeacherToPending(teacherId: string): Promise<string | void> {

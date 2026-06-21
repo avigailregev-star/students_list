@@ -29,7 +29,7 @@ export default function EditTeacherForm({ teacherId, initialName, isPending, ema
           <div>
             <p className="text-sm font-bold text-emerald-800">ההזמנה נשלחה בהצלחה</p>
             <p className="text-xs text-emerald-600 mt-0.5">
-              נשלח מייל הזמנה לכתובת <span className="font-bold">{inviteEmail}</span> עם קישור להגדרת סיסמה.
+              נשלח מייל הזמנה לכתובת <span className="font-bold">{inviteEmail}</span> — המורה תלחץ על הקישור ותגדיר סיסמה.
             </p>
           </div>
         </div>
