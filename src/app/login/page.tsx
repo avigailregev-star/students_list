@@ -6,6 +6,13 @@ import { transferTeacherGroups } from './actions'
 
 type Mode = 'login' | 'signup' | 'forgot' | 'set-password'
 
+function sessionToBase64(session: unknown): string {
+  const bytes = new TextEncoder().encode(JSON.stringify(session))
+  let binary = ''
+  for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i])
+  return btoa(binary)
+}
+
 export default function LoginPage() {
   const supabase = createClient()
   const [email, setEmail] = useState('')
@@ -102,7 +109,7 @@ export default function LoginPage() {
       // Save this tab's session so the middleware can inject it into server requests,
       // giving each browser tab an independent server-side session.
       const { data: { session } } = await supabase.auth.getSession()
-      if (session) sessionStorage.setItem('_sb_tab_session', btoa(JSON.stringify(session)))
+      if (session) sessionStorage.setItem('_sb_tab_session', sessionToBase64(session))
 
       const role = (data.user?.user_metadata as Record<string, string>)?.role
       window.location.href = role === 'admin' ? '/admin' : (role ? '/' : '/redirect')
@@ -126,7 +133,7 @@ export default function LoginPage() {
       if (error) throw error
       if (data.user) {
         const { data: { session } } = await supabase.auth.getSession()
-        if (session) sessionStorage.setItem('_sb_tab_session', btoa(JSON.stringify(session)))
+        if (session) sessionStorage.setItem('_sb_tab_session', sessionToBase64(session))
       }
       window.location.href = '/'
     } catch (err: unknown) {

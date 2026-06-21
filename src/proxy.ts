@@ -36,7 +36,9 @@ function injectTabSession(request: NextRequest): void {
   const tabSession = request.headers.get('x-tab-session')
   if (!tabSession) return
   try {
-    const sessionJson = atob(tabSession)
+    const binary = atob(tabSession)
+    const bytes = Uint8Array.from(binary, c => c.charCodeAt(0))
+    const sessionJson = new TextDecoder().decode(bytes)
     JSON.parse(sessionJson) // validate
     const cookieValue = 'base64-' + toBase64URL(sessionJson)
     const projectRef = new URL(process.env.NEXT_PUBLIC_SUPABASE_URL!).hostname.split('.')[0]

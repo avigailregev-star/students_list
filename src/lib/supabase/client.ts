@@ -54,7 +54,11 @@ export function createClient() {
   if (typeof window !== 'undefined') {
     _client.auth.onAuthStateChange((event: AuthChangeEvent, session: Session | null) => {
       if ((event === 'TOKEN_REFRESHED' || event === 'SIGNED_IN') && session) {
-        sessionStorage.setItem('_sb_tab_session', btoa(JSON.stringify(session)))
+        const json = JSON.stringify(session)
+        const bytes = new TextEncoder().encode(json)
+        let binary = ''
+        for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i])
+        sessionStorage.setItem('_sb_tab_session', btoa(binary))
       } else if (event === 'SIGNED_OUT') {
         sessionStorage.removeItem('_sb_tab_session')
       }
