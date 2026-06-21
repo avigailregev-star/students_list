@@ -27,9 +27,9 @@ export default function EditTeacherForm({ teacherId, initialName, isPending, ema
             <polyline points="20 6 9 17 4 12"/>
           </svg>
           <div>
-            <p className="text-sm font-bold text-emerald-800">החשבון נוצר בהצלחה</p>
+            <p className="text-sm font-bold text-emerald-800">ההזמנה נשלחה בהצלחה</p>
             <p className="text-xs text-emerald-600 mt-0.5">
-              המורה יכולה להיכנס עם האימייל <span className="font-bold">{inviteEmail}</span> — תלחצי "שכחתי סיסמה" בדף ההתחברות.
+              נשלח מייל הזמנה לכתובת <span className="font-bold">{inviteEmail}</span> עם קישור להגדרת סיסמה.
             </p>
           </div>
         </div>

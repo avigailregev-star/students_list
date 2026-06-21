@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { requireAdmin as _requireAdmin } from '@/lib/auth'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { sendTeacherInviteEmail } from '@/lib/email'
 
 async function requireAdmin() {
   const { supabase } = await _requireAdmin('/admin')
@@ -54,6 +55,19 @@ export async function inviteTeacher(pendingId: string, email: string, name: stri
     user_metadata: { name },
   })
   if (authError) return `שגיאה ביצירת חשבון: ${authError.message}`
+
+  // Generate a password-setup link and email it to the teacher
+  const { data: linkData } = await supabase.auth.admin.generateLink({
+    type: 'recovery',
+    email,
+  })
+  if (linkData?.properties?.action_link) {
+    await sendTeacherInviteEmail({
+      teacherEmail: email,
+      teacherName: name,
+      inviteLink: linkData.properties.action_link,
+    })
+  }
 
   // Mark teacher as active and set email
   const { error: dbError } = await supabase

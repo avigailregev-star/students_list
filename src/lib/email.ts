@@ -1,5 +1,45 @@
 import { Resend } from 'resend'
 
+interface InviteEmailParams {
+  teacherEmail: string
+  teacherName: string
+  inviteLink: string
+}
+
+export async function sendTeacherInviteEmail({ teacherEmail, teacherName, inviteLink }: InviteEmailParams) {
+  if (!process.env.RESEND_API_KEY) {
+    console.warn('[email] RESEND_API_KEY is not set — invite email will not be sent')
+    return
+  }
+
+  const resend = new Resend(process.env.RESEND_API_KEY)
+
+  try {
+    const { error } = await resend.emails.send({
+      from: 'onboarding@resend.dev',
+      to: teacherEmail,
+      subject: 'הוזמנת להצטרף לאפליקציית מעקב השיעורים',
+      html: `
+        <div dir="rtl" style="font-family:sans-serif;max-width:600px;margin:0 auto;padding:24px">
+          <h2 style="color:#0f766e;margin-bottom:8px">שלום ${escapeHtml(teacherName)},</h2>
+          <p style="color:#374151;font-size:15px;line-height:1.6">הוזמנת להצטרף למערכת מעקב השיעורים.</p>
+          <p style="color:#374151;font-size:15px;line-height:1.6">לחצי על הכפתור למטה להגדרת סיסמה וכניסה לאפליקציה:</p>
+          <div style="margin:28px 0;text-align:center">
+            <a href="${inviteLink}"
+               style="background:#14b8a6;color:white;padding:13px 30px;border-radius:10px;font-weight:700;font-size:15px;text-decoration:none;display:inline-block">
+              הגדרת סיסמה וכניסה ←
+            </a>
+          </div>
+          <p style="color:#9ca3af;font-size:12px">הקישור בתוקף ל-24 שעות.</p>
+        </div>
+      `,
+    })
+    if (error) console.error('[email] Resend returned error:', error)
+  } catch (err) {
+    console.error('[email] Failed to send teacher invite email:', err)
+  }
+}
+
 interface BugEmailParams {
   teacherName: string
   errorMessage: string
