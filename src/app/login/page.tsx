@@ -18,8 +18,17 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false)
 
   useEffect(() => {
-    if (window.location.hash.includes('access_token')) {
-      setMode('set-password')
+    const hash = window.location.hash
+    if (!hash.includes('access_token')) return
+
+    setMode('set-password')
+
+    // Exchange hash tokens for an active session so updateUser works
+    const params = new URLSearchParams(hash.slice(1))
+    const accessToken = params.get('access_token')
+    const refreshToken = params.get('refresh_token')
+    if (accessToken && refreshToken) {
+      supabase.auth.setSession({ access_token: accessToken, refresh_token: refreshToken })
     }
   }, [])
 
