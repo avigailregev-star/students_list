@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useTransition } from 'react'
-import { updateTeacher, inviteTeacher } from '../actions'
+import { updateTeacher, inviteTeacher, resetTeacherToPending } from '../actions'
 
 interface Props {
   teacherId: string
@@ -137,6 +137,22 @@ export default function EditTeacherForm({ teacherId, initialName, isPending, ema
           ביטול
         </button>
       </div>
+
+      {email && (
+        <button
+          type="button"
+          disabled={isPendingTransition}
+          onClick={() => {
+            if (!confirm('למחוק את המייל ולאפס את המורה למצב ממתין?')) return
+            startTransition(async () => {
+              await resetTeacherToPending(teacherId)
+            })
+          }}
+          className="w-full text-xs text-red-400 hover:text-red-600 py-1 transition-colors disabled:opacity-40"
+        >
+          מחיקת מייל ואיפוס להזמנה מחדש
+        </button>
+      )}
     </form>
   )
 }

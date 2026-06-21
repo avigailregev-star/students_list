@@ -79,6 +79,22 @@ export async function inviteTeacher(pendingId: string, email: string, name: stri
   revalidatePath('/admin/teachers')
 }
 
+export async function resetTeacherToPending(teacherId: string): Promise<string | void> {
+  await _requireAdmin('/admin')
+  const supabase = createAdminClient()
+
+  // Remove the auth user so they can be re-invited
+  await supabase.auth.admin.deleteUser(teacherId)
+
+  const { error } = await supabase
+    .from('teachers')
+    .update({ email: null, is_pending: true })
+    .eq('id', teacherId)
+
+  if (error) return `שגיאה: ${error.message}`
+  revalidatePath('/admin/teachers')
+}
+
 export async function deleteTeacher(teacherId: string) {
   const supabase = await requireAdmin()
 
