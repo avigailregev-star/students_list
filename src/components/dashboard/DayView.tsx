@@ -68,10 +68,29 @@ export default function DayView({ allSlots, initialDate, events }: Props) {
       {/* Event banners */}
       {activeEvents.map(ev => {
         const cfg = EVENT_COLORS[ev.event_type]
+        const start = ev.start_date.replace(/-/g, '')
+        const endD = new Date(ev.end_date + 'T12:00:00Z')
+        endD.setUTCDate(endD.getUTCDate() + 1)
+        const end = endD.toISOString().slice(0, 10).replace(/-/g, '')
+        const gcalUrl = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(ev.name)}&dates=${start}/${end}`
         return (
           <div key={ev.id} className={`flex items-center gap-3 px-4 py-2.5 rounded-2xl border-r-4 ${cfg.bg} ${cfg.border}`}>
             <span className={`text-[11px] font-bold uppercase tracking-wide ${cfg.text}`}>{cfg.label}</span>
-            <span className={`text-sm font-bold ${cfg.text}`}>{ev.name}</span>
+            <span className={`flex-1 text-sm font-bold ${cfg.text}`}>{ev.name}</span>
+            <a
+              href={gcalUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              title="הוסף ליומן גוגל"
+              className={`shrink-0 opacity-60 hover:opacity-100 transition-opacity ${cfg.text}`}
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+                <line x1="16" y1="2" x2="16" y2="6"/>
+                <line x1="8" y1="2" x2="8" y2="6"/>
+                <line x1="3" y1="10" x2="21" y2="10"/>
+              </svg>
+            </a>
           </div>
         )
       })}
