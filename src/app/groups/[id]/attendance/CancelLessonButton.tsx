@@ -28,6 +28,7 @@ export default function CancelLessonButton({ lessonId, isCanceled, cancelReason,
   const [open, setOpen] = useState(false)
   const [reason, setReason] = useState(REASONS[0])
   const [makeupDate, setMakeupDate] = useState('')
+  const [makeupTime, setMakeupTime] = useState('')
   const [sickLeave, setSickLeave] = useState(false)
   const [file, setFile] = useState<File | null>(null)
   const [uploading, setUploading] = useState(false)
@@ -92,6 +93,7 @@ export default function CancelLessonButton({ lessonId, isCanceled, cancelReason,
     fd.set('lesson_id', lessonId)
     fd.set('reason', reason)
     fd.set('notes', makeupDate)
+    fd.set('makeup_start_time', makeupTime)
     fd.set('is_sick_leave', String(sickLeave))
     if (documentUrl) fd.set('document_url', documentUrl)
 
@@ -158,16 +160,24 @@ export default function CancelLessonButton({ lessonId, isCanceled, cancelReason,
                 </div>
               </div>
 
-              {/* Makeup date — shown only for compensation reasons */}
+              {/* Makeup date + time — shown only for compensation reasons */}
               {reason.includes('השלמה') && (
                 <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-1">תאריך השלמה</label>
-                  <input
-                    type="date"
-                    value={makeupDate}
-                    onChange={e => setMakeupDate(e.target.value)}
-                    className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-teal-400"
-                  />
+                  <label className="block text-sm font-semibold text-gray-700 mb-1">תאריך ושעת השלמה</label>
+                  <div className="flex gap-2">
+                    <input
+                      type="date"
+                      value={makeupDate}
+                      onChange={e => setMakeupDate(e.target.value)}
+                      className="flex-[2] px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-teal-400"
+                    />
+                    <input
+                      type="time"
+                      value={makeupTime}
+                      onChange={e => setMakeupTime(e.target.value)}
+                      className="flex-1 px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-teal-400"
+                    />
+                  </div>
                 </div>
               )}
 
