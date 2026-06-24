@@ -1,4 +1,5 @@
 import { requireAdmin } from '@/lib/auth'
+import { createAdminClient } from '@/lib/supabase/admin'
 import MessagesInboxClient from './MessagesInboxClient'
 import type { VacationRequestWithTeacher } from '@/types/database'
 
@@ -15,21 +16,33 @@ type MessageWithTeacher = {
   teachers: { name: string } | null
 }
 
+export type BugReport = {
+  id: string
+  teacher_name: string | null
+  page_url: string | null
+  error_message: string | null
+  user_description: string | null
+  status: 'new' | 'resolved'
+  created_at: string
+}
+
 export default async function AdminMessagesPage() {
   const { supabase } = await requireAdmin()
+  const adminSupabase = createAdminClient()
 
-  const { data: messagesRaw } = await supabase
-    .from('messages')
-    .select('*, teachers(name)')
-    .order('created_at', { ascending: false })
-
-  const { data: vacationsRaw } = await supabase
-    .from('vacation_requests')
-    .select('*, teachers(name)')
-    .order('created_at', { ascending: false })
+  const [
+    { data: messagesRaw },
+    { data: vacationsRaw },
+    { data: bugsRaw },
+  ] = await Promise.all([
+    supabase.from('messages').select('*, teachers(name)').order('created_at', { ascending: false }),
+    supabase.from('vacation_requests').select('*, teachers(name)').order('created_at', { ascending: false }),
+    adminSupabase.from('bug_reports').select('id, teacher_name, page_url, error_message, user_description, status, created_at').order('created_at', { ascending: false }),
+  ])
 
   const messages = (messagesRaw ?? []) as MessageWithTeacher[]
   const vacationRequests = (vacationsRaw ?? []) as VacationRequestWithTeacher[]
+  const bugReports = (bugsRaw ?? []) as BugReport[]
 
   return (
     <div className="flex flex-col min-h-screen">
@@ -37,7 +50,7 @@ export default async function AdminMessagesPage() {
         <p className="text-xs font-semibold text-teal-100 uppercase tracking-widest">ניהול</p>
         <h1 className="text-xl font-bold">הודעות מורים</h1>
       </div>
-      <MessagesInboxClient initialMessages={messages} initialVacationRequests={vacationRequests} />
+      <MessagesInboxClient initialMessages={messages} initialVacationRequests={vacationRequests} initialBugReports={bugReports} />
     </div>
   )
 }

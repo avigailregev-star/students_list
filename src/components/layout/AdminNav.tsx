@@ -29,7 +29,7 @@ function BugIcon() {
   )
 }
 
-export default function AdminNav({ bugsCount = 0, messagesCount = 0 }: { bugsCount?: number; messagesCount?: number }) {
+export default function AdminNav({ messagesCount = 0 }: { messagesCount?: number }) {
   const pathname = usePathname()
   const router = useRouter()
 
@@ -105,12 +105,6 @@ export default function AdminNav({ bugsCount = 0, messagesCount = 0 }: { bugsCou
           <path d="M22 12h-4l-3 9L9 3l-3 9H2"/>
         </svg>
       ),
-    },
-    {
-      href: '/admin/bugs',
-      label: 'באגים',
-      icon: <BugIcon />,
-      badge: bugsCount,
     },
   ]
 

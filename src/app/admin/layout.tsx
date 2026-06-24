@@ -22,8 +22,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
     <div className="min-h-screen bg-gray-50 pb-20">
       {children}
       <AdminNav
-        bugsCount={bugsCount ?? 0}
-        messagesCount={(messagesCount ?? 0) + (vacationsCount ?? 0)}
+        messagesCount={(messagesCount ?? 0) + (vacationsCount ?? 0) + (bugsCount ?? 0)}
       />
     </div>
   )

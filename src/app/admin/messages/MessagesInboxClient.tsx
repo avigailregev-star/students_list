@@ -1,11 +1,12 @@
-// src/app/admin/messages/MessagesInboxClient.tsx
 'use client'
 
 import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { replyToMessage } from './messageActions'
 import { decideVacationRequest } from './vacationActions'
+import { markResolved } from '@/app/admin/bugs/bugActions'
 import type { VacationRequestWithTeacher } from '@/types/database'
+import type { BugReport } from './page'
 
 type MessageWithTeacher = {
   id: string
@@ -18,15 +19,27 @@ type MessageWithTeacher = {
   teachers: { name: string } | null
 }
 
+function timeAgo(dateStr: string): string {
+  const diff = Date.now() - new Date(dateStr).getTime()
+  const minutes = Math.floor(diff / 60000)
+  if (minutes < 1) return 'עכשיו'
+  if (minutes < 60) return `לפני ${minutes} דקות`
+  const hours = Math.floor(minutes / 60)
+  if (hours < 24) return `לפני ${hours} שעות`
+  return `לפני ${Math.floor(hours / 24)} ימים`
+}
+
 interface Props {
   initialMessages: MessageWithTeacher[]
   initialVacationRequests: VacationRequestWithTeacher[]
+  initialBugReports: BugReport[]
 }
 
-export default function MessagesInboxClient({ initialMessages, initialVacationRequests }: Props) {
-  const [tab, setTab] = useState<'messages' | 'vacations'>('messages')
+export default function MessagesInboxClient({ initialMessages, initialVacationRequests, initialBugReports }: Props) {
+  const [tab, setTab] = useState<'messages' | 'vacations' | 'bugs'>('messages')
   const [messages, setMessages] = useState<MessageWithTeacher[]>(initialMessages)
   const [vacations, setVacations] = useState<VacationRequestWithTeacher[]>(initialVacationRequests)
+  const [bugs, setBugs] = useState<BugReport[]>(initialBugReports)
   const [replyTexts, setReplyTexts] = useState<Record<string, string>>({})
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [pendingIds, setPendingIds] = useState<Set<string>>(new Set())
@@ -38,17 +51,11 @@ export default function MessagesInboxClient({ initialMessages, initialVacationRe
     const channel = supabase
       .channel('admin-messages-inbox')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'messages' }, async () => {
-        const { data } = await supabase
-          .from('messages')
-          .select('*, teachers(name)')
-          .order('created_at', { ascending: false })
+        const { data } = await supabase.from('messages').select('*, teachers(name)').order('created_at', { ascending: false })
         if (data) setMessages(data as MessageWithTeacher[])
       })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'vacation_requests' }, async () => {
-        const { data } = await supabase
-          .from('vacation_requests')
-          .select('*, teachers(name)')
-          .order('created_at', { ascending: false })
+        const { data } = await supabase.from('vacation_requests').select('*, teachers(name)').order('created_at', { ascending: false })
         if (data) setVacations(data as VacationRequestWithTeacher[])
       })
       .subscribe()
@@ -75,8 +82,16 @@ export default function MessagesInboxClient({ initialMessages, initialVacationRe
     setAdminNotes(prev => { const s = { ...prev }; delete s[id]; return s })
   }
 
+  async function handleMarkResolved(id: string) {
+    setPendingIds(prev => new Set(prev).add(id))
+    await markResolved(id)
+    setBugs(prev => prev.map(b => b.id === id ? { ...b, status: 'resolved' } : b))
+    setPendingIds(prev => { const s = new Set(prev); s.delete(id); return s })
+  }
+
   const pendingMessages = messages.filter(m => m.status === 'pending').length
   const pendingVacations = vacations.filter(v => v.status === 'pending').length
+  const newBugs = bugs.filter(b => b.status === 'new').length
   const pending = messages.filter(m => m.status === 'pending')
   const replied = messages.filter(m => m.status === 'replied')
   const pendingVac = vacations.filter(v => v.status === 'pending')
@@ -85,10 +100,10 @@ export default function MessagesInboxClient({ initialMessages, initialVacationRe
   return (
     <div dir="rtl">
       {/* Tabs */}
-      <div className="flex gap-2 px-4 pt-5">
+      <div className="flex gap-2 px-4 pt-5 overflow-x-auto" style={{ scrollbarWidth: 'none' }}>
         <button
           onClick={() => setTab('messages')}
-          className={`px-4 py-2 rounded-xl text-sm font-bold transition-colors ${
+          className={`px-4 py-2 rounded-xl text-sm font-bold transition-colors shrink-0 ${
             tab === 'messages' ? 'bg-teal-500 text-white' : 'bg-gray-100 text-gray-500'
           }`}
         >
@@ -96,11 +111,19 @@ export default function MessagesInboxClient({ initialMessages, initialVacationRe
         </button>
         <button
           onClick={() => setTab('vacations')}
-          className={`px-4 py-2 rounded-xl text-sm font-bold transition-colors ${
+          className={`px-4 py-2 rounded-xl text-sm font-bold transition-colors shrink-0 ${
             tab === 'vacations' ? 'bg-teal-500 text-white' : 'bg-gray-100 text-gray-500'
           }`}
         >
           בקשות חופשה{pendingVacations > 0 ? ` (${pendingVacations})` : ''}
+        </button>
+        <button
+          onClick={() => setTab('bugs')}
+          className={`px-4 py-2 rounded-xl text-sm font-bold transition-colors shrink-0 ${
+            tab === 'bugs' ? 'bg-red-500 text-white' : 'bg-gray-100 text-gray-500'
+          }`}
+        >
+          באגים{newBugs > 0 ? ` (${newBugs})` : ''}
         </button>
       </div>
 
@@ -281,6 +304,52 @@ export default function MessagesInboxClient({ initialMessages, initialVacationRe
               ))}
             </div>
           )}
+        </div>
+      )}
+      {/* Bugs tab */}
+      {tab === 'bugs' && (
+        <div className="px-4 py-5 flex flex-col gap-3">
+          {bugs.length === 0 && (
+            <p className="text-sm text-gray-400 text-center py-8">אין דיווחי באגים 🎉</p>
+          )}
+          {bugs.map(report => (
+            <div
+              key={report.id}
+              className={`bg-white rounded-2xl shadow-sm px-4 py-4 ${
+                report.status === 'new' ? 'border-r-4 border-red-400' : 'opacity-60'
+              }`}
+            >
+              <div className="flex items-start justify-between gap-2">
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className="text-sm font-bold text-gray-900">
+                      {report.teacher_name ?? 'לא ידוע'}
+                    </span>
+                    {report.status === 'new' && (
+                      <span className="text-[10px] font-bold bg-red-50 text-red-500 px-2 py-0.5 rounded-xl">חדש</span>
+                    )}
+                  </div>
+                  <p className="text-xs text-gray-500 font-mono bg-gray-50 rounded-lg px-2 py-1 mb-2 line-clamp-2">
+                    {report.error_message}
+                  </p>
+                  {report.user_description && (
+                    <p className="text-xs text-gray-600 italic mb-2">״{report.user_description}״</p>
+                  )}
+                  <p className="text-[10px] text-gray-400">{report.page_url}</p>
+                  <p className="text-[10px] text-gray-400 mt-0.5">{timeAgo(report.created_at)}</p>
+                </div>
+                {report.status === 'new' && (
+                  <button
+                    onClick={() => handleMarkResolved(report.id)}
+                    disabled={pendingIds.has(report.id)}
+                    className="shrink-0 text-xs bg-gray-100 text-gray-600 font-medium px-3 py-1.5 rounded-xl hover:bg-gray-200 disabled:opacity-50 transition-colors"
+                  >
+                    {pendingIds.has(report.id) ? '...' : 'סמן כטופל'}
+                  </button>
+                )}
+              </div>
+            </div>
+          ))}
         </div>
       )}
     </div>
