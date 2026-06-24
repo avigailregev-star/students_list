@@ -8,17 +8,28 @@ interface Props {
 }
 
 export default function LessonCard({ slot, isNext, hideTime }: Props) {
+  const isMakeup = slot.isMakeup === true
+
+  const dateStr = `${slot.date.getFullYear()}-${String(slot.date.getMonth() + 1).padStart(2, '0')}-${String(slot.date.getDate()).padStart(2, '0')}`
+  const href = isMakeup
+    ? `/groups/${slot.groupId}/attendance?date=${dateStr}&time=${slot.startTime}`
+    : `/groups/${slot.groupId}/attendance?date=${dateStr}`
+
+  const avatarBg = isMakeup
+    ? 'bg-purple-500'
+    : slot.lessonType === 'group' ? 'bg-teal-500' : 'bg-violet-500'
+
+  const ringClass = isNext
+    ? (isMakeup ? 'ring-2 ring-purple-400' : 'ring-2 ring-teal-400')
+    : ''
+
   return (
     <Link
-      href={`/groups/${slot.groupId}/attendance?date=${slot.date.getFullYear()}-${String(slot.date.getMonth() + 1).padStart(2, '0')}-${String(slot.date.getDate()).padStart(2, '0')}`}
-      className={`bg-white rounded-2xl p-4 flex items-center gap-3 shadow-sm active:opacity-80 transition-opacity ${
-        isNext ? 'ring-2 ring-teal-400' : ''
-      }`}
+      href={href}
+      className={`bg-white rounded-2xl p-4 flex items-center gap-3 shadow-sm active:opacity-80 transition-opacity ${ringClass} ${isMakeup ? 'border border-purple-100' : ''}`}
     >
       {/* Avatar */}
-      <div className={`w-11 h-11 rounded-2xl flex items-center justify-center text-white font-bold text-base shrink-0 ${
-        slot.lessonType === 'group' ? 'bg-teal-500' : 'bg-violet-500'
-      }`}>
+      <div className={`w-11 h-11 rounded-2xl flex items-center justify-center text-white font-bold text-base shrink-0 ${avatarBg}`}>
         {slot.groupName.charAt(0)}
       </div>
 
@@ -27,13 +38,19 @@ export default function LessonCard({ slot, isNext, hideTime }: Props) {
         <p className="text-sm font-bold text-gray-900 truncate">{slot.groupName}</p>
         <div className="flex items-center gap-2 mt-0.5">
           {!hideTime && <span className="text-xs text-gray-400 font-medium">{slot.startTime}</span>}
-          <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
-            slot.lessonType === 'group'
-              ? 'bg-teal-50 text-teal-600'
-              : 'bg-violet-50 text-violet-600'
-          }`}>
-            {slot.lessonType === 'group' ? 'קבוצה' : 'יחיד'}
-          </span>
+          {isMakeup ? (
+            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-purple-50 text-purple-600">
+              השלמה
+            </span>
+          ) : (
+            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+              slot.lessonType === 'group'
+                ? 'bg-teal-50 text-teal-600'
+                : 'bg-violet-50 text-violet-600'
+            }`}>
+              {slot.lessonType === 'group' ? 'קבוצה' : 'יחיד'}
+            </span>
+          )}
           {slot.isMangan && (
             <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-50 text-amber-600">
               מנגן
@@ -49,7 +66,7 @@ export default function LessonCard({ slot, isNext, hideTime }: Props) {
 
       {/* Attendance indicator */}
       <div className={`shrink-0 w-10 h-10 rounded-2xl flex items-center justify-center ${
-        isNext ? 'bg-teal-500' : 'bg-gray-100'
+        isNext ? (isMakeup ? 'bg-purple-500' : 'bg-teal-500') : 'bg-gray-100'
       }`}>
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={isNext ? 'white' : '#6b7280'} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
           <polyline points="20 6 9 17 4 12" />
