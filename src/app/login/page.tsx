@@ -152,9 +152,10 @@ export default function LoginPage() {
     return (
       <div className="min-h-screen bg-gray-50 flex flex-col">
         <div className="bg-gradient-to-bl from-teal-400 to-teal-600 rounded-b-[48px] px-6 pt-16 pb-12 text-white text-center shadow-lg shadow-teal-200">
-          <div className="w-28 h-28 mx-auto mb-4 overflow-hidden rounded-[22%] relative">
-            <Image src={logo} alt="לוגו" fill className="object-cover scale-[1.2]" />
-          </div>
+          <div
+            className="w-28 h-28 mx-auto mb-4 rounded-[22%]"
+            style={{backgroundImage:`url(${logo.src})`,backgroundSize:'contain',backgroundPosition:'center',backgroundRepeat:'no-repeat'}}
+          />
           <h1 className="text-3xl font-bold">מעקב נוכחות</h1>
           <p className="text-teal-100 mt-1 text-sm">הגדרת סיסמה</p>
         </div>
@@ -213,7 +214,7 @@ export default function LoginPage() {
       {/* Teal header */}
       <div className="bg-gradient-to-bl from-teal-400 to-teal-600 rounded-b-[48px] px-6 pt-16 pb-12 text-white text-center shadow-lg shadow-teal-200">
         <div className="w-28 h-28 mx-auto mb-4 overflow-hidden rounded-[22%] relative">
-          <Image src={logo} alt="לוגו" fill className="object-cover scale-[1.2]" />
+          <Image src={logo} alt="לוגו" fill priority className="object-cover scale-[1.35]" />
         </div>
         <h1 className="text-3xl font-bold">מעקב נוכחות</h1>
         <p className="text-teal-100 mt-1 text-sm">{titles[mode]}</p>

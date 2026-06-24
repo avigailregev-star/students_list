@@ -58,9 +58,10 @@ export default function DashboardClient({ groups, teacherName, events, isAdmin, 
               {groups.length > 0 ? `${groups.length} קבוצות פעילות` : 'אין קבוצות עדיין'}
             </p>
           </div>
-          <div className="w-14 h-14 shrink-0 overflow-hidden rounded-[22%] relative">
-            <Image src={logo} alt="לוגו" fill className="object-cover scale-[1.2]" />
-          </div>
+          <div
+            className="w-14 h-14 shrink-0 rounded-[22%]"
+            style={{backgroundImage:`url(${logo.src})`,backgroundSize:'contain',backgroundPosition:'center',backgroundRepeat:'no-repeat'}}
+          />
         </div>
 
         {/* View toggle */}
