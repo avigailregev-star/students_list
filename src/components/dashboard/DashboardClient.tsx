@@ -1,12 +1,14 @@
 'use client'
 
 import { useState, useMemo } from 'react'
+import Image from 'next/image'
 import DayView from './DayView'
 import WeekView from './WeekView'
 import MonthView from './MonthView'
 import BottomNav from '@/components/layout/BottomNav'
 import { getLessonSlotsForWeek, getWeekStart } from '@/lib/utils/schedule'
 import type { GroupWithSchedules, LessonSlot, SchoolEvent } from '@/types/database'
+import logo from '@/app/icon.png'
 
 interface Props {
   groups: GroupWithSchedules[]
@@ -54,12 +56,8 @@ export default function DashboardClient({ groups, teacherName, events, isAdmin }
               {groups.length > 0 ? `${groups.length} קבוצות פעילות` : 'אין קבוצות עדיין'}
             </p>
           </div>
-          <div className="w-11 h-11 rounded-2xl bg-white/20 flex items-center justify-center shrink-0">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M9 18V5l12-2v13" />
-              <circle cx="6" cy="18" r="3" />
-              <circle cx="18" cy="16" r="3" />
-            </svg>
+          <div className="w-11 h-11 rounded-2xl overflow-hidden shrink-0">
+            <Image src={logo} alt="לוגו" width={44} height={44} className="w-full h-full object-cover" />
           </div>
         </div>
 
