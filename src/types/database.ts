@@ -76,6 +76,9 @@ export type Lesson = {
   notes: string | null
   created_at: string
   google_event_id: string | null
+  is_makeup: boolean
+  makeup_lesson_id: string | null
+  makeup_start_time: string | null
 }
 
 export type AttendanceStatus = 'present' | 'absent' | 'late' | 'excused'
@@ -199,4 +202,5 @@ export type LessonSlot = {
   date: Date
   startTime: string // "HH:MM"
   dayOfWeek: number
+  isMakeup?: boolean
 }
