@@ -56,8 +56,8 @@ export default function DashboardClient({ groups, teacherName, events, isAdmin }
               {groups.length > 0 ? `${groups.length} קבוצות פעילות` : 'אין קבוצות עדיין'}
             </p>
           </div>
-          <div className="w-11 h-11 rounded-2xl overflow-hidden shrink-0">
-            <Image src={logo} alt="לוגו" width={44} height={44} className="w-full h-full object-cover" />
+          <div className="w-14 h-14 shrink-0">
+            <Image src={logo} alt="לוגו" width={56} height={56} className="w-full h-full object-contain scale-110" />
           </div>
         </div>
 

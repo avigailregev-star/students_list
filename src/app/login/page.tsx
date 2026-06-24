@@ -1,8 +1,10 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import Image from 'next/image'
 import { createClient } from '@/lib/supabase/client'
 import { transferTeacherGroups } from './actions'
+import logo from '@/app/icon.png'
 
 type Mode = 'login' | 'signup' | 'forgot' | 'set-password'
 
@@ -150,10 +152,8 @@ export default function LoginPage() {
     return (
       <div className="min-h-screen bg-gray-50 flex flex-col">
         <div className="bg-gradient-to-bl from-teal-400 to-teal-600 rounded-b-[48px] px-6 pt-16 pb-12 text-white text-center shadow-lg shadow-teal-200">
-          <div className="w-16 h-16 bg-white/20 rounded-3xl flex items-center justify-center mx-auto mb-4">
-            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-              <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>
-            </svg>
+          <div className="w-28 h-28 mx-auto mb-4">
+            <Image src={logo} alt="לוגו" width={112} height={112} className="w-full h-full object-contain scale-110" />
           </div>
           <h1 className="text-3xl font-bold">מעקב נוכחות</h1>
           <p className="text-teal-100 mt-1 text-sm">הגדרת סיסמה</p>
@@ -212,12 +212,8 @@ export default function LoginPage() {
     <div className="min-h-screen bg-gray-50 flex flex-col">
       {/* Teal header */}
       <div className="bg-gradient-to-bl from-teal-400 to-teal-600 rounded-b-[48px] px-6 pt-16 pb-12 text-white text-center shadow-lg shadow-teal-200">
-        <div className="w-16 h-16 bg-white/20 rounded-3xl flex items-center justify-center mx-auto mb-4">
-          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M9 18V5l12-2v13"/>
-            <circle cx="6" cy="18" r="3"/>
-            <circle cx="18" cy="16" r="3"/>
-          </svg>
+        <div className="w-28 h-28 mx-auto mb-4">
+          <Image src={logo} alt="לוגו" width={112} height={112} className="w-full h-full object-contain scale-110" />
         </div>
         <h1 className="text-3xl font-bold">מעקב נוכחות</h1>
         <p className="text-teal-100 mt-1 text-sm">{titles[mode]}</p>
