@@ -32,6 +32,7 @@ export async function cancelLesson(formData: FormData) {
   if (error) throw new Error('שגיאה בביטול השיעור')
 
   revalidatePath('/')
+  revalidatePath('/groups/[id]/attendance', 'page')
 
   // Delete from teacher's Google Calendar (fire-and-forget)
   void (async () => {
@@ -68,4 +69,5 @@ export async function restoreLesson(lessonId: string) {
 
   if (error) throw new Error('שגיאה בשחזור השיעור')
   revalidatePath('/')
+  revalidatePath('/groups/[id]/attendance', 'page')
 }

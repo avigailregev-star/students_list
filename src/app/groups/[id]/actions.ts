@@ -23,7 +23,7 @@ export async function saveStudent(formData: FormData) {
     if (error) throw new Error('שגיאה בעדכון התלמיד')
   } else {
     const { error } = await supabase.from('students').insert({
-      group_id: groupId, name, instrument: instrument || null, parent_phone: parentPhone || null,
+      group_id: groupId, name, instrument: instrument || null, parent_phone: parentPhone || null, is_active: true,
     })
     if (error) throw new Error('שגיאה בהוספת התלמיד')
     await syncStudentAdded({ groupId, studentName: name, instrument: instrument || null, parentPhone: parentPhone || null })
