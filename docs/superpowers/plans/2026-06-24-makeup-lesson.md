@@ -24,6 +24,7 @@
 | File | Change |
 |------|--------|
 | Supabase Dashboard SQL | Add 3 columns to `lessons` |
+| `src/app/reports/payroll/page.tsx` | Payroll rules for makeup/current-month cancellations |
 | `src/types/database.ts` | Add fields to `Lesson` and `LessonSlot` |
 | `src/lib/queries/attendance.ts` | Add `getMakeupLessons()` |
 | `src/app/page.tsx` | Fetch makeup slots, pass to `DashboardClient` |
@@ -495,6 +496,7 @@ export async function cancelLesson(formData: FormData) {
           start_time: makeupStartTime + ':00',
           status: 'scheduled',
           is_makeup: true,
+          teacher_absence_reason: reason,  // copied so payroll can distinguish makeup types
         })
         .select('id')
         .single()
@@ -770,6 +772,99 @@ Expected: no errors.
 ```bash
 git add src/app/groups/[id]/attendance/page.tsx
 git commit -m "feat: show makeup banner and hide cancel button for makeup lessons"
+```
+
+---
+
+---
+
+## Task 8: Payroll Logic Update
+
+**Files:**
+- Modify: `src/app/reports/payroll/page.tsx`
+
+**Interfaces:**
+- Consumes: `is_makeup` and `teacher_absence_reason` on lesson rows (Task 1 + Task 5)
+
+- [ ] **Step 1: Update the lessons query in `payroll/page.tsx`**
+
+Replace the current `lessons` query (around line 67) — remove `neq('status', 'teacher_canceled')` and add the needed fields:
+
+```ts
+const [{ data: lessons }, { data: canceledLessons }] = await Promise.all([
+  supabase.from('lessons')
+    .select('group_id, date, status, teacher_absence_reason, is_makeup')
+    .in('group_id', groupIds)
+    .eq('is_holiday', false)
+    .lte('date', todayStr)
+    .order('date'),
+  supabase.from('lessons')
+    .select('date, teacher_absence_reason')
+    .in('group_id', groupIds)
+    .eq('status', 'teacher_canceled')
+    .lte('date', todayStr)
+    .order('date'),
+])
+```
+
+- [ ] **Step 2: Replace the lessons counting loop in `payroll/page.tsx`**
+
+Replace the existing `for (const lesson of (lessons ?? []))` loop (around line 104) with:
+
+```ts
+for (const lesson of (lessons ?? [])) {
+  const parts = lesson.date.split('-')
+  const key = `${parts[0]}-${parts[1]}`
+  const dayNum = parseInt(parts[2])
+  const month = ensureMonth(key)
+
+  // Makeup lesson — only count "future" makeups in the השלמות column
+  if (lesson.is_makeup) {
+    if (lesson.teacher_absence_reason?.includes('עתידית')) {
+      month.dayCounts[dayNum].makeup++
+    }
+    // "תלוש נוכחי" makeup: original already counted — skip
+    continue
+  }
+
+  // Canceled lesson
+  if (lesson.status === 'teacher_canceled') {
+    // "תלוש נוכחי": teacher makes up same month — keep in payroll as normal
+    if (lesson.teacher_absence_reason === 'העדרות מורה עם השלמה בתלוש נוכחי') {
+      const col = mapType(groupType.get(lesson.group_id) ?? '')
+      if (col) month.dayCounts[dayNum][col]++
+    }
+    // All other cancellation reasons: deduct (skip)
+    continue
+  }
+
+  // Regular scheduled/completed lesson
+  const col = mapType(groupType.get(lesson.group_id) ?? '')
+  if (col) month.dayCounts[dayNum][col]++
+}
+```
+
+- [ ] **Step 3: Verify TypeScript**
+
+```bash
+npx tsc --noEmit
+```
+
+Expected: no errors.
+
+- [ ] **Step 4: Manual spot-check**
+
+Open `/reports/payroll`. Verify:
+- A "תלוש נוכחי" canceled lesson still appears in its type column (not deducted).
+- A "עתידית" canceled lesson disappears from the count (deducted).
+- A "עתידית" makeup lesson (past date) appears in the "השלמות" column.
+- Sick-day count is unchanged.
+
+- [ ] **Step 5: Commit**
+
+```bash
+git add src/app/reports/payroll/page.tsx
+git commit -m "feat: payroll rules for makeup lessons — keep current-month cancellations, count future makeups in השלמות column"
 ```
 
 ---

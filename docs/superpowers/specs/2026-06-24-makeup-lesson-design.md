@@ -113,6 +113,25 @@ When the lesson has `is_makeup === true`:
 
 ---
 
+## Payroll Logic (`src/app/reports/payroll/page.tsx`)
+
+The `cancelLesson` action copies the `reason` string onto the makeup lesson row (`teacher_absence_reason`) so payroll can distinguish between the two makeup types without a join.
+
+Four rules applied when building `dayCounts`:
+
+| Lesson row | Action |
+|-----------|--------|
+| `status = teacher_canceled` + reason = "תלוש נוכחי" | Count in its regular type column (no deduction) |
+| `status = teacher_canceled` + any other reason | Skip (deduct — existing behaviour) |
+| `is_makeup = true` + reason contains "עתידית" | Count in `makeup` column |
+| `is_makeup = true` + reason contains "תלוש נוכחי" | Skip (original already counted) |
+
+The query must now fetch all non-holiday lessons (removing the `neq('status','teacher_canceled')` filter) and include `status`, `teacher_absence_reason`, and `is_makeup` in the select.
+
+The sick-day counting loop (`sickDates`) is unchanged.
+
+---
+
 ## Out of Scope
 
 - Editing the makeup lesson's date/time after creation (future feature).
