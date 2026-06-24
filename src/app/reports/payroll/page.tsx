@@ -65,9 +65,8 @@ export default async function PayrollPage() {
 
   const [{ data: lessons }, { data: canceledLessons }] = await Promise.all([
     supabase.from('lessons')
-      .select('group_id, date')
+      .select('group_id, date, status, teacher_absence_reason, is_makeup')
       .in('group_id', groupIds)
-      .neq('status', 'teacher_canceled')
       .eq('is_holiday', false)
       .lte('date', todayStr)
       .order('date'),
@@ -106,6 +105,28 @@ export default async function PayrollPage() {
     const key = `${parts[0]}-${parts[1]}`
     const dayNum = parseInt(parts[2])
     const month = ensureMonth(key)
+
+    // Makeup lesson — only "future" makeups count in the השלמות column
+    if ((lesson as any).is_makeup) {
+      if ((lesson as any).teacher_absence_reason?.includes('עתידית')) {
+        month.dayCounts[dayNum].makeup++
+      }
+      // "תלוש נוכחי" makeup: original already counted — skip
+      continue
+    }
+
+    // Canceled lesson
+    if ((lesson as any).status === 'teacher_canceled') {
+      // "תלוש נוכחי": teacher makes up same month — keep in payroll
+      if ((lesson as any).teacher_absence_reason === 'העדרות מורה עם השלמה בתלוש נוכחי') {
+        const col = mapType(groupType.get(lesson.group_id) ?? '')
+        if (col) month.dayCounts[dayNum][col]++
+      }
+      // All other cancellation reasons: deduct (skip)
+      continue
+    }
+
+    // Regular lesson
     const col = mapType(groupType.get(lesson.group_id) ?? '')
     if (col) month.dayCounts[dayNum][col]++
   }
