@@ -11,12 +11,12 @@ import type { Group, GroupSchedule, Holiday, AttendanceStatus, Lesson } from '@/
 
 interface Props {
   params: Promise<{ id: string }>
-  searchParams: Promise<{ date?: string }>
+  searchParams: Promise<{ date?: string; time?: string }>
 }
 
 export default async function AttendancePage({ params, searchParams }: Props) {
   const { id } = await params
-  const { date: dateParam } = await searchParams
+  const { date: dateParam, time: timeParam } = await searchParams
   const supabase = await createClient()
 
   const { data: { user } } = await supabase.auth.getUser()
@@ -46,11 +46,24 @@ export default async function AttendancePage({ params, searchParams }: Props) {
   ) ?? typedGroup.group_schedules[0]
 
   const dateStr = `${lessonDate.getFullYear()}-${String(lessonDate.getMonth() + 1).padStart(2, '0')}-${String(lessonDate.getDate()).padStart(2, '0')}`
-  const startTime = matchingSchedule?.start_time ?? '00:00:00'
+  const startTime = timeParam
+    ? timeParam + ':00'
+    : (matchingSchedule?.start_time ?? '00:00:00')
 
   const lesson = await getOrCreateLesson(id, dateStr, startTime, holidayCheck.isHoliday, holidayCheck.name) as Lesson
 
   const isCanceled = lesson.status === 'teacher_canceled'
+
+  // Reverse-lookup original lesson date for makeup banner
+  let originalLessonDate: string | null = null
+  if (lesson.is_makeup) {
+    const { data: orig } = await supabase
+      .from('lessons')
+      .select('date')
+      .eq('makeup_lesson_id', lesson.id)
+      .maybeSingle()
+    originalLessonDate = orig?.date ?? null
+  }
 
   // Count advance-notice cancellations for this teacher in the current school year
   const now = new Date()
@@ -82,11 +95,15 @@ export default async function AttendancePage({ params, searchParams }: Props) {
 
   const attendanceMap = new Map(attendanceRows.map(a => [a.student_id, a]))
 
-  const headerGradient = holidayCheck.isHoliday
+  const headerGradient = lesson.is_makeup
+    ? 'from-purple-400 to-purple-600 shadow-purple-200'
+    : holidayCheck.isHoliday
     ? 'from-amber-400 to-orange-500 shadow-amber-200'
     : isCanceled
     ? 'from-red-400 to-red-600 shadow-red-200'
     : 'from-teal-400 to-teal-600 shadow-teal-200'
+
+  const displayTime = timeParam ?? startTime.slice(0, 5)
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col pb-6">
@@ -104,7 +121,7 @@ export default async function AttendancePage({ params, searchParams }: Props) {
           <div className="flex-1 min-w-0">
             <h1 className="text-xl font-bold truncate">{typedGroup.name}</h1>
             <p className="text-sm text-white/70 mt-0.5">
-              {formatDateHe(lessonDate)} · {startTime.slice(0, 5)}
+              {formatDateHe(lessonDate)} · {displayTime.slice(0, 5)}
             </p>
           </div>
           <Link
@@ -133,17 +150,36 @@ export default async function AttendancePage({ params, searchParams }: Props) {
           </div>
         ) : (
           <>
-            {/* Cancel lesson button */}
-            <div className="mb-4">
-              <CancelLessonButton
-                lessonId={lesson.id}
-                isCanceled={isCanceled}
-                cancelReason={lesson.teacher_absence_reason}
-                cancelNotes={lesson.cancellation_notes}
-                isSickLeave={lesson.is_sick_leave}
-                advanceNoticeUsed={advanceNoticeUsed ?? 0}
-              />
-            </div>
+            {/* Makeup lesson banner */}
+            {lesson.is_makeup && (
+              <div className="mb-4 bg-purple-50 border border-purple-100 rounded-2xl px-4 py-3 flex items-center gap-3">
+                <div className="w-8 h-8 bg-purple-100 rounded-xl flex items-center justify-center shrink-0 text-base">
+                  🔄
+                </div>
+                <div>
+                  <p className="text-sm font-bold text-purple-700">שיעור השלמה</p>
+                  {originalLessonDate && (
+                    <p className="text-xs text-purple-400">
+                      השלמה עבור שיעור {formatDateHe(new Date(originalLessonDate + 'T12:00:00'))}
+                    </p>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* Cancel lesson button — hidden for makeup lessons */}
+            {!lesson.is_makeup && (
+              <div className="mb-4">
+                <CancelLessonButton
+                  lessonId={lesson.id}
+                  isCanceled={isCanceled}
+                  cancelReason={lesson.teacher_absence_reason}
+                  cancelNotes={lesson.cancellation_notes}
+                  isSickLeave={lesson.is_sick_leave}
+                  advanceNoticeUsed={advanceNoticeUsed ?? 0}
+                />
+              </div>
+            )}
 
             <AttendanceSection
               lessonId={lesson.id}
