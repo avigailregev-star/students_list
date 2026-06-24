@@ -15,9 +15,10 @@ interface Props {
   teacherName: string
   events: SchoolEvent[]
   isAdmin?: boolean
+  makeupSlots: LessonSlot[]
 }
 
-export default function DashboardClient({ groups, teacherName, events, isAdmin }: Props) {
+export default function DashboardClient({ groups, teacherName, events, isAdmin, makeupSlots }: Props) {
   const [view, setView] = useState<'day' | 'week' | 'month'>('day')
   const [dayInitialDate, setDayInitialDate] = useState<Date | undefined>(undefined)
 
@@ -31,13 +32,14 @@ export default function DashboardClient({ groups, teacherName, events, isAdmin }
     }
     // Deduplicate: same group on same date (safety guard)
     const seen = new Set<string>()
-    return slots.filter(s => {
+    const deduped = slots.filter(s => {
       const key = `${s.groupId}-${s.date.toDateString()}-${s.startTime}`
       if (seen.has(key)) return false
       seen.add(key)
       return true
     })
-  }, [groups])
+    return [...deduped, ...makeupSlots]
+  }, [groups, makeupSlots])
 
   function handleMonthDayClick(date: Date) {
     setDayInitialDate(date)
@@ -56,8 +58,8 @@ export default function DashboardClient({ groups, teacherName, events, isAdmin }
               {groups.length > 0 ? `${groups.length} קבוצות פעילות` : 'אין קבוצות עדיין'}
             </p>
           </div>
-          <div className="w-14 h-14 shrink-0">
-            <Image src={logo} alt="לוגו" width={56} height={56} className="w-full h-full object-contain scale-110" />
+          <div className="w-14 h-14 shrink-0 overflow-hidden rounded-[22%] relative">
+            <Image src={logo} alt="לוגו" fill className="object-cover scale-[1.2]" />
           </div>
         </div>
 
