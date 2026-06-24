@@ -123,7 +123,10 @@ export default function AdminNav({ bugsCount = 0, messagesCount = 0 }: { bugsCou
 
   return (
     <nav className="fixed bottom-0 inset-x-0 bg-white border-t border-gray-100 z-50">
-      <div className="flex items-center justify-around py-2 pb-3">
+      <div
+        className="flex items-center py-2 pb-3 overflow-x-auto"
+        style={{ scrollbarWidth: 'none', WebkitOverflowScrolling: 'touch' }}
+      >
         {NAV_ITEMS.map(item => {
           const isActive = item.href === '/'
             ? pathname === '/'
@@ -134,7 +137,7 @@ export default function AdminNav({ bugsCount = 0, messagesCount = 0 }: { bugsCou
             <Link
               key={item.href}
               href={item.href}
-              className={`relative flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-2xl transition-colors ${
+              className={`relative flex flex-col items-center gap-0.5 px-2.5 py-1.5 min-w-[52px] rounded-2xl transition-colors shrink-0 ${
                 isActive ? 'text-teal-600 bg-teal-50' : 'text-gray-400 hover:text-gray-600'
               }`}
             >
@@ -149,7 +152,7 @@ export default function AdminNav({ bugsCount = 0, messagesCount = 0 }: { bugsCou
 
         <button
           onClick={handleLogout}
-          className="flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-2xl text-gray-400 hover:text-red-400 hover:bg-red-50 transition-colors"
+          className="flex flex-col items-center gap-0.5 px-2.5 py-1.5 min-w-[52px] rounded-2xl text-gray-400 hover:text-red-400 hover:bg-red-50 transition-colors shrink-0"
         >
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
