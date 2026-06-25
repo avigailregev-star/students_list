@@ -4,7 +4,7 @@ import { useState, useTransition, useRef } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { cancelLesson, restoreLesson } from './lessonActions'
 
-const ADVANCE_NOTICE_REASON = 'ביטול מוצד (עד פעמיים בשנה)'
+const ADVANCE_NOTICE_REASON = 'ביטול מוצדק (עד פעמיים בשנה)'
 const ADVANCE_NOTICE_LIMIT = 2
 
 const REASONS = [
@@ -160,10 +160,10 @@ export default function CancelLessonButton({ lessonId, isCanceled, cancelReason,
                 </div>
               </div>
 
-              {/* Makeup date + time — shown only for compensation reasons */}
-              {reason.includes('השלמה') && (
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-1">תאריך ושעת השלמה</label>
+              {/* Makeup date + time — shown for compensation reasons and advance notice */}
+              {(reason.includes('השלמה') || reason === ADVANCE_NOTICE_REASON) && (
+                <div className="flex flex-col gap-2">
+                  <label className="block text-sm font-semibold text-gray-700">תאריך ושעת השלמה</label>
                   <div className="flex gap-2">
                     <input
                       type="date"
@@ -178,6 +178,14 @@ export default function CancelLessonButton({ lessonId, isCanceled, cancelReason,
                       className="flex-1 px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-teal-400"
                     />
                   </div>
+                  {reason === ADVANCE_NOTICE_REASON && makeupDate && (
+                    <div className="flex items-center gap-2 px-3 py-2 bg-amber-50 border border-amber-200 rounded-xl">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#d97706" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+                      </svg>
+                      <p className="text-xs font-semibold text-amber-700">שיעור ההשלמה יסומן עם תוספת תשלום ויתווסף ללוח השנה</p>
+                    </div>
+                  )}
                 </div>
               )}
 

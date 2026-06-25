@@ -32,7 +32,9 @@ export async function cancelLesson(formData: FormData) {
   const isSickLeave = formData.get('is_sick_leave') === 'true'
   const documentUrl = formData.get('document_url') as string | null
 
-  const hasMakeup = reason.includes('השלמה') && notes && makeupStartTime
+  const ADVANCE_NOTICE_REASON = 'ביטול מוצדק (עד פעמיים בשנה)'
+  const isAdvanceNotice = reason === ADVANCE_NOTICE_REASON
+  const hasMakeup = (reason.includes('השלמה') || isAdvanceNotice) && notes && makeupStartTime
 
   // Create the makeup lesson record first (so we have its ID for the update)
   let makeupLessonId: string | null = null
@@ -53,7 +55,7 @@ export async function cancelLesson(formData: FormData) {
           start_time: makeupStartTime + ':00',
           status: 'scheduled',
           is_makeup: true,
-          teacher_absence_reason: reason,
+          teacher_absence_reason: isAdvanceNotice ? 'השלמת ביטול מוצדק - תוספת תשלום' : reason,
         })
         .select('id')
         .single()
@@ -104,7 +106,9 @@ export async function cancelLesson(formData: FormData) {
         const makeupEndTime = computeMakeupEndTime(makeupStartTime, schedule)
         const gcalEventId = await pushLesson(user.id, {
           id: makeupLessonId,
-          groupName: `השלמה: ${(lesson.groups as any).name}`,
+          groupName: isAdvanceNotice
+            ? `השלמה + תוספת: ${(lesson.groups as any).name}`
+            : `השלמה: ${(lesson.groups as any).name}`,
           date: notes,
           startTime: makeupStartTime + ':00',
           endTime: makeupEndTime,
