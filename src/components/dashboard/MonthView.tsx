@@ -89,7 +89,7 @@ export default function MonthView({ groups, events, onDayClick }: Props) {
       {/* Month navigation */}
       <div className="flex items-center justify-between px-1 mb-3">
         <button
-          onClick={nextMonth}
+          onClick={prevMonth}
           className="w-9 h-9 flex items-center justify-center rounded-2xl bg-white shadow-sm text-gray-500 hover:bg-gray-50 transition-colors"
         >
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
@@ -98,7 +98,7 @@ export default function MonthView({ groups, events, onDayClick }: Props) {
         </button>
         <span className="text-sm font-bold text-gray-700">{MONTHS_HE[month]} {year}</span>
         <button
-          onClick={prevMonth}
+          onClick={nextMonth}
           className="w-9 h-9 flex items-center justify-center rounded-2xl bg-white shadow-sm text-gray-500 hover:bg-gray-50 transition-colors"
         >
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
