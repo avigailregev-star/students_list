@@ -29,12 +29,21 @@ interface Props {
   teachers: Pick<Teacher, 'id' | 'name'>[]
 }
 
+type ActiveCell = {
+  roomId: string
+  dow: number
+  assignmentId: string | null  // null = adding new slot
+  top?: number
+  bottom?: number
+  right: number
+}
+
 export default function RoomBoardClient({ rooms, assignments, teachers }: Props) {
   const [mode, setMode] = useState<'weekly' | 'live'>('weekly')
   const [newRoomName, setNewRoomName] = useState('')
   const [roomError, setRoomError] = useState('')
   const [isPending, startTransition] = useTransition()
-  const [activeCell, setActiveCell] = useState<{ roomId: string; dow: number; top?: number; bottom?: number; right: number } | null>(null)
+  const [activeCell, setActiveCell] = useState<ActiveCell | null>(null)
   const [cellError, setCellError] = useState('')
   const [startTime, setStartTime] = useState('')
   const [endTime, setEndTime] = useState('')
@@ -43,12 +52,48 @@ export default function RoomBoardClient({ rooms, assignments, teachers }: Props)
     teachers.map((t, i) => [t.id, TEACHER_COLORS[i % TEACHER_COLORS.length]])
   )
 
-  const assignmentMap = new Map(
-    assignments.map(a => [`${a.room_id}-${a.day_of_week}`, a])
-  )
+  // Group assignments by "roomId-dow", sorted by start_time
+  const assignmentMap = new Map<string, TeacherRoomAssignment[]>()
+  for (const a of assignments) {
+    const key = `${a.room_id}-${a.day_of_week}`
+    if (!assignmentMap.has(key)) assignmentMap.set(key, [])
+    assignmentMap.get(key)!.push(a)
+  }
+  for (const list of assignmentMap.values()) {
+    list.sort((a, b) => (a.start_time ?? '').localeCompare(b.start_time ?? ''))
+  }
 
   function getTeacher(teacherId: string) {
     return teachers.find(t => t.id === teacherId)
+  }
+
+  function openPopover(
+    e: React.MouseEvent<HTMLButtonElement>,
+    roomId: string,
+    dow: number,
+    assignmentId: string | null,
+    fillStart?: string,
+    fillEnd?: string,
+  ) {
+    setCellError('')
+    // Toggle off if same cell+assignment clicked
+    if (activeCell?.roomId === roomId && activeCell?.dow === dow && activeCell?.assignmentId === assignmentId) {
+      setActiveCell(null)
+      return
+    }
+    setStartTime(fillStart ?? '')
+    setEndTime(fillEnd ?? '')
+    const rect = e.currentTarget.getBoundingClientRect()
+    const spaceBelow = window.innerHeight - rect.bottom
+    const openUpward = spaceBelow < 300
+    setActiveCell({
+      roomId,
+      dow,
+      assignmentId,
+      top: openUpward ? undefined : rect.bottom + 4,
+      bottom: openUpward ? window.innerHeight - rect.top + 4 : undefined,
+      right: window.innerWidth - rect.right,
+    })
   }
 
   function handleAddRoom() {
@@ -69,43 +114,28 @@ export default function RoomBoardClient({ rooms, assignments, teachers }: Props)
     })
   }
 
-  function handleCellClick(e: React.MouseEvent<HTMLButtonElement>, roomId: string, dow: number) {
-    setCellError('')
-    if (activeCell?.roomId === roomId && activeCell?.dow === dow) {
-      setActiveCell(null)
-    } else {
-      const key = `${roomId}-${dow}`
-      const existing = assignmentMap.get(key)
-      setStartTime(existing?.start_time?.slice(0, 5) ?? '')
-      setEndTime(existing?.end_time?.slice(0, 5) ?? '')
-      const rect = e.currentTarget.getBoundingClientRect()
-      const spaceBelow = window.innerHeight - rect.bottom
-      const openUpward = spaceBelow < 300
-      setActiveCell({
-        roomId,
-        dow,
-        top: openUpward ? undefined : rect.bottom + 4,
-        bottom: openUpward ? window.innerHeight - rect.top + 4 : undefined,
-        right: window.innerWidth - rect.right,
-      })
-    }
-  }
-
   function handleAssign(teacherId: string) {
     if (!activeCell) return
     setCellError('')
     startTransition(async () => {
-      const result = await assignRoom(activeCell.roomId, teacherId, activeCell.dow, startTime, endTime)
+      const result = await assignRoom(
+        activeCell.roomId,
+        teacherId,
+        activeCell.dow,
+        startTime,
+        endTime,
+        activeCell.assignmentId ?? undefined,
+      )
       if (result.error) { setCellError(result.error); return }
       setActiveCell(null)
     })
   }
 
   function handleRemove() {
-    if (!activeCell) return
+    if (!activeCell?.assignmentId) return
     setCellError('')
     startTransition(async () => {
-      const result = await removeAssignment(activeCell.roomId, activeCell.dow)
+      const result = await removeAssignment(activeCell.assignmentId!)
       if (result.error) { setCellError(result.error); return }
       setActiveCell(null)
     })
@@ -201,43 +231,66 @@ export default function RoomBoardClient({ rooms, assignments, teachers }: Props)
                   <tbody>
                     {rooms.map(room => (
                       <tr key={room.id} className="border-b border-gray-50 last:border-0">
-                        <td className="p-2 text-xs font-bold text-gray-700 text-right">{room.name}</td>
+                        <td className="p-2 text-xs font-bold text-gray-700 text-right align-top pt-3">{room.name}</td>
                         {DAYS.map(d => {
                           const key = `${room.id}-${d.dow}`
-                          const assignment = assignmentMap.get(key)
-                          const teacher = assignment ? getTeacher(assignment.teacher_id) : null
-                          const color = teacher ? teacherColorMap.get(teacher.id) : null
-                          const isActive = activeCell?.roomId === room.id && activeCell?.dow === d.dow
+                          const cellAssignments = assignmentMap.get(key) ?? []
+                          const isNewActive = activeCell?.roomId === room.id && activeCell?.dow === d.dow && activeCell?.assignmentId === null
 
                           return (
-                            <td key={d.dow} className="p-1 text-center">
-                              <button
-                                onClick={e => handleCellClick(e, room.id, d.dow)}
-                                className={`w-full rounded-lg px-1 py-1.5 text-[11px] font-semibold transition-colors border flex flex-col items-center gap-0.5 ${
-                                  isActive
-                                    ? 'ring-2 ring-teal-400 border-teal-300 bg-teal-50'
-                                    : teacher && color
-                                    ? `${color.bg} ${color.text} ${color.border} hover:opacity-80`
-                                    : 'border-dashed border-gray-200 text-gray-300 hover:border-gray-300 hover:text-gray-400'
-                                }`}
-                              >
-                                <span>{teacher ? teacher.name : '+ שבץ'}</span>
-                                {assignment?.start_time && (
-                                  <span className="text-[9px] opacity-70 font-normal">
-                                    {assignment.start_time.slice(0,5)}{assignment.end_time ? `–${assignment.end_time.slice(0,5)}` : ''}
-                                  </span>
-                                )}
-                              </button>
+                            <td key={d.dow} className="p-1 align-top">
+                              <div className="flex flex-col gap-0.5">
+
+                                {/* Existing assignment chips */}
+                                {cellAssignments.map(a => {
+                                  const teacher = getTeacher(a.teacher_id)
+                                  const color = teacher ? teacherColorMap.get(teacher.id) : null
+                                  const isActive = activeCell?.roomId === room.id && activeCell?.dow === d.dow && activeCell?.assignmentId === a.id
+                                  return (
+                                    <button
+                                      key={a.id}
+                                      onClick={e => openPopover(e, room.id, d.dow, a.id, a.start_time?.slice(0, 5), a.end_time?.slice(0, 5))}
+                                      className={`w-full rounded-lg px-1 py-1.5 text-[11px] font-semibold transition-colors border flex flex-col items-center gap-0.5 ${
+                                        isActive
+                                          ? 'ring-2 ring-teal-400 border-teal-300 bg-teal-50 text-teal-700'
+                                          : teacher && color
+                                          ? `${color.bg} ${color.text} ${color.border} hover:opacity-80`
+                                          : 'border-dashed border-gray-200 text-gray-300 hover:border-gray-300'
+                                      }`}
+                                    >
+                                      <span>{teacher ? teacher.name : '?'}</span>
+                                      {a.start_time && (
+                                        <span className="text-[9px] opacity-70 font-normal">
+                                          {a.start_time.slice(0, 5)}{a.end_time ? `–${a.end_time.slice(0, 5)}` : ''}
+                                        </span>
+                                      )}
+                                    </button>
+                                  )
+                                })}
+
+                                {/* Add new slot */}
+                                <button
+                                  onClick={e => openPopover(e, room.id, d.dow, null)}
+                                  className={`w-full rounded-lg px-1 py-1 text-[10px] font-semibold border transition-colors ${
+                                    isNewActive
+                                      ? 'ring-2 ring-teal-400 border-teal-300 border-solid bg-teal-50 text-teal-400'
+                                      : 'border-dashed border-gray-200 text-gray-300 hover:border-teal-300 hover:text-teal-400'
+                                  }`}
+                                >
+                                  + שבץ
+                                </button>
+                              </div>
 
                               {/* Popover */}
-                              {isActive && (
+                              {activeCell?.roomId === room.id && activeCell?.dow === d.dow && (
                                 <div
-                                  style={{ top: activeCell!.top, bottom: activeCell!.bottom, right: activeCell!.right }}
-                                  className="fixed z-50 bg-white rounded-2xl shadow-xl border border-gray-100 min-w-[160px] max-h-[280px] overflow-y-auto"
+                                  style={{ top: activeCell.top, bottom: activeCell.bottom, right: activeCell.right }}
+                                  className="fixed z-50 bg-white rounded-2xl shadow-xl border border-gray-100 min-w-[160px] max-h-[300px] overflow-y-auto"
                                   onClick={e => e.stopPropagation()}
                                 >
                                   <div className="sticky top-0 px-3 py-2 bg-teal-500 text-white text-xs font-bold">
                                     {d.label} · {room.name}
+                                    {activeCell.assignmentId ? ' · עריכה' : ' · שיבוץ חדש'}
                                   </div>
                                   <div className="px-3 py-2 border-b border-gray-100 flex gap-2 items-center">
                                     <input
@@ -245,7 +298,6 @@ export default function RoomBoardClient({ rooms, assignments, teachers }: Props)
                                       value={startTime}
                                       onChange={e => setStartTime(e.target.value)}
                                       className="flex-1 border border-gray-200 rounded-lg px-2 py-1 text-xs focus:outline-none focus:border-teal-400"
-                                      placeholder="התחלה"
                                     />
                                     <span className="text-gray-300 text-xs">—</span>
                                     <input
@@ -253,13 +305,15 @@ export default function RoomBoardClient({ rooms, assignments, teachers }: Props)
                                       value={endTime}
                                       onChange={e => setEndTime(e.target.value)}
                                       className="flex-1 border border-gray-200 rounded-lg px-2 py-1 text-xs focus:outline-none focus:border-teal-400"
-                                      placeholder="סיום"
                                     />
                                   </div>
                                   <div className="py-1">
                                     {teachers.map(t => {
                                       const c = teacherColorMap.get(t.id)!
-                                      const isCurrent = assignment?.teacher_id === t.id
+                                      const currentAssignment = activeCell.assignmentId
+                                        ? assignments.find(a => a.id === activeCell.assignmentId)
+                                        : null
+                                      const isCurrent = currentAssignment?.teacher_id === t.id
                                       return (
                                         <button
                                           key={t.id}
@@ -272,18 +326,16 @@ export default function RoomBoardClient({ rooms, assignments, teachers }: Props)
                                         </button>
                                       )
                                     })}
-                                    {assignment && (
-                                      <>
-                                        <div className="border-t border-gray-100 mt-1 pt-1">
-                                          <button
-                                            onClick={handleRemove}
-                                            disabled={isPending}
-                                            className="w-full text-right px-3 py-2 text-xs font-semibold text-red-500 hover:bg-red-50 transition-colors disabled:opacity-40"
-                                          >
-                                            הסר שיבוץ
-                                          </button>
-                                        </div>
-                                      </>
+                                    {activeCell.assignmentId && (
+                                      <div className="border-t border-gray-100 mt-1 pt-1">
+                                        <button
+                                          onClick={handleRemove}
+                                          disabled={isPending}
+                                          className="w-full text-right px-3 py-2 text-xs font-semibold text-red-500 hover:bg-red-50 transition-colors disabled:opacity-40"
+                                        >
+                                          הסר שיבוץ
+                                        </button>
+                                      </div>
                                     )}
                                   </div>
                                   {cellError && (
@@ -299,7 +351,7 @@ export default function RoomBoardClient({ rooms, assignments, teachers }: Props)
                   </tbody>
                 </table>
               </div>
-              <p className="text-[10px] text-gray-400 text-center py-2">לחצי על תא לשיבוץ או החלפה</p>
+              <p className="text-[10px] text-gray-400 text-center py-2">לחצי על שיבוץ לעריכה · + שבץ להוספת משבצת נוספת באותו יום</p>
             </div>
           )}
         </>

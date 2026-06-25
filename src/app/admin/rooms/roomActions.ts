@@ -19,7 +19,6 @@ export async function addRoom(name: string): Promise<{ error?: string }> {
 
 export async function deleteRoom(id: string): Promise<{ error?: string }> {
   const supabase = await requireAdmin()
-  // Check for active assignments first
   const { count, error: countError } = await supabase
     .from('teacher_room_assignments')
     .select('id', { count: 'exact', head: true })
@@ -37,38 +36,38 @@ export async function assignRoom(
   teacherId: string,
   dayOfWeek: number,
   startTime?: string,
-  endTime?: string
+  endTime?: string,
+  assignmentId?: string,
 ): Promise<{ error?: string }> {
   const supabase = await requireAdmin()
   if (dayOfWeek < 0 || dayOfWeek > 6) return { error: 'יום בשבוע לא תקין' }
-  const { error } = await supabase
-    .from('teacher_room_assignments')
-    .upsert(
-      {
+
+  if (assignmentId) {
+    const { error } = await supabase
+      .from('teacher_room_assignments')
+      .update({ teacher_id: teacherId, start_time: startTime || null, end_time: endTime || null })
+      .eq('id', assignmentId)
+    if (error) return { error: error.message }
+  } else {
+    const { error } = await supabase
+      .from('teacher_room_assignments')
+      .insert({
         room_id: roomId,
         teacher_id: teacherId,
         day_of_week: dayOfWeek,
         start_time: startTime || null,
         end_time: endTime || null,
-      },
-      { onConflict: 'room_id,day_of_week' }
-    )
-  if (error) return { error: error.message }
+      })
+    if (error) return { error: error.message }
+  }
+
   revalidatePath('/admin/rooms')
   return {}
 }
 
-export async function removeAssignment(
-  roomId: string,
-  dayOfWeek: number
-): Promise<{ error?: string }> {
+export async function removeAssignment(id: string): Promise<{ error?: string }> {
   const supabase = await requireAdmin()
-  if (dayOfWeek < 0 || dayOfWeek > 6) return { error: 'יום בשבוע לא תקין' }
-  const { error } = await supabase
-    .from('teacher_room_assignments')
-    .delete()
-    .eq('room_id', roomId)
-    .eq('day_of_week', dayOfWeek)
+  const { error } = await supabase.from('teacher_room_assignments').delete().eq('id', id)
   if (error) return { error: error.message }
   revalidatePath('/admin/rooms')
   return {}
