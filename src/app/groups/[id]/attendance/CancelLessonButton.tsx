@@ -179,11 +179,11 @@ export default function CancelLessonButton({ lessonId, isCanceled, cancelReason,
                     />
                   </div>
                   {reason === ADVANCE_NOTICE_REASON && makeupDate && (
-                    <div className="flex items-center gap-2 px-3 py-2 bg-amber-50 border border-amber-200 rounded-xl">
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#d97706" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <div className="flex items-center gap-2 px-3 py-2 bg-teal-50 border border-teal-200 rounded-xl">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#0d9488" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                         <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
                       </svg>
-                      <p className="text-xs font-semibold text-amber-700">שיעור ההשלמה יסומן עם תוספת תשלום ויתווסף ללוח השנה</p>
+                      <p className="text-xs font-semibold text-teal-700">שיעור ההשלמה יתווסף ללוח השנה</p>
                     </div>
                   )}
                 </div>

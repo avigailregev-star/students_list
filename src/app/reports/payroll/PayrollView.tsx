@@ -153,7 +153,16 @@ function MonthTable({ month, teacherName }: { month: MonthPayroll; teacherName: 
             <td colSpan={6} className={td}></td>
           </tr>
           <tr>
-            <td colSpan={4} className={tdL}>ימי מחלה: {month.sickDays || '___'}</td>
+            <td colSpan={4} className={tdL}>
+              ימי מחלה: {month.sickDays || '___'}
+              {month.sickDays > 0 && (
+                <span className="font-normal text-gray-500 mr-2">
+                  ({month.sickUnpaid > 0 ? `${month.sickUnpaid} ללא תשלום` : ''}
+                  {month.sickHalf > 0 ? `${month.sickUnpaid > 0 ? ', ' : ''}${month.sickHalf} × ½` : ''}
+                  {month.sickFull > 0 ? `${(month.sickUnpaid > 0 || month.sickHalf > 0) ? ', ' : ''}${month.sickFull} מלאים` : ''})
+                </span>
+              )}
+            </td>
             <td colSpan={6} className={td}></td>
           </tr>
           <tr>

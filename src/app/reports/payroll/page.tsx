@@ -22,6 +22,9 @@ export type MonthPayroll = {
   daysInMonth: number
   dayCounts: Record<number, DayCount>
   sickDays: number
+  sickUnpaid: number
+  sickHalf: number
+  sickFull: number
 }
 
 const HE_MONTHS = ['ינואר','פברואר','מרץ','אפריל','מאי','יוני','יולי','אוגוסט','ספטמבר','אוקטובר','נובמבר','דצמבר']
@@ -95,6 +98,9 @@ export default async function PayrollPage() {
         daysInMonth: new Date(y, m, 0).getDate(),
         dayCounts,
         sickDays: 0,
+        sickUnpaid: 0,
+        sickHalf: 0,
+        sickFull: 0,
       })
     }
     return monthsMap.get(key)!
@@ -132,13 +138,37 @@ export default async function PayrollPage() {
     if (col) month.dayCounts[dayNum][col]++
   }
 
-  const sickDates = new Set<string>()
+  // Collect unique sick dates and group into consecutive illness incidents
+  const sickDatesSet = new Set<string>()
   for (const lesson of (canceledLessons ?? [])) {
-    if (lesson.teacher_absence_reason === 'מחלת מורה' && !sickDates.has(lesson.date)) {
-      sickDates.add(lesson.date)
-      const parts = lesson.date.split('-')
-      ensureMonth(`${parts[0]}-${parts[1]}`).sickDays++
+    if (lesson.teacher_absence_reason === 'מחלת מורה') sickDatesSet.add(lesson.date)
+  }
+  const sortedSickDates = Array.from(sickDatesSet).sort()
+
+  // Group consecutive dates into illness incidents (gap > 1 calendar day = new incident)
+  const sickDateCategory = new Map<string, 'unpaid' | 'half' | 'full'>()
+  let incidentStart: string | null = null
+  let incidentDay = 0
+  for (const date of sortedSickDates) {
+    if (!incidentStart) {
+      incidentStart = date; incidentDay = 1
+    } else {
+      const prev = new Date(sortedSickDates[sortedSickDates.indexOf(date) - 1])
+      const curr = new Date(date)
+      const gapDays = Math.round((curr.getTime() - prev.getTime()) / 86400000)
+      if (gapDays > 1) { incidentStart = date; incidentDay = 1 }
+      else incidentDay++
     }
+    sickDateCategory.set(date, incidentDay === 1 ? 'unpaid' : incidentDay === 2 ? 'half' : 'full')
+  }
+
+  for (const [date, cat] of sickDateCategory) {
+    const parts = date.split('-')
+    const m = ensureMonth(`${parts[0]}-${parts[1]}`)
+    m.sickDays++
+    if (cat === 'unpaid') m.sickUnpaid++
+    else if (cat === 'half') m.sickHalf++
+    else m.sickFull++
   }
 
   const months = Array.from(monthsMap.values()).sort((a, b) => b.key.localeCompare(a.key))
