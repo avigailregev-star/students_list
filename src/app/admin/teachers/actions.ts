@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { requireAdmin as _requireAdmin } from '@/lib/auth'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { sendTeacherInviteEmail } from '@/lib/email'
 
 async function requireAdmin() {
   const { supabase } = await _requireAdmin('/admin')
@@ -80,6 +81,23 @@ export async function resetTeacherToPending(teacherId: string): Promise<string |
 
   if (error) return `שגיאה: ${error.message}`
   revalidatePath('/admin/teachers')
+}
+
+export async function resendTeacherInvite(teacherId: string, email: string, name: string): Promise<string | void> {
+  await _requireAdmin('/admin')
+  const supabase = createAdminClient()
+
+  const { data, error } = await supabase.auth.admin.generateLink({
+    type: 'recovery',
+    email,
+    options: { redirectTo: `${process.env.NEXT_PUBLIC_APP_URL}/` },
+  })
+  if (error) return `שגיאה ביצירת קישור: ${error.message}`
+
+  const inviteLink = (data as any).properties?.action_link
+  if (!inviteLink) return 'שגיאה: לא התקבל קישור'
+
+  await sendTeacherInviteEmail({ teacherEmail: email, teacherName: name, inviteLink })
 }
 
 export async function deleteTeacher(teacherId: string) {

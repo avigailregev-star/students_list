@@ -3,6 +3,7 @@ import Link from 'next/link'
 import EditTeacherForm from './EditTeacherForm'
 import AdminTeacherTabs from './AdminTeacherTabs'
 import DeleteTeacherButton from './DeleteTeacherButton'
+import ResendInviteButton from './ResendInviteButton'
 import { requireAdmin } from '@/lib/auth'
 import { createAdminClient } from '@/lib/supabase/admin'
 import type { GroupWithSchedulesAndStudents, TeacherAvailabilityRange } from '@/types/database'
@@ -109,6 +110,13 @@ export default async function TeacherDetailPage({ params }: Props) {
           </svg>
           חשבות שכר לפי חודשים
         </Link>
+        {teacher.email && (
+          <ResendInviteButton
+            teacherId={teacher.id}
+            email={teacher.email}
+            name={teacher.name}
+          />
+        )}
         <DeleteTeacherButton teacherId={teacher.id} />
       </div>
     </div>
