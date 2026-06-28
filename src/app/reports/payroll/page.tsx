@@ -106,9 +106,10 @@ export default async function PayrollPage() {
     const dayNum = parseInt(parts[2])
     const month = ensureMonth(key)
 
-    // Makeup lesson — only "future" makeups count in the השלמות column
+    // Makeup lesson — future makeups and justified-cancellation makeups count in השלמות column
     if ((lesson as any).is_makeup) {
-      if ((lesson as any).teacher_absence_reason?.includes('עתידית')) {
+      const mkReason = (lesson as any).teacher_absence_reason ?? ''
+      if (mkReason.includes('עתידית') || mkReason.includes('ביטול מוצדק')) {
         month.dayCounts[dayNum].makeup++
       }
       // "תלוש נוכחי" makeup: original already counted — skip
