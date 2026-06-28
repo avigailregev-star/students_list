@@ -23,6 +23,13 @@ export default async function TeacherDetailPage({ params }: Props) {
 
   if (!teacher) notFound()
 
+  // If email not stored in teachers table, fetch from auth (for teachers added externally)
+  let teacherEmail = teacher.email ?? null
+  if (!teacherEmail) {
+    const { data: authUser } = await supabase.auth.admin.getUserById(id)
+    teacherEmail = authUser?.user?.email ?? null
+  }
+
   const [{ data: groupsRaw }, { data: rangesRaw }, { data: googleToken }] = await Promise.all([
     supabase
       .from('groups')
@@ -110,10 +117,10 @@ export default async function TeacherDetailPage({ params }: Props) {
           </svg>
           חשבות שכר לפי חודשים
         </Link>
-        {teacher.email && (
+        {teacherEmail && (
           <ResendInviteButton
             teacherId={teacher.id}
-            email={teacher.email}
+            email={teacherEmail}
             name={teacher.name}
           />
         )}
