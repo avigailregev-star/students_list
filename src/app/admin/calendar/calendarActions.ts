@@ -18,6 +18,45 @@ async function requireAdmin() {
   return { supabase, userId: user.id }
 }
 
+const SCHOOL_YEAR_5787_EVENTS: { name: string; event_type: SchoolEventType; start_date: string; end_date: string }[] = [
+  { name: 'ראש השנה',                         event_type: 'holiday',  start_date: '2026-09-11', end_date: '2026-09-13' },
+  { name: 'יום הכיפורים',                     event_type: 'holiday',  start_date: '2026-09-20', end_date: '2026-09-21' },
+  { name: 'חופשה בין יום הכיפורים לסוכות',   event_type: 'vacation', start_date: '2026-09-22', end_date: '2026-09-24' },
+  { name: 'חג הסוכות',                        event_type: 'holiday',  start_date: '2026-09-25', end_date: '2026-10-03' },
+  { name: 'חנוכה',                            event_type: 'holiday',  start_date: '2026-12-06', end_date: '2026-12-12' },
+  { name: 'פורים',                            event_type: 'holiday',  start_date: '2027-03-23', end_date: '2027-03-24' },
+  { name: 'פסח',                              event_type: 'holiday',  start_date: '2027-04-13', end_date: '2027-04-28' },
+  { name: 'יום העצמאות',                      event_type: 'holiday',  start_date: '2027-05-12', end_date: '2027-05-12' },
+  { name: 'חג השבועות',                       event_type: 'holiday',  start_date: '2027-06-10', end_date: '2027-06-11' },
+]
+
+export async function bulkImportSchoolYear5787(): Promise<{ inserted: number; skipped: number }> {
+  const { supabase, userId } = await requireAdmin()
+
+  // Fetch existing events to avoid duplicates (match by name + start_date)
+  const { data: existing } = await supabase
+    .from('school_events')
+    .select('name, start_date')
+
+  const existingKeys = new Set((existing ?? []).map(e => `${e.name}|${e.start_date}`))
+
+  const toInsert = SCHOOL_YEAR_5787_EVENTS.filter(
+    e => !existingKeys.has(`${e.name}|${e.start_date}`)
+  ).map(e => ({ ...e, created_by: userId }))
+
+  if (toInsert.length === 0) {
+    return { inserted: 0, skipped: SCHOOL_YEAR_5787_EVENTS.length }
+  }
+
+  const { error } = await supabase.from('school_events').insert(toInsert)
+  if (error) throw new Error('שגיאה בייבוא האירועים: ' + error.message)
+
+  revalidatePath('/admin/calendar')
+  revalidatePath('/')
+
+  return { inserted: toInsert.length, skipped: SCHOOL_YEAR_5787_EVENTS.length - toInsert.length }
+}
+
 export async function createEvent(formData: FormData) {
   const { supabase, userId } = await requireAdmin()
 
