@@ -117,13 +117,12 @@ export default async function TeacherDetailPage({ params }: Props) {
           </svg>
           חשבות שכר לפי חודשים
         </Link>
-        {teacherEmail && (
-          <ResendInviteButton
-            teacherId={teacher.id}
-            email={teacherEmail}
-            name={teacher.name}
-          />
-        )}
+        <ResendInviteButton
+          teacherId={teacher.id}
+          email={teacherEmail}
+          name={teacher.name}
+          isPending={teacher.is_pending ?? false}
+        />
         <DeleteTeacherButton teacherId={teacher.id} />
       </div>
     </div>
