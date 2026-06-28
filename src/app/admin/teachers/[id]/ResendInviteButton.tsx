@@ -23,10 +23,8 @@ export default function ResendInviteButton({ teacherId, email, name, isPending }
     startTransition(async () => {
       let err: string | void
       if (isPending) {
-        // Teacher has no auth account yet — create invite
         err = await inviteTeacher(teacherId, finalEmail, name)
       } else {
-        // Teacher already has auth account — send recovery/set-password link
         err = await resendTeacherInvite(teacherId, finalEmail, name)
       }
       if (err) { setStatus('error'); setErrorMsg(err) }
@@ -34,31 +32,39 @@ export default function ResendInviteButton({ teacherId, email, name, isPending }
     })
   }
 
-  return (
-    <div className="flex flex-col gap-2 bg-teal-50 border border-teal-200 rounded-2xl p-4">
-      <p className="text-xs font-bold text-teal-700 text-right">שליחת הזמנה למייל</p>
+  const title = isPending ? 'מורה ממתינה לרישום' : 'שליחת קישור כניסה'
+  const description = isPending
+    ? `הזני את האימייל שלה ולחצי 'שלח הזמנה' — המורה תקבל קישור להגדרת סיסמה.`
+    : `שלח למורה קישור חדש להגדרת סיסמה.`
 
-      {!email && (
+  return (
+    <div className="flex flex-col gap-3 bg-amber-50 border border-amber-200 rounded-2xl p-4">
+      <div className="flex items-center justify-end gap-2">
+        <p className="text-sm font-bold text-amber-800">{title}</p>
+        <span className="w-2.5 h-2.5 rounded-full bg-orange-400 shrink-0" />
+      </div>
+      <p className="text-xs text-gray-500 text-right leading-relaxed">{description}</p>
+
+      {!email ? (
         <input
           type="email"
           value={inputEmail}
           onChange={e => setInputEmail(e.target.value)}
-          placeholder="כתובת מייל..."
+          placeholder="אימייל המורה"
           dir="ltr"
-          className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-teal-400"
+          className="w-full border border-amber-200 bg-white rounded-xl px-3 py-2.5 text-sm text-right focus:outline-none focus:border-amber-400 placeholder:text-right"
         />
-      )}
-      {email && (
-        <p className="text-xs text-gray-500 text-right">{email}</p>
+      ) : (
+        <p className="text-xs text-gray-400 text-right">{email}</p>
       )}
 
       <button
         onClick={handleSend}
         disabled={isPendingTransition || status === 'sent' || !inputEmail.trim()}
-        className={`flex items-center justify-center gap-2 w-full py-2.5 font-bold text-sm rounded-xl transition-colors disabled:opacity-60 ${
+        className={`flex items-center justify-center gap-2 w-full py-3 font-bold text-sm rounded-xl transition-colors disabled:opacity-60 ${
           status === 'sent'
             ? 'bg-emerald-100 text-emerald-700'
-            : 'bg-teal-500 text-white hover:bg-teal-600'
+            : 'bg-amber-400 text-white hover:bg-amber-500'
         }`}
       >
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
