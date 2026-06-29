@@ -8,8 +8,7 @@ interface InviteEmailParams {
 
 export async function sendTeacherInviteEmail({ teacherEmail, teacherName, inviteLink }: InviteEmailParams) {
   if (!process.env.RESEND_API_KEY) {
-    console.warn('[email] RESEND_API_KEY is not set — invite email will not be sent')
-    return
+    throw new Error('RESEND_API_KEY is not configured in environment variables')
   }
 
   const resend = new Resend(process.env.RESEND_API_KEY)
