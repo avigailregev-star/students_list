@@ -1,3 +1,4 @@
+import nodemailer from 'nodemailer'
 import { Resend } from 'resend'
 
 interface InviteEmailParams {
@@ -7,14 +8,22 @@ interface InviteEmailParams {
 }
 
 export async function sendTeacherInviteEmail({ teacherEmail, teacherName, inviteLink }: InviteEmailParams) {
-  if (!process.env.RESEND_API_KEY) {
-    throw new Error('RESEND_API_KEY is not configured in environment variables')
+  const gmailUser = process.env.GMAIL_USER
+  const gmailPass = process.env.GMAIL_APP_PASSWORD
+
+  if (!gmailUser || !gmailPass) {
+    throw new Error('GMAIL_USER או GMAIL_APP_PASSWORD חסרים')
   }
 
-  const resend = new Resend(process.env.RESEND_API_KEY)
+  const transporter = nodemailer.createTransport({
+    host: 'smtp.gmail.com',
+    port: 587,
+    secure: false,
+    auth: { user: gmailUser, pass: gmailPass },
+  })
 
-  const { error } = await resend.emails.send({
-    from: 'noreply@rutidimona.xyz',
+  await transporter.sendMail({
+    from: `"מערכת מעקב שיעורים" <${gmailUser}>`,
     to: teacherEmail,
     subject: 'הוזמנת להצטרף לאפליקציית מעקב השיעורים',
     html: `
@@ -32,7 +41,6 @@ export async function sendTeacherInviteEmail({ teacherEmail, teacherName, invite
       </div>
     `,
   })
-  if (error) throw new Error(`Resend error: ${error.message}`)
 }
 
 interface BugEmailParams {
