@@ -1,0 +1,106 @@
+<h2>חלק 3 — הסבר מפורט</h2>
+<p class="subtitle">לוח החדרים הוא דף אחד עם שני מצבי תצוגה</p>
+
+<div style="direction:rtl; text-align:right;">
+
+  <div class="split" style="gap:1rem; flex-direction:column;">
+
+    <!-- Mode 1 -->
+    <div class="mockup" style="border: 2px solid #3b82f6;">
+      <div class="mockup-header" style="background:#eff6ff; color:#1d4ed8;">
+        מצב א׳ — לוח שבועי קבוע
+        <span style="float:left; font-size:10px; color:#6b7280;">ברירת המחדל</span>
+      </div>
+      <div class="mockup-body">
+        <p style="font-size:12px; color:#374151; margin-bottom:10px;">
+          מראה את <strong>התבנית הקבועה</strong> — מי מלמד באיזה חדר בכל יום בשבוע.<br/>
+          כמו לוח זמנים קבוע שלא משתנה.
+        </p>
+        <table style="width:100%; border-collapse:collapse; font-size:11px;">
+          <thead>
+            <tr>
+              <th style="padding:6px 8px; background:#f1f5f9; border:1px solid #e2e8f0; text-align:right; width:25%;">חדר</th>
+              <th style="padding:6px 8px; background:#f1f5f9; border:1px solid #e2e8f0; text-align:center;">ראשון</th>
+              <th style="padding:6px 8px; background:#f1f5f9; border:1px solid #e2e8f0; text-align:center;">שני</th>
+              <th style="padding:6px 8px; background:#f1f5f9; border:1px solid #e2e8f0; text-align:center;">שלישי</th>
+              <th style="padding:6px 8px; background:#f1f5f9; border:1px solid #e2e8f0; text-align:center;">חמישי</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td style="padding:6px 8px; border:1px solid #e2e8f0; font-weight:600;">חדר 1</td>
+              <td style="padding:6px 8px; border:1px solid #e2e8f0; background:#dbeafe; text-align:center; color:#1d4ed8; font-weight:600; font-size:10px;">דנה כהן</td>
+              <td style="padding:6px 8px; border:1px solid #e2e8f0; text-align:center; color:#d1d5db; font-size:10px;">פנוי</td>
+              <td style="padding:6px 8px; border:1px solid #e2e8f0; background:#dbeafe; text-align:center; color:#1d4ed8; font-weight:600; font-size:10px;">דנה כהן</td>
+              <td style="padding:6px 8px; border:1px solid #e2e8f0; background:#d1fae5; text-align:center; color:#065f46; font-weight:600; font-size:10px;">רחל מ׳</td>
+            </tr>
+            <tr>
+              <td style="padding:6px 8px; border:1px solid #e2e8f0; font-weight:600;">חדר פסנתר</td>
+              <td style="padding:6px 8px; border:1px solid #e2e8f0; background:#ede9fe; text-align:center; color:#5b21b6; font-weight:600; font-size:10px;">שרה לוי</td>
+              <td style="padding:6px 8px; border:1px solid #e2e8f0; background:#d1fae5; text-align:center; color:#065f46; font-weight:600; font-size:10px;">רחל מ׳</td>
+              <td style="padding:6px 8px; border:1px solid #e2e8f0; text-align:center; color:#d1d5db; font-size:10px;">פנוי</td>
+              <td style="padding:6px 8px; border:1px solid #e2e8f0; text-align:center; color:#d1d5db; font-size:10px;">פנוי</td>
+            </tr>
+            <tr>
+              <td style="padding:6px 8px; border:1px solid #e2e8f0; font-weight:600;">אולם הרכבים</td>
+              <td style="padding:6px 8px; border:1px solid #e2e8f0; text-align:center; color:#d1d5db; font-size:10px;">פנוי</td>
+              <td style="padding:6px 8px; border:1px solid #e2e8f0; text-align:center; color:#d1d5db; font-size:10px;">פנוי</td>
+              <td style="padding:6px 8px; border:1px solid #e2e8f0; background:#ede9fe; text-align:center; color:#5b21b6; font-weight:600; font-size:10px;">שרה לוי</td>
+              <td style="padding:6px 8px; border:1px solid #e2e8f0; text-align:center; color:#d1d5db; font-size:10px;">פנוי</td>
+            </tr>
+          </tbody>
+        </table>
+        <p style="font-size:10px; color:#9ca3af; margin-top:6px;">שאלה: "מי תמיד בחדר הפסנתר ביום ראשון?" → שרה לוי</p>
+      </div>
+    </div>
+
+    <!-- Arrow between -->
+    <div style="text-align:center; font-size:20px; color:#9ca3af;">↕</div>
+
+    <!-- Mode 2 -->
+    <div class="mockup" style="border: 2px solid #10b981;">
+      <div class="mockup-header" style="background:#ecfdf5; color:#065f46;">
+        מצב ב׳ — מה קורה עכשיו ⚡
+        <span style="float:left; font-size:10px; color:#6b7280;">מתעדכן אוטומטית</span>
+      </div>
+      <div class="mockup-body">
+        <p style="font-size:12px; color:#374151; margin-bottom:10px;">
+          מראה <strong>מה קורה ממש עכשיו</strong> בכל חדר — איזה שיעור רץ, מי המורה, מתי זה נגמר.<br/>
+          מתעדכן לבד ללא רענון.
+        </p>
+        <div style="display:flex; flex-direction:column; gap:8px;">
+          <div style="padding:10px 12px; background:#ecfdf5; border-radius:10px; border:1px solid #6ee7b7; display:flex; justify-content:space-between; align-items:center;">
+            <div>
+              <div style="font-weight:700; font-size:13px; color:#065f46;">חדר 1</div>
+              <div style="font-size:11px; color:#059669;">דנה כהן · פרטני 45 דק׳</div>
+              <div style="font-size:10px; color:#9ca3af;">14:00 – 14:45</div>
+            </div>
+            <div style="background:#10b981; color:white; border-radius:20px; padding:3px 10px; font-size:10px; font-weight:700;">תפוס</div>
+          </div>
+          <div style="padding:10px 12px; background:#f9fafb; border-radius:10px; border:1px solid #e5e7eb; display:flex; justify-content:space-between; align-items:center;">
+            <div>
+              <div style="font-weight:700; font-size:13px; color:#374151;">חדר פסנתר</div>
+              <div style="font-size:11px; color:#9ca3af;">השיעור הבא: 15:00 · שרה לוי</div>
+            </div>
+            <div style="background:#f1f5f9; color:#6b7280; border-radius:20px; padding:3px 10px; font-size:10px; font-weight:700;">פנוי</div>
+          </div>
+          <div style="padding:10px 12px; background:#ecfdf5; border-radius:10px; border:1px solid #6ee7b7; display:flex; justify-content:space-between; align-items:center;">
+            <div>
+              <div style="font-weight:700; font-size:13px; color:#065f46;">אולם הרכבים</div>
+              <div style="font-size:11px; color:#059669;">שרה לוי · תזמורת</div>
+              <div style="font-size:10px; color:#9ca3af;">14:00 – 16:00</div>
+            </div>
+            <div style="background:#10b981; color:white; border-radius:20px; padding:3px 10px; font-size:10px; font-weight:700;">תפוס</div>
+          </div>
+        </div>
+        <p style="font-size:10px; color:#9ca3af; margin-top:8px;">שאלה: "חדר הפסנתר פנוי עכשיו?" → כן, עד 15:00</p>
+      </div>
+    </div>
+
+  </div>
+
+  <div style="margin-top:1.5rem; padding:12px 16px; background:#fef9c3; border-radius:10px; border:1px solid #fde68a; font-size:12px; color:#713f12;">
+    💡 שני המצבים על אותו דף — כפתורי מיתוג בראש הדף. ברירת מחדל: הלוח השבועי.
+  </div>
+
+</div>

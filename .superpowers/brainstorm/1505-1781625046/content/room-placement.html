@@ -1,0 +1,83 @@
+<h2 dir="rtl">איפה המורה רואה את החדר שלו?</h2>
+<p class="subtitle" dir="rtl">בחרי את המיקום שהכי נוח למורים</p>
+
+<div class="cards" dir="rtl">
+
+  <div class="card" data-choice="a" onclick="toggleSelect(this)">
+    <div class="card-image">
+      <div style="background:#f0fdf4;border-radius:12px;padding:12px;font-family:sans-serif;direction:rtl;text-align:right;">
+        <div style="font-size:10px;color:#6b7280;margin-bottom:6px;">📍 דף /rooms — למעלה</div>
+        <div style="background:#10b981;border-radius:10px;padding:10px;color:white;margin-bottom:8px;">
+          <div style="font-size:11px;font-weight:bold;">החדר שלך היום</div>
+          <div style="font-size:18px;font-weight:bold;margin-top:2px;">חדר 3</div>
+          <div style="font-size:9px;opacity:0.85;margin-top:2px;">יום ב׳ · 08:00 – 14:00</div>
+        </div>
+        <div style="border:1px solid #d1fae5;border-radius:8px;padding:6px;margin-bottom:4px;">
+          <div style="display:flex;justify-content:space-between;font-size:9px;">
+            <span style="color:#059669;font-weight:bold;">חדר 1</span>
+            <span style="color:#6b7280;">מרים כהן</span>
+          </div>
+        </div>
+        <div style="border:1px solid #d1fae5;border-radius:8px;padding:6px;">
+          <div style="display:flex;justify-content:space-between;font-size:9px;">
+            <span style="color:#059669;font-weight:bold;">חדר 2</span>
+            <span style="color:#6b7280;">דוד לוי</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>A — קלף "החדר שלי" בראש דף חדרים</h3>
+      <p>בדף /rooms הקיים, הוסף קלף ירוק בולט "החדר שלך היום". הלוח השבועי ורשימת המורים ממשיכים למטה.</p>
+    </div>
+  </div>
+
+  <div class="card" data-choice="b" onclick="toggleSelect(this)">
+    <div class="card-image">
+      <div style="background:#faf5ff;border-radius:12px;padding:12px;font-family:sans-serif;direction:rtl;text-align:right;">
+        <div style="font-size:10px;color:#6b7280;margin-bottom:6px;">🏠 דף הבית — בנר צמוד לנב</div>
+        <div style="background:#7c3aed;border-radius:10px;padding:8px 12px;color:white;display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+          <div>
+            <div style="font-size:9px;opacity:0.8;">החדר שלך עכשיו</div>
+            <div style="font-size:15px;font-weight:bold;">חדר 3</div>
+          </div>
+          <div style="font-size:22px;">🚪</div>
+        </div>
+        <div style="background:#f3f4f6;border-radius:8px;padding:8px;font-size:9px;color:#9ca3af;">
+          ... שאר תוכן דף הבית ...
+        </div>
+        <div style="margin-top:10px;background:#f3f4f6;border-radius:8px;padding:6px;display:flex;justify-content:space-around;font-size:9px;">
+          <span>🏠 בית</span><span>📅 לו"ז</span><span style="color:#7c3aed;font-weight:bold;">🚪 חדרים</span><span>⏰ זמינות</span>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>B — בנר "חדרך עכשיו" בדף הבית</h3>
+      <p>ברגע שמורה נכנס לאפליקציה, הוא רואה בנר צבעוני עם החדר שלו ביום הנוכחי — לפני הכל.</p>
+    </div>
+  </div>
+
+  <div class="card" data-choice="c" onclick="toggleSelect(this)">
+    <div class="card-image">
+      <div style="background:#fff7ed;border-radius:12px;padding:12px;font-family:sans-serif;direction:rtl;text-align:right;">
+        <div style="font-size:10px;color:#6b7280;margin-bottom:6px;">📄 דף נפרד /my-room</div>
+        <div style="background:#f97316;border-radius:10px;padding:12px;color:white;text-align:center;margin-bottom:8px;">
+          <div style="font-size:10px;opacity:0.85;">יום ב׳</div>
+          <div style="font-size:28px;font-weight:bold;">חדר 3</div>
+          <div style="font-size:9px;opacity:0.85;margin-top:2px;">עד 14:00</div>
+        </div>
+        <div style="border:1.5px dashed #fed7aa;border-radius:8px;padding:8px;text-align:center;">
+          <div style="font-size:10px;color:#f97316;font-weight:bold;">✉️ שלחי בקשה למזכירות</div>
+        </div>
+        <div style="margin-top:8px;background:#f3f4f6;border-radius:8px;padding:6px;display:flex;justify-content:space-around;font-size:9px;">
+          <span>🏠</span><span>📅</span><span style="color:#f97316;font-weight:bold;">🚪</span><span>⏰</span>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>C — דף ייעודי "החדר שלי"</h3>
+      <p>דף פשוט ומרוכז: רק החדר היומי + כפתור שליחת הודעה. הלוח השבועי הכללי נשאר ב-/rooms.</p>
+    </div>
+  </div>
+
+</div>

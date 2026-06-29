@@ -47,29 +47,44 @@ export async function inviteTeacher(pendingId: string, email: string, name: stri
   await _requireAdmin('/admin')
   const supabase = createAdminClient()
 
-  const { data: inviteData, error: inviteError } = await supabase.auth.admin.inviteUserByEmail(email, {
-    data: { name },
-    redirectTo: `${process.env.NEXT_PUBLIC_APP_URL}/`,
+  let newUserId: string
+  let inviteLink: string
+
+  const { data: linkData, error: linkError } = await supabase.auth.admin.generateLink({
+    type: 'invite',
+    email,
+    options: {
+      data: { name },
+      redirectTo: `${process.env.NEXT_PUBLIC_APP_URL}/`,
+    },
   })
 
-  let newUserId: string
-
-  if (inviteError) {
-    if (!inviteError.message.toLowerCase().includes('already')) {
-      return `שגיאה בשליחת ההזמנה: ${inviteError.message}`
+  if (linkError) {
+    if (!linkError.message.toLowerCase().includes('already')) {
+      return `שגיאה ביצירת ההזמנה: ${linkError.message}`
     }
-    // Auth user already exists from a previous attempt — send a password reset email instead
-    const { error: resetError } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${process.env.NEXT_PUBLIC_APP_URL}/`,
+    // Auth user already exists — generate a recovery (password reset) link instead
+    const { data: recoveryData, error: recoveryError } = await supabase.auth.admin.generateLink({
+      type: 'recovery',
+      email,
+      options: { redirectTo: `${process.env.NEXT_PUBLIC_APP_URL}/` },
     })
-    if (resetError) return `שגיאה בשליחת המייל: ${resetError.message}`
+    if (recoveryError) return `שגיאה ביצירת קישור: ${recoveryError.message}`
+    inviteLink = recoveryData.properties.action_link
 
     const { data: { users } } = await supabase.auth.admin.listUsers({ page: 1, perPage: 1000 })
     const existingUser = users?.find(u => u.email === email)
     if (!existingUser) return 'שגיאה: המשתמש קיים אך לא נמצא'
     newUserId = existingUser.id
   } else {
-    newUserId = inviteData.user.id
+    newUserId = linkData.user.id
+    inviteLink = linkData.properties.action_link
+  }
+
+  try {
+    await sendTeacherInviteEmail({ teacherEmail: email, teacherName: name, inviteLink })
+  } catch (e: unknown) {
+    return `שגיאה בשליחת המייל: ${e instanceof Error ? e.message : String(e)}`
   }
 
   await supabase.from('teachers').delete().eq('id', pendingId)
@@ -99,12 +114,21 @@ export async function resetTeacherToPending(teacherId: string): Promise<string |
 }
 
 export async function resendTeacherInvite(teacherId: string, email: string, name: string): Promise<string | void> {
-  const { supabase } = await _requireAdmin('/admin')
+  await _requireAdmin('/admin')
+  const supabase = createAdminClient()
 
-  const { error } = await supabase.auth.resetPasswordForEmail(email, {
-    redirectTo: `${process.env.NEXT_PUBLIC_APP_URL}/`,
+  const { data, error } = await supabase.auth.admin.generateLink({
+    type: 'recovery',
+    email,
+    options: { redirectTo: `${process.env.NEXT_PUBLIC_APP_URL}/` },
   })
-  if (error) return `שגיאה בשליחת המייל: ${error.message}`
+  if (error) return `שגיאה ביצירת קישור: ${error.message}`
+
+  try {
+    await sendTeacherInviteEmail({ teacherEmail: email, teacherName: name, inviteLink: data.properties.action_link })
+  } catch (e: unknown) {
+    return `שגיאה בשליחת המייל: ${e instanceof Error ? e.message : String(e)}`
+  }
 }
 
 export async function deleteTeacher(teacherId: string) {
