@@ -14,7 +14,7 @@ export async function sendTeacherInviteEmail({ teacherEmail, teacherName, invite
   const resend = new Resend(process.env.RESEND_API_KEY)
 
   const { error } = await resend.emails.send({
-    from: 'noreply@rutidimona.xyz',
+    from: 'onboarding@resend.dev',
     to: teacherEmail,
     subject: 'הוזמנת להצטרף לאפליקציית מעקב השיעורים',
     html: `
@@ -62,7 +62,7 @@ export async function sendBugReportEmail(params: BugEmailParams) {
 
   try {
     const { error } = await resend.emails.send({
-      from: 'noreply@rutidimona.xyz',
+      from: 'onboarding@resend.dev',
       to: 'avigailregev@gmail.com',
       subject: `🐛 באג חדש — ${escapeHtml(teacherName)}`,
       html: `
