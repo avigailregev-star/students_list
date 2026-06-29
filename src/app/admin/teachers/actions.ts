@@ -47,15 +47,23 @@ export async function inviteTeacher(pendingId: string, email: string, name: stri
   await _requireAdmin('/admin')
   const supabase = createAdminClient()
 
-  const { data: linkData, error: linkError } = await supabase.auth.admin.generateLink({
+  let linkResult = await supabase.auth.admin.generateLink({
     type: 'invite',
     email,
-    options: {
-      data: { name },
-      redirectTo: `${process.env.NEXT_PUBLIC_APP_URL}/`,
-    },
+    options: { data: { name }, redirectTo: `${process.env.NEXT_PUBLIC_APP_URL}/` },
   })
-  if (linkError) return `שגיאה ביצירת קישור: ${linkError.message}`
+
+  // If the auth user already exists (e.g. from a previous invite attempt), fall back to a recovery link
+  if (linkResult.error?.message?.toLowerCase().includes('already')) {
+    linkResult = await supabase.auth.admin.generateLink({
+      type: 'recovery',
+      email,
+      options: { redirectTo: `${process.env.NEXT_PUBLIC_APP_URL}/` },
+    })
+  }
+
+  if (linkResult.error) return `שגיאה ביצירת קישור: ${linkResult.error.message}`
+  const linkData = linkResult.data
 
   try {
     await sendTeacherInviteEmail({
