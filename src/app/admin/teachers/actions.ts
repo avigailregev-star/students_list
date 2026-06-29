@@ -47,14 +47,18 @@ export async function inviteTeacher(pendingId: string, email: string, name: stri
   await _requireAdmin('/admin')
   const supabase = createAdminClient()
 
-  // Supabase sends the invite email automatically via its own email service
-  const { data: inviteData, error: inviteError } = await supabase.auth.admin.inviteUserByEmail(email, {
-    data: { name },
-    redirectTo: `${process.env.NEXT_PUBLIC_APP_URL}/`,
+  // Generate invite link without sending Supabase's built-in email
+  const { data: linkData, error: inviteError } = await supabase.auth.admin.generateLink({
+    type: 'invite',
+    email,
+    options: { data: { name }, redirectTo: `${process.env.NEXT_PUBLIC_APP_URL}/` },
   })
   if (inviteError) return `שגיאה בשליחת ההזמנה: ${inviteError.message}`
 
-  const newUserId = inviteData.user.id
+  const newUserId = (linkData as any).user?.id
+  const inviteLink = (linkData as any).properties?.action_link
+  if (!newUserId) return 'שגיאה: לא התקבל מזהה משתמש'
+  if (!inviteLink) return 'שגיאה: לא התקבל קישור הזמנה'
 
   // Replace the pending placeholder with the real auth user UUID
   await supabase.from('teachers').delete().eq('id', pendingId)
@@ -63,6 +67,10 @@ export async function inviteTeacher(pendingId: string, email: string, name: stri
     .insert({ id: newUserId, name, email, role: 'teacher', is_pending: false })
 
   if (dbError) return `שגיאה בשמירה: ${dbError.message}`
+
+  // Send via Resend (same path as resendTeacherInvite)
+  await sendTeacherInviteEmail({ teacherEmail: email, teacherName: name, inviteLink })
+
   revalidatePath('/admin/teachers')
   redirect(`/admin/teachers/${newUserId}`)
 }
