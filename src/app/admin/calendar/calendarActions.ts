@@ -3,7 +3,7 @@
 import { revalidatePath } from 'next/cache'
 import { requireAdmin as _requireAdmin } from '@/lib/auth'
 import type { SchoolEventType } from '@/types/database'
-import { pushSchoolEvent, deleteGCalEvent } from '@/lib/googleCalendar'
+import { pushSchoolEvent, deleteGCalEvent, updateSchoolEvent } from '@/lib/googleCalendar'
 
 const AUTO_SYNC_TYPES: SchoolEventType[] = ['holiday', 'vacation']
 
@@ -128,6 +128,47 @@ export async function createEvent(formData: FormData) {
       }
     } catch (e) {
       console.error('createEvent: google push failed', e)
+    }
+  })()
+}
+
+export async function updateEvent(formData: FormData) {
+  const { supabase, userId } = await requireAdmin()
+
+  const id        = (formData.get('id') as string | null)?.trim()
+  const name      = (formData.get('name') as string | null)?.trim()
+  const eventType = formData.get('event_type') as string
+  const startDate = (formData.get('start_date') as string | null)?.trim()
+  const endDate   = (formData.get('end_date') as string | null)?.trim() || startDate
+
+  if (!id || !UUID_RE.test(id)) throw new Error('מזהה אירוע לא תקין')
+  if (!name) throw new Error('שם האירוע חסר')
+  if (!startDate) throw new Error('תאריך האירוע חסר')
+  if (endDate && endDate < startDate) throw new Error('תאריך סיום קודם לתאריך התחלה')
+  if (!VALID_EVENT_TYPES.includes(eventType as SchoolEventType)) throw new Error('סוג אירוע לא תקין')
+
+  const { data: existing } = await supabase
+    .from('school_events').select('google_event_id').eq('id', id).single()
+
+  const { error } = await supabase
+    .from('school_events')
+    .update({ name, event_type: eventType, start_date: startDate, end_date: endDate })
+    .eq('id', id)
+
+  if (error) throw new Error('שגיאה בעדכון האירוע')
+
+  revalidatePath('/admin/calendar')
+  revalidatePath('/')
+
+  void (async () => {
+    try {
+      const payload = { id: id!, name: name!, startDate: startDate!, endDate: endDate! }
+      if (existing?.google_event_id) await updateSchoolEvent(userId, existing.google_event_id, payload)
+      const { data: assignments } = await supabase
+        .from('google_event_assignments').select('teacher_id, google_event_id').eq('school_event_id', id)
+      for (const a of assignments ?? []) await updateSchoolEvent(a.teacher_id, a.google_event_id, payload)
+    } catch (e) {
+      console.error('updateEvent: google update failed', e)
     }
   })()
 }

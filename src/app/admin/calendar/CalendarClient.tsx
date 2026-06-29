@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useTransition, useMemo } from 'react'
-import { createEvent, deleteEvent, bulkImportSchoolYear5787 } from './calendarActions'
+import { createEvent, updateEvent, deleteEvent, bulkImportSchoolYear5787 } from './calendarActions'
 import type { SchoolEvent, SchoolEventType, Teacher, Holiday } from '@/types/database'
 
 const MONTHS_HE = ['ינואר','פברואר','מרץ','אפריל','מאי','יוני','יולי','אוגוסט','ספטמבר','אוקטובר','נובמבר','דצמבר']
@@ -105,6 +105,12 @@ export default function CalendarClient({ events, teachers, holidays }: Props) {
   const [isPending, startTransition] = useTransition()
   const [selectedTeacherIds, setSelectedTeacherIds] = useState<string[]>([])
   const [selectedDayEvents, setSelectedDayEvents] = useState<SchoolEvent[]>([])
+  const [editEvent, setEditEvent] = useState<SchoolEvent | null>(null)
+  const [editName, setEditName] = useState('')
+  const [editType, setEditType] = useState<SchoolEventType>('holiday')
+  const [editStart, setEditStart] = useState('')
+  const [editEnd, setEditEnd] = useState('')
+  const [isEditPending, startEditTransition] = useTransition()
 
   // Build a map: dateStr → events[]
   const eventMap = useMemo(() => {
@@ -169,6 +175,33 @@ export default function CalendarClient({ events, teachers, holidays }: Props) {
     })
   }
 
+  function openEdit(ev: SchoolEvent) {
+    setEditEvent(ev)
+    setEditName(ev.name)
+    setEditType(ev.event_type)
+    setEditStart(ev.start_date)
+    setEditEnd(ev.end_date)
+  }
+
+  function submitEdit(e: React.FormEvent) {
+    e.preventDefault()
+    if (!editEvent) return
+    const fd = new FormData()
+    fd.set('id', editEvent.id)
+    fd.set('name', editName || EVENT_CONFIG[editType].label)
+    fd.set('event_type', editType)
+    fd.set('start_date', editStart)
+    fd.set('end_date', editEnd || editStart)
+    startEditTransition(async () => {
+      try {
+        await updateEvent(fd)
+        setEditEvent(null)
+      } catch (err) {
+        alert(err instanceof Error ? err.message : 'שגיאה בעדכון האירוע')
+      }
+    })
+  }
+
   const isAutoSync = eventType === 'holiday' || eventType === 'vacation'
   const allSelected = teachers.length > 0 && selectedTeacherIds.length === teachers.length
 
@@ -204,6 +237,16 @@ export default function CalendarClient({ events, teachers, holidays }: Props) {
                       {ev.start_date}{isSame ? '' : ` עד ${ev.end_date}`}
                     </p>
                   </div>
+                  <button
+                    onClick={() => openEdit(ev)}
+                    className="w-7 h-7 rounded-lg bg-white/50 hover:bg-white/80 flex items-center justify-center transition-colors shrink-0"
+                    title="ערוך אירוע"
+                  >
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+                      <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                    </svg>
+                  </button>
                   <a
                     href={buildGCalUrl(ev.name, ev.start_date, ev.end_date)}
                     target="_blank"
@@ -302,6 +345,88 @@ export default function CalendarClient({ events, teachers, holidays }: Props) {
           })}
         </div>
       ))}
+
+      {/* Edit event bottom sheet */}
+      {editEvent && (
+        <div className="fixed inset-x-0 top-0 bottom-[72px] z-[100] flex flex-col justify-end" onClick={() => setEditEvent(null)}>
+          <div className="absolute inset-0 bg-black/40" />
+          <div
+            className="relative bg-white w-full rounded-t-3xl flex flex-col"
+            style={{ maxHeight: 'calc(100dvh - 144px)' }}
+            onClick={e => e.stopPropagation()}
+          >
+            <div className="px-5 pt-5 pb-3 flex-shrink-0">
+              <div className="w-10 h-1 bg-gray-200 rounded-full mx-auto mb-4" />
+              <h2 className="text-lg font-bold text-gray-900 mb-0.5">עריכת אירוע</h2>
+              <p className="text-sm text-gray-400">{editEvent.start_date}{editEvent.start_date !== editEvent.end_date ? ` עד ${editEvent.end_date}` : ''}</p>
+            </div>
+            <form onSubmit={submitEdit} className="flex-1 flex flex-col overflow-hidden min-h-0">
+              <div className="flex-1 overflow-y-auto px-5 flex flex-col gap-4 pb-2">
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">סוג אירוע</label>
+                  <div className="flex flex-col gap-2">
+                    {(Object.entries(EVENT_CONFIG) as [SchoolEventType, typeof EVENT_CONFIG[SchoolEventType]][]).map(([type, cfg]) => (
+                      <button
+                        key={type}
+                        type="button"
+                        onClick={() => setEditType(type)}
+                        className={`w-full px-4 py-3 rounded-xl text-sm font-semibold border-2 transition-colors text-right flex items-center gap-2 ${
+                          editType === type ? `border-current ${cfg.bg} ${cfg.text}` : 'border-gray-100 bg-gray-50 text-gray-600'
+                        }`}
+                      >
+                        <span className={`w-2.5 h-2.5 rounded-full shrink-0 ${editType === type ? cfg.dot : 'bg-gray-300'}`} />
+                        {cfg.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-1">שם</label>
+                  <input
+                    value={editName}
+                    onChange={e => setEditName(e.target.value)}
+                    placeholder={EVENT_CONFIG[editType].label}
+                    className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-teal-400"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-1">תאריך התחלה</label>
+                  <input
+                    type="date"
+                    value={editStart}
+                    onChange={e => setEditStart(e.target.value)}
+                    className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-teal-400"
+                    dir="ltr"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-1">תאריך סיום</label>
+                  <input
+                    type="date"
+                    value={editEnd}
+                    min={editStart}
+                    onChange={e => setEditEnd(e.target.value)}
+                    className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-teal-400"
+                    dir="ltr"
+                  />
+                </div>
+              </div>
+              <div className="flex gap-2 px-5 pt-3 pb-6 border-t border-gray-100 flex-shrink-0">
+                <button
+                  type="submit"
+                  disabled={isEditPending}
+                  className="flex-1 bg-teal-500 text-white font-bold py-3 rounded-2xl hover:bg-teal-600 transition-colors disabled:opacity-60 text-sm"
+                >
+                  {isEditPending ? 'שומר...' : 'שמור שינויים'}
+                </button>
+                <button type="button" onClick={() => setEditEvent(null)} className="flex-1 bg-gray-100 text-gray-600 font-bold py-3 rounded-2xl text-sm">
+                  ביטול
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       {/* Add event bottom sheet */}
       {addOpen && (
