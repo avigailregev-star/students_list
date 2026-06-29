@@ -69,7 +69,11 @@ export async function inviteTeacher(pendingId: string, email: string, name: stri
   if (dbError) return `שגיאה בשמירה: ${dbError.message}`
 
   // Send via Resend (same path as resendTeacherInvite)
-  await sendTeacherInviteEmail({ teacherEmail: email, teacherName: name, inviteLink })
+  try {
+    await sendTeacherInviteEmail({ teacherEmail: email, teacherName: name, inviteLink })
+  } catch (err) {
+    return `שגיאה בשליחת האימייל: ${err instanceof Error ? err.message : err}`
+  }
 
   revalidatePath('/admin/teachers')
   redirect(`/admin/teachers/${newUserId}`)
@@ -105,7 +109,11 @@ export async function resendTeacherInvite(teacherId: string, email: string, name
   const inviteLink = (data as any).properties?.action_link
   if (!inviteLink) return 'שגיאה: לא התקבל קישור'
 
-  await sendTeacherInviteEmail({ teacherEmail: email, teacherName: name, inviteLink })
+  try {
+    await sendTeacherInviteEmail({ teacherEmail: email, teacherName: name, inviteLink })
+  } catch (err) {
+    return `שגיאה בשליחת האימייל: ${err instanceof Error ? err.message : err}`
+  }
 }
 
 export async function deleteTeacher(teacherId: string) {
