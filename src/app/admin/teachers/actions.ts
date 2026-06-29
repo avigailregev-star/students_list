@@ -50,12 +50,14 @@ export async function inviteTeacher(pendingId: string, email: string, name: stri
   let newUserId: string
   let inviteLink: string
 
+  const resetCallbackUrl = `${process.env.NEXT_PUBLIC_APP_URL}/auth/reset-callback`
+
   const { data: linkData, error: linkError } = await supabase.auth.admin.generateLink({
     type: 'invite',
     email,
     options: {
       data: { name },
-      redirectTo: `${process.env.NEXT_PUBLIC_APP_URL}/`,
+      redirectTo: resetCallbackUrl,
     },
   })
 
@@ -67,7 +69,7 @@ export async function inviteTeacher(pendingId: string, email: string, name: stri
     const { data: recoveryData, error: recoveryError } = await supabase.auth.admin.generateLink({
       type: 'recovery',
       email,
-      options: { redirectTo: `${process.env.NEXT_PUBLIC_APP_URL}/` },
+      options: { redirectTo: resetCallbackUrl },
     })
     if (recoveryError) return `שגיאה ביצירת קישור: ${recoveryError.message}`
     inviteLink = recoveryData.properties.action_link
@@ -120,7 +122,7 @@ export async function resendTeacherInvite(teacherId: string, email: string, name
   const { data, error } = await supabase.auth.admin.generateLink({
     type: 'recovery',
     email,
-    options: { redirectTo: `${process.env.NEXT_PUBLIC_APP_URL}/` },
+    options: { redirectTo: `${process.env.NEXT_PUBLIC_APP_URL}/auth/reset-callback` },
   })
   if (error) return `שגיאה ביצירת קישור: ${error.message}`
 
