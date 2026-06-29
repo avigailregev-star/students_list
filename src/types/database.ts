@@ -93,7 +93,7 @@ export type Attendance = {
   created_at: string
 }
 
-export type SchoolEventType = 'holiday' | 'vacation' | 'makeup_day' | 'school_start' | 'school_end' | 'concert'
+export type SchoolEventType = 'holiday' | 'vacation' | 'makeup_day' | 'school_start' | 'school_end' | 'concert' | 'special_day'
 
 export type SchoolEvent = {
   id: string

@@ -8,7 +8,7 @@ import { pushSchoolEvent, deleteGCalEvent } from '@/lib/googleCalendar'
 const AUTO_SYNC_TYPES: SchoolEventType[] = ['holiday', 'vacation']
 
 const VALID_EVENT_TYPES: SchoolEventType[] = [
-  'holiday', 'vacation', 'concert', 'makeup_day', 'school_start', 'school_end',
+  'holiday', 'vacation', 'concert', 'makeup_day', 'school_start', 'school_end', 'special_day',
 ]
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
@@ -19,15 +19,23 @@ async function requireAdmin() {
 }
 
 const SCHOOL_YEAR_5787_EVENTS: { name: string; event_type: SchoolEventType; start_date: string; end_date: string }[] = [
-  { name: 'ראש השנה',                         event_type: 'holiday',  start_date: '2026-09-11', end_date: '2026-09-13' },
-  { name: 'יום הכיפורים',                     event_type: 'holiday',  start_date: '2026-09-20', end_date: '2026-09-21' },
-  { name: 'חופשה בין יום הכיפורים לסוכות',   event_type: 'vacation', start_date: '2026-09-22', end_date: '2026-09-24' },
-  { name: 'חג הסוכות',                        event_type: 'holiday',  start_date: '2026-09-25', end_date: '2026-10-03' },
-  { name: 'חנוכה',                            event_type: 'holiday',  start_date: '2026-12-06', end_date: '2026-12-12' },
-  { name: 'פורים',                            event_type: 'holiday',  start_date: '2027-03-23', end_date: '2027-03-24' },
-  { name: 'פסח',                              event_type: 'holiday',  start_date: '2027-04-13', end_date: '2027-04-28' },
-  { name: 'יום העצמאות',                      event_type: 'holiday',  start_date: '2027-05-12', end_date: '2027-05-12' },
-  { name: 'חג השבועות',                       event_type: 'holiday',  start_date: '2027-06-10', end_date: '2027-06-11' },
+  { name: 'ראש השנה',                         event_type: 'holiday',     start_date: '2026-09-11', end_date: '2026-09-13' },
+  { name: 'יום הכיפורים',                     event_type: 'holiday',     start_date: '2026-09-20', end_date: '2026-09-21' },
+  { name: 'חופשה בין יום הכיפורים לסוכות',   event_type: 'vacation',    start_date: '2026-09-22', end_date: '2026-09-24' },
+  { name: 'חג הסוכות',                        event_type: 'holiday',     start_date: '2026-09-25', end_date: '2026-10-03' },
+  { name: 'אסרו חג סוכות – יום לימודים',     event_type: 'special_day', start_date: '2026-10-04', end_date: '2026-10-04' },
+  { name: 'חג הסיגד – יום לימודים',          event_type: 'special_day', start_date: '2026-11-09', end_date: '2026-11-09' },
+  { name: 'חנוכה',                            event_type: 'holiday',     start_date: '2026-12-06', end_date: '2026-12-12' },
+  { name: 'ט״ו בשבט',                         event_type: 'special_day', start_date: '2027-01-23', end_date: '2027-01-23' },
+  { name: 'תענית אסתר – יום לימודים',        event_type: 'special_day', start_date: '2027-03-22', end_date: '2027-03-22' },
+  { name: 'פורים',                            event_type: 'holiday',     start_date: '2027-03-23', end_date: '2027-03-24' },
+  { name: 'פסח',                              event_type: 'holiday',     start_date: '2027-04-13', end_date: '2027-04-28' },
+  { name: 'אסרו חג פסח – יום לימודים',      event_type: 'special_day', start_date: '2027-04-29', end_date: '2027-04-29' },
+  { name: 'יום העצמאות',                      event_type: 'holiday',     start_date: '2027-05-12', end_date: '2027-05-12' },
+  { name: 'ל״ג בעומר – יום לימודים',         event_type: 'special_day', start_date: '2027-05-25', end_date: '2027-05-25' },
+  { name: 'יום ירושלים – יום לימודים',       event_type: 'special_day', start_date: '2027-06-04', end_date: '2027-06-04' },
+  { name: 'חג השבועות',                       event_type: 'holiday',     start_date: '2027-06-10', end_date: '2027-06-11' },
+  { name: 'אסרו חג שבועות',                  event_type: 'special_day', start_date: '2027-06-12', end_date: '2027-06-12' },
 ]
 
 export async function bulkImportSchoolYear5787(): Promise<{ inserted: number; skipped: number }> {

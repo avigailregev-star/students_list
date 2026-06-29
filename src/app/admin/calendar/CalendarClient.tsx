@@ -14,6 +14,7 @@ const EVENT_CONFIG: Record<SchoolEventType, { label: string; bg: string; dot: st
   school_start:{ label: 'פתיחת שנה', bg: 'bg-teal-100',   dot: 'bg-teal-500',   text: 'text-teal-700'   },
   school_end:  { label: 'סיום שנה',  bg: 'bg-violet-100', dot: 'bg-violet-500', text: 'text-violet-700' },
   concert:     { label: 'קונצרט',     bg: 'bg-pink-100',   dot: 'bg-pink-500',   text: 'text-pink-700'   },
+  special_day: { label: 'יום מיוחד', bg: 'bg-indigo-50',  dot: 'bg-indigo-300', text: 'text-indigo-400' },
 }
 
 function toGCalDate(dateStr: string) {
