@@ -96,24 +96,14 @@ export async function resetTeacherToPending(teacherId: string): Promise<string |
 }
 
 export async function resendTeacherInvite(teacherId: string, email: string, name: string): Promise<string | void> {
-  await _requireAdmin('/admin')
-  const supabase = createAdminClient()
+  const { supabase } = await _requireAdmin('/admin')
 
-  const { data, error } = await supabase.auth.admin.generateLink({
-    type: 'recovery',
-    email,
-    options: { redirectTo: `${process.env.NEXT_PUBLIC_APP_URL}/` },
+  // Use Supabase's own email delivery (same infrastructure as initial invite)
+  // This avoids Gmail deliverability issues with custom domains like rutidimona.xyz
+  const { error } = await supabase.auth.resetPasswordForEmail(email, {
+    redirectTo: `${process.env.NEXT_PUBLIC_APP_URL}/`,
   })
-  if (error) return `שגיאה ביצירת קישור: ${error.message}`
-
-  const inviteLink = (data as any).properties?.action_link
-  if (!inviteLink) return 'שגיאה: לא התקבל קישור'
-
-  try {
-    await sendTeacherInviteEmail({ teacherEmail: email, teacherName: name, inviteLink })
-  } catch (err) {
-    return `שגיאה בשליחת האימייל: ${err instanceof Error ? err.message : err}`
-  }
+  if (error) return `שגיאה בשליחת המייל: ${error.message}`
 }
 
 export async function deleteTeacher(teacherId: string) {
