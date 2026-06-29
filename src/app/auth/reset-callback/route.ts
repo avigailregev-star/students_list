@@ -25,9 +25,10 @@ export async function GET(request: NextRequest) {
     }
   )
 
-  // Email link flow (password reset)
-  if (token_hash && type === 'recovery') {
-    const { error } = await supabase.auth.verifyOtp({ token_hash, type: 'recovery' })
+  // Email link flow (password reset or invite)
+  if (token_hash && (type === 'recovery' || type === 'invite' || type === 'signup')) {
+    const otpType = type === 'recovery' ? 'recovery' : 'invite'
+    const { error } = await supabase.auth.verifyOtp({ token_hash, type: otpType })
     if (!error) {
       return NextResponse.redirect(`${origin}/reset-password`)
     }
