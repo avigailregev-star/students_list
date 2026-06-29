@@ -51,6 +51,7 @@ interface Props {
   events: SchoolEvent[]
   teachers: Teacher[]
   holidays: Pick<Holiday, 'date' | 'name'>[]
+  assignments: Record<string, string[]>
 }
 
 
@@ -95,7 +96,7 @@ function BulkImportButton() {
   )
 }
 
-export default function CalendarClient({ events, teachers, holidays }: Props) {
+export default function CalendarClient({ events, teachers, holidays, assignments }: Props) {
   const schoolYear = getSchoolYear()
   const [addOpen, setAddOpen] = useState(false)
   const [selectedDate, setSelectedDate] = useState('')
@@ -110,6 +111,7 @@ export default function CalendarClient({ events, teachers, holidays }: Props) {
   const [editType, setEditType] = useState<SchoolEventType>('holiday')
   const [editStart, setEditStart] = useState('')
   const [editEnd, setEditEnd] = useState('')
+  const [editTeacherIds, setEditTeacherIds] = useState<string[]>([])
   const [isEditPending, startEditTransition] = useTransition()
 
   // Build a map: dateStr → events[]
@@ -181,6 +183,7 @@ export default function CalendarClient({ events, teachers, holidays }: Props) {
     setEditType(ev.event_type)
     setEditStart(ev.start_date)
     setEditEnd(ev.end_date)
+    setEditTeacherIds(assignments[ev.id] ?? [])
   }
 
   function submitEdit(e: React.FormEvent) {
@@ -192,6 +195,7 @@ export default function CalendarClient({ events, teachers, holidays }: Props) {
     fd.set('event_type', editType)
     fd.set('start_date', editStart)
     fd.set('end_date', editEnd || editStart)
+    for (const tid of editTeacherIds) fd.append('teacher_ids', tid)
     startEditTransition(async () => {
       try {
         await updateEvent(fd)
@@ -410,6 +414,60 @@ export default function CalendarClient({ events, teachers, holidays }: Props) {
                     dir="ltr"
                   />
                 </div>
+
+                {/* Teacher sync */}
+                {(editType === 'holiday' || editType === 'vacation') ? (
+                  <div className="bg-amber-50 rounded-xl px-4 py-3 text-xs text-amber-700 font-semibold">
+                    חגים וחופשות מסונכרנים אוטומטית עם כל המורות
+                  </div>
+                ) : (
+                  <div>
+                    <div className="flex items-center justify-between mb-2">
+                      <label className="text-sm font-semibold text-gray-700">מורות מוזמנות</label>
+                      <button
+                        type="button"
+                        onClick={() => setEditTeacherIds(
+                          editTeacherIds.length === teachers.length ? [] : teachers.map(t => t.id)
+                        )}
+                        className="text-xs font-bold text-teal-500"
+                      >
+                        {editTeacherIds.length === teachers.length ? 'בטל הכל' : 'בחר הכל'}
+                      </button>
+                    </div>
+                    <div className="flex flex-col gap-1 rounded-2xl border border-gray-100 overflow-hidden">
+                      {teachers.map(t => {
+                        const checked = editTeacherIds.includes(t.id)
+                        return (
+                          <button
+                            key={t.id}
+                            type="button"
+                            onClick={() =>
+                              setEditTeacherIds(prev =>
+                                checked ? prev.filter(id => id !== t.id) : [...prev, t.id]
+                              )
+                            }
+                            className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 transition-colors text-right border-b border-gray-50 last:border-0"
+                          >
+                            <div className="w-8 h-8 rounded-xl bg-teal-500 flex items-center justify-center text-white text-xs font-bold shrink-0">
+                              {t.name.charAt(0)}
+                            </div>
+                            <span className="flex-1 text-sm font-semibold text-gray-700">{t.name}</span>
+                            <div className={`w-5 h-5 rounded-md border-2 flex items-center justify-center shrink-0 ${checked ? 'bg-teal-500 border-teal-500' : 'border-gray-300'}`}>
+                              {checked && (
+                                <svg width="10" height="10" viewBox="0 0 12 12" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                  <polyline points="2 6 5 9 10 3"/>
+                                </svg>
+                              )}
+                            </div>
+                          </button>
+                        )
+                      })}
+                      {teachers.length === 0 && (
+                        <p className="px-4 py-3 text-xs text-gray-400">אין מורות רשומות</p>
+                      )}
+                    </div>
+                  </div>
+                )}
               </div>
               <div className="flex gap-2 px-5 pt-3 pb-6 border-t border-gray-100 flex-shrink-0">
                 <button

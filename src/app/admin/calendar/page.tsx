@@ -7,7 +7,7 @@ import { getTeachersForAdmin } from '@/lib/queries/teachers'
 export default async function AdminCalendarPage() {
   const { supabase } = await requireAdmin()
 
-  const [eventsResult, teachers, holidaysResult] = await Promise.all([
+  const [eventsResult, teachers, holidaysResult, assignmentsResult] = await Promise.all([
     supabase
       .from('school_events')
       .select('*')
@@ -17,7 +17,16 @@ export default async function AdminCalendarPage() {
       .from('holidays')
       .select('date, name')
       .order('date', { ascending: true }),
+    supabase
+      .from('school_event_assignments')
+      .select('event_id, teacher_id'),
   ])
+
+  const assignmentsMap: Record<string, string[]> = {}
+  for (const a of assignmentsResult.data ?? []) {
+    if (!assignmentsMap[a.event_id]) assignmentsMap[a.event_id] = []
+    assignmentsMap[a.event_id].push(a.teacher_id)
+  }
 
   return (
     <div className="flex flex-col min-h-screen">
@@ -40,6 +49,7 @@ export default async function AdminCalendarPage() {
         events={(eventsResult.data ?? []) as SchoolEvent[]}
         teachers={teachers}
         holidays={(holidaysResult.data ?? []) as Pick<Holiday, 'date' | 'name'>[]}
+        assignments={assignmentsMap}
       />
     </div>
   )

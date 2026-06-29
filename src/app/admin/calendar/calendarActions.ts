@@ -136,16 +136,18 @@ export async function updateEvent(formData: FormData) {
   const { supabase, userId } = await requireAdmin()
 
   const id        = (formData.get('id') as string | null)?.trim()
-  const name      = (formData.get('name') as string | null)?.trim()
-  const eventType = formData.get('event_type') as string
-  const startDate = (formData.get('start_date') as string | null)?.trim()
-  const endDate   = (formData.get('end_date') as string | null)?.trim() || startDate
+  const name       = (formData.get('name') as string | null)?.trim()
+  const eventType  = formData.get('event_type') as string
+  const startDate  = (formData.get('start_date') as string | null)?.trim()
+  const endDate    = (formData.get('end_date') as string | null)?.trim() || startDate
+  const teacherIds = formData.getAll('teacher_ids') as string[]
 
   if (!id || !UUID_RE.test(id)) throw new Error('מזהה אירוע לא תקין')
   if (!name) throw new Error('שם האירוע חסר')
   if (!startDate) throw new Error('תאריך האירוע חסר')
   if (endDate && endDate < startDate) throw new Error('תאריך סיום קודם לתאריך התחלה')
   if (!VALID_EVENT_TYPES.includes(eventType as SchoolEventType)) throw new Error('סוג אירוע לא תקין')
+  if (teacherIds.some(tid => !UUID_RE.test(tid))) throw new Error('מזהה מורה לא תקין')
 
   const { data: existing } = await supabase
     .from('school_events').select('google_event_id').eq('id', id).single()
@@ -156,6 +158,16 @@ export async function updateEvent(formData: FormData) {
     .eq('id', id)
 
   if (error) throw new Error('שגיאה בעדכון האירוע')
+
+  // Update teacher assignments for non-auto-sync types
+  if (!AUTO_SYNC_TYPES.includes(eventType as SchoolEventType)) {
+    await supabase.from('school_event_assignments').delete().eq('event_id', id)
+    if (teacherIds.length > 0) {
+      const rows = teacherIds.map(tid => ({ event_id: id, teacher_id: tid }))
+      const { error: assignError } = await supabase.from('school_event_assignments').insert(rows)
+      if (assignError) throw new Error('שגיאה בעדכון שיוך המורות')
+    }
+  }
 
   revalidatePath('/admin/calendar')
   revalidatePath('/')
