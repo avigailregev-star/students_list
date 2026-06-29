@@ -14,6 +14,7 @@ const EVENT_COLORS: Record<SchoolEventType, { bg: string; text: string; label: s
   makeup_day:   { bg: 'bg-emerald-100', text: 'text-emerald-800', label: 'השלמה'      },
   school_start: { bg: 'bg-teal-100',    text: 'text-teal-800',    label: 'פתיחת שנה' },
   school_end:   { bg: 'bg-violet-100',  text: 'text-violet-800',  label: 'סיום שנה'  },
+  special_day:  { bg: 'bg-indigo-50',   text: 'text-indigo-400',  label: 'יום מיוחד' },
 }
 
 const DOT_COLORS = [

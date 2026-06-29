@@ -7,6 +7,7 @@ export const EVENT_COLORS: Record<SchoolEventType, { bg: string; text: string; b
   makeup_day:   { bg: 'bg-emerald-100', text: 'text-emerald-800', border: 'border-emerald-400', label: 'השלמה'      },
   school_start: { bg: 'bg-teal-100',    text: 'text-teal-800',    border: 'border-teal-400',    label: 'פתיחת שנה' },
   school_end:   { bg: 'bg-violet-100',  text: 'text-violet-800',  border: 'border-violet-400',  label: 'סיום שנה'  },
+  special_day:  { bg: 'bg-indigo-50',   text: 'text-indigo-400',  border: 'border-indigo-200',  label: 'יום מיוחד' },
 }
 
 function toDateStr(d: Date): string {
