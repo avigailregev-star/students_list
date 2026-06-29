@@ -2,9 +2,17 @@
 
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
+import { headers } from 'next/headers'
 import { requireAdmin as _requireAdmin } from '@/lib/auth'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { sendTeacherInviteEmail } from '@/lib/email'
+
+async function getResetCallbackUrl() {
+  const headersList = await headers()
+  const host = headersList.get('host') ?? 'localhost:3001'
+  const protocol = host.includes('localhost') ? 'http' : 'https'
+  return `${protocol}://${host}/auth/reset-callback`
+}
 
 async function requireAdmin() {
   const { supabase } = await _requireAdmin('/admin')
@@ -50,7 +58,7 @@ export async function inviteTeacher(pendingId: string, email: string, name: stri
   let newUserId: string
   let inviteLink: string
 
-  const resetCallbackUrl = `${process.env.NEXT_PUBLIC_APP_URL}/auth/reset-callback`
+  const resetCallbackUrl = await getResetCallbackUrl()
 
   const { data: linkData, error: linkError } = await supabase.auth.admin.generateLink({
     type: 'invite',
@@ -119,10 +127,12 @@ export async function resendTeacherInvite(teacherId: string, email: string, name
   await _requireAdmin('/admin')
   const supabase = createAdminClient()
 
+  const resetCallbackUrl = await getResetCallbackUrl()
+
   const { data, error } = await supabase.auth.admin.generateLink({
     type: 'recovery',
     email,
-    options: { redirectTo: `${process.env.NEXT_PUBLIC_APP_URL}/auth/reset-callback` },
+    options: { redirectTo: resetCallbackUrl },
   })
   if (error) return `שגיאה ביצירת קישור: ${error.message}`
 
