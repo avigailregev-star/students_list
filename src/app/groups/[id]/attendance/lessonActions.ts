@@ -127,17 +127,26 @@ export async function deleteMakeupLesson(makeupLessonId: string): Promise<string
   if (!user) redirect('/login')
 
   const admin = createAdminClient()
+
+  // Fetch the makeup lesson with admin client (no RLS)
   const { data: makeupLesson } = await admin
     .from('lessons')
-    .select('google_event_id, group_id, groups(teacher_id)')
+    .select('google_event_id, group_id')
     .eq('id', makeupLessonId)
     .single()
 
-  // Security: only the teacher who owns the group may delete
-  const teacherId = (makeupLesson?.groups as any)?.teacher_id
-  if (!makeupLesson || teacherId !== user.id) throw new Error('אין הרשאה')
+  if (!makeupLesson) throw new Error('שיעור לא נמצא')
 
   const groupId = makeupLesson.group_id as string
+
+  // Verify ownership: teacher's client (with RLS) can only see their own groups
+  const { data: ownedGroup } = await supabase
+    .from('groups')
+    .select('id')
+    .eq('id', groupId)
+    .single()
+
+  if (!ownedGroup) throw new Error('אין הרשאה')
 
   // Clear makeup reference from the original lesson
   await admin
@@ -148,13 +157,13 @@ export async function deleteMakeupLesson(makeupLessonId: string): Promise<string
   // Delete attendance records first (foreign key constraint)
   await admin.from('attendance').delete().eq('lesson_id', makeupLessonId)
 
-  // Delete GCal event
+  // Delete GCal event (fire-and-forget)
   if (makeupLesson.google_event_id) {
-    try { await deleteGCalEvent(user.id, makeupLesson.google_event_id) } catch { /* ignore */ }
+    void deleteGCalEvent(user.id, makeupLesson.google_event_id).catch(() => null)
   }
 
   const { error } = await admin.from('lessons').delete().eq('id', makeupLessonId)
-  if (error) throw new Error('שגיאה במחיקת שיעור ההשלמה')
+  if (error) throw new Error('שגיאה במחיקת שיעור ההשלמה: ' + error.message)
 
   revalidatePath('/')
   revalidatePath('/groups/[id]/attendance', 'page')
