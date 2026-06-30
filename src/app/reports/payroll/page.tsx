@@ -25,6 +25,8 @@ export type MonthPayroll = {
   sickUnpaid: number
   sickHalf: number
   sickFull: number
+  sickDates: number[]
+  makeupDates: number[]
 }
 
 const HE_MONTHS = ['ינואר','פברואר','מרץ','אפריל','מאי','יוני','יולי','אוגוסט','ספטמבר','אוקטובר','נובמבר','דצמבר']
@@ -101,6 +103,8 @@ export default async function PayrollPage() {
         sickUnpaid: 0,
         sickHalf: 0,
         sickFull: 0,
+        sickDates: [],
+        makeupDates: [],
       })
     }
     return monthsMap.get(key)!
@@ -112,24 +116,25 @@ export default async function PayrollPage() {
     const dayNum = parseInt(parts[2])
     const month = ensureMonth(key)
 
-    // Makeup lesson — future makeups and justified-cancellation makeups count in השלמות column
+    // Makeup lesson — all makeups count in השלמות column, except legacy "תלוש נוכחי" where original is already counted
     if ((lesson as any).is_makeup) {
       const mkReason = (lesson as any).teacher_absence_reason ?? ''
-      if (mkReason.includes('עתידית') || mkReason.includes('ביטול מוצדק')) {
+      if (mkReason !== 'העדרות מורה עם השלמה בתלוש נוכחי') {
         month.dayCounts[dayNum].makeup++
+        if (!month.makeupDates.includes(dayNum)) month.makeupDates.push(dayNum)
       }
-      // "תלוש נוכחי" makeup: original already counted — skip
       continue
     }
 
     // Canceled lesson
     if ((lesson as any).status === 'teacher_canceled') {
-      // "תלוש נוכחי": teacher makes up same month — keep in payroll
-      if ((lesson as any).teacher_absence_reason === 'העדרות מורה עם השלמה בתלוש נוכחי') {
+      const r = (lesson as any).teacher_absence_reason ?? ''
+      // Backward compat: "תלוש נוכחי" — keep original in regular column
+      if (r === 'העדרות מורה עם השלמה בתלוש נוכחי') {
         const col = mapType(groupType.get(lesson.group_id) ?? '')
         if (col) month.dayCounts[dayNum][col]++
       }
-      // All other cancellation reasons: deduct (skip)
+      // All other cancellation reasons: no pay (skip)
       continue
     }
 
@@ -164,8 +169,10 @@ export default async function PayrollPage() {
 
   for (const [date, cat] of sickDateCategory) {
     const parts = date.split('-')
+    const dayNum = parseInt(parts[2])
     const m = ensureMonth(`${parts[0]}-${parts[1]}`)
     m.sickDays++
+    if (!m.sickDates.includes(dayNum)) m.sickDates.push(dayNum)
     if (cat === 'unpaid') m.sickUnpaid++
     else if (cat === 'half') m.sickHalf++
     else m.sickFull++

@@ -107,13 +107,22 @@ function MonthTable({ month, teacherName }: { month: MonthPayroll; teacherName: 
             const isOver = d > month.daysInMonth
             const dow = isOver ? -1 : new Date(month.year, month.monthNum - 1, d).getDay()
             const isWeekend = dow === 5 || dow === 6
+            const isSickDay = !isOver && month.sickDates.includes(d)
+            const isMakeupDay = !isOver && month.makeupDates.includes(d)
             const c = month.dayCounts[d]
             const rowTotal = isOver ? 0 : total(c)
-            const rowBg = isOver ? 'bg-gray-50' : isWeekend ? 'bg-gray-100' : ''
+            const rowBg = isOver ? 'bg-gray-50' : isSickDay ? 'bg-red-50' : isWeekend ? 'bg-gray-100' : ''
             return (
               <tr key={d} className={rowBg}>
                 <td className={`${td} ${isOver ? 'text-gray-300' : ''}`}>{d}</td>
-                <td className={td}>{isOver ? '' : DAY_ABBREV[dow]}</td>
+                <td className={td}>
+                  {isOver ? '' : (
+                    <span className="flex items-center justify-center gap-0.5">
+                      {DAY_ABBREV[dow]}
+                      {isSickDay && <span className="text-red-600 font-bold text-[8px] leading-none">ח</span>}
+                    </span>
+                  )}
+                </td>
                 {isOver ? (
                   [...Array(8)].map((_, i) => <td key={i} className={`${td} bg-gray-50`}></td>)
                 ) : (
@@ -124,7 +133,7 @@ function MonthTable({ month, teacherName }: { month: MonthPayroll; teacherName: 
                     <td className={td}>{c.ensemble || ''}</td>
                     <td className={td}>{c.theory || ''}</td>
                     <td className={td}>{c.darcha || ''}</td>
-                    <td className={td}>{c.makeup || ''}</td>
+                    <td className={`${td} ${isMakeupDay ? 'bg-teal-50 text-teal-700 font-bold' : ''}`}>{c.makeup || ''}</td>
                     <td className={`${td} font-bold`}>{rowTotal || ''}</td>
                   </>
                 )}

@@ -4,15 +4,14 @@ import { useState, useTransition, useRef } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { cancelLesson, restoreLesson } from './lessonActions'
 
-const ADVANCE_NOTICE_REASON = 'ביטול מוצדק (עד פעמיים בשנה)'
+const ADVANCE_NOTICE_REASON = 'ביטול מוצדק של תלמיד (עד שניים בשנה)'
 const ADVANCE_NOTICE_LIMIT = 2
 
 const REASONS = [
   'מחלת מורה',
-  'ביטול ללא הודעה',
   ADVANCE_NOTICE_REASON,
-  'העדרות מורה עם השלמה בתלוש נוכחי',
-  'העדרות מורה עם השלמה עתידית',
+  'ביטול מורה עם השלמה',
+  'ביטול מורה ללא השלמה',
 ]
 
 interface Props {
@@ -160,8 +159,8 @@ export default function CancelLessonButton({ lessonId, isCanceled, cancelReason,
                 </div>
               </div>
 
-              {/* Makeup date + time — shown for compensation reasons and advance notice */}
-              {(reason.includes('השלמה') || reason === ADVANCE_NOTICE_REASON) && (
+              {/* Makeup date + time — shown for teacher cancellation with makeup and justified student cancellation */}
+              {(reason === ADVANCE_NOTICE_REASON || reason === 'ביטול מורה עם השלמה') && (
                 <div className="flex flex-col gap-2">
                   <label className="block text-sm font-semibold text-gray-700">תאריך ושעת השלמה</label>
                   <div className="flex gap-2">

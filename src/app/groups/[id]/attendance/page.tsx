@@ -81,7 +81,11 @@ export default async function AttendancePage({ params, searchParams }: Props) {
     ? await supabase
         .from('lessons')
         .select('id', { count: 'exact', head: true })
-        .in('teacher_absence_reason', ['ביטול מוצדק (עד פעמיים בשנה)', 'ביטול מוצד (עד פעמיים בשנה)'])
+        .in('teacher_absence_reason', [
+          'ביטול מוצדק (עד פעמיים בשנה)',
+          'ביטול מוצד (עד פעמיים בשנה)',
+          'ביטול מוצדק של תלמיד (עד שניים בשנה)',
+        ])
         .eq('status', 'teacher_canceled')
         .gte('date', schoolYearStart)
         .lte('date', schoolYearEnd)

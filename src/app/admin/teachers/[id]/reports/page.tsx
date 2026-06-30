@@ -49,9 +49,8 @@ export default async function AdminTeacherReportsPage({ params }: Props) {
 
   const [{ data: lessons }, { data: canceledLessons }] = await Promise.all([
     supabase.from('lessons')
-      .select('group_id, date')
+      .select('group_id, date, status, teacher_absence_reason, is_makeup')
       .in('group_id', groupIds)
-      .neq('status', 'teacher_canceled')
       .eq('is_holiday', false)
       .lte('date', todayStr)
       .order('date'),
@@ -83,6 +82,8 @@ export default async function AdminTeacherReportsPage({ params }: Props) {
         sickUnpaid: 0,
         sickHalf: 0,
         sickFull: 0,
+        sickDates: [],
+        makeupDates: [],
       })
     }
     return monthsMap.get(key)!
@@ -93,6 +94,25 @@ export default async function AdminTeacherReportsPage({ params }: Props) {
     const key = `${parts[0]}-${parts[1]}`
     const dayNum = parseInt(parts[2])
     const month = ensureMonth(key)
+
+    if ((lesson as any).is_makeup) {
+      const mkReason = (lesson as any).teacher_absence_reason ?? ''
+      if (mkReason !== 'העדרות מורה עם השלמה בתלוש נוכחי') {
+        month.dayCounts[dayNum].makeup++
+        if (!month.makeupDates.includes(dayNum)) month.makeupDates.push(dayNum)
+      }
+      continue
+    }
+
+    if ((lesson as any).status === 'teacher_canceled') {
+      const r = (lesson as any).teacher_absence_reason ?? ''
+      if (r === 'העדרות מורה עם השלמה בתלוש נוכחי') {
+        const col = mapType(groupType.get(lesson.group_id) ?? '')
+        if (col) month.dayCounts[dayNum][col]++
+      }
+      continue
+    }
+
     const col = mapType(groupType.get(lesson.group_id) ?? '')
     if (col) month.dayCounts[dayNum][col]++
   }
@@ -120,8 +140,10 @@ export default async function AdminTeacherReportsPage({ params }: Props) {
 
   for (const [date, cat] of sickDateCategory) {
     const parts = date.split('-')
+    const dayNum = parseInt(parts[2])
     const m = ensureMonth(`${parts[0]}-${parts[1]}`)
     m.sickDays++
+    if (!m.sickDates.includes(dayNum)) m.sickDates.push(dayNum)
     if (cat === 'unpaid') m.sickUnpaid++
     else if (cat === 'half') m.sickHalf++
     else m.sickFull++

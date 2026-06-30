@@ -32,9 +32,9 @@ export async function cancelLesson(formData: FormData) {
   const isSickLeave = formData.get('is_sick_leave') === 'true'
   const documentUrl = formData.get('document_url') as string | null
 
-  const ADVANCE_NOTICE_REASON = 'ביטול מוצדק (עד פעמיים בשנה)'
+  const ADVANCE_NOTICE_REASON = 'ביטול מוצדק של תלמיד (עד שניים בשנה)'
   const isAdvanceNotice = reason === ADVANCE_NOTICE_REASON
-  const hasMakeup = (reason.includes('השלמה') || isAdvanceNotice) && notes && makeupStartTime
+  const hasMakeup = (reason === 'ביטול מורה עם השלמה' || isAdvanceNotice) && notes && makeupStartTime
 
   // Create the makeup lesson record first (so we have its ID for the update)
   let makeupLessonId: string | null = null
