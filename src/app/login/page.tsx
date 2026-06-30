@@ -145,7 +145,7 @@ export default function LoginPage() {
     }
   }
 
-  const titles: Record<Mode, string> = { login: 'ברוכה השבה', signup: 'צרי חשבון חדש', forgot: 'איפוס סיסמה', 'set-password': 'הגדרת סיסמה' }
+  const titles: Record<Mode, string> = { login: 'ברוך הבא', signup: 'צרי חשבון חדש', forgot: 'איפוס סיסמה', 'set-password': 'הגדרת סיסמה' }
   const btnLabels: Record<Mode, string> = { login: 'כניסה', signup: 'הרשמה', forgot: 'שלחי לי קישור', 'set-password': 'שמרי סיסמה והיכנסי' }
 
   if (mode === 'set-password') {
