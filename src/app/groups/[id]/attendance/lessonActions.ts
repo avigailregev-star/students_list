@@ -130,7 +130,7 @@ export async function deleteMakeupLesson(makeupLessonId: string): Promise<{ ok: 
 
   const { data: makeupLesson, error: fetchErr } = await admin
     .from('lessons')
-    .select('google_event_id, group_id')
+    .select('group_id')
     .eq('id', makeupLessonId)
     .single()
 
@@ -161,11 +161,6 @@ export async function deleteMakeupLesson(makeupLessonId: string): Promise<{ ok: 
   // Delete attendance records first (foreign key constraint)
   const { error: attErr } = await admin.from('attendance').delete().eq('lesson_id', makeupLessonId)
   if (attErr) return { ok: false, error: 'שגיאה במחיקת נוכחות: ' + attErr.message }
-
-  // Delete GCal event (fire-and-forget)
-  if (makeupLesson.google_event_id) {
-    void deleteGCalEvent(user.id, makeupLesson.google_event_id).catch(() => null)
-  }
 
   const { error: deleteErr } = await admin.from('lessons').delete().eq('id', makeupLessonId)
   if (deleteErr) return { ok: false, error: 'שגיאה במחיקת השיעור: ' + deleteErr.message }
