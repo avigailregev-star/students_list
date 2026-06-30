@@ -169,7 +169,7 @@ export default async function AttendancePage({ params, searchParams }: Props) {
                     </p>
                   )}
                 </div>
-                <DeleteMakeupButton lessonId={lesson.id} />
+                <DeleteMakeupButton lessonId={lesson.id} groupId={id} />
               </div>
             )}
 

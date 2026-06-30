@@ -121,7 +121,7 @@ export async function cancelLesson(formData: FormData) {
   })()
 }
 
-export async function deleteMakeupLesson(makeupLessonId: string): Promise<string> {
+export async function deleteMakeupLesson(makeupLessonId: string): Promise<void> {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
@@ -166,9 +166,6 @@ export async function deleteMakeupLesson(makeupLessonId: string): Promise<string
   if (error) throw new Error('שגיאה במחיקת שיעור ההשלמה: ' + error.message)
 
   revalidatePath('/')
-  revalidatePath('/groups/[id]/attendance', 'page')
-
-  return groupId
 }
 
 export async function restoreLesson(lessonId: string) {
