@@ -84,6 +84,7 @@ export default async function AdminTeacherReportsPage({ params }: Props) {
         sickFull: 0,
         sickDates: [],
         makeupDates: [],
+        makeupTypes: {},
       })
     }
     return monthsMap.get(key)!
@@ -100,6 +101,11 @@ export default async function AdminTeacherReportsPage({ params }: Props) {
       if (mkReason !== 'העדרות מורה עם השלמה בתלוש נוכחי') {
         month.dayCounts[dayNum].makeup++
         if (!month.makeupDates.includes(dayNum)) month.makeupDates.push(dayNum)
+        const mkLessonType = groupType.get(lesson.group_id) ?? ''
+        if (mkLessonType) {
+          if (!month.makeupTypes[dayNum]) month.makeupTypes[dayNum] = {}
+          month.makeupTypes[dayNum][mkLessonType] = (month.makeupTypes[dayNum][mkLessonType] ?? 0) + 1
+        }
       }
       continue
     }

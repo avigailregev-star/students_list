@@ -27,6 +27,7 @@ export type MonthPayroll = {
   sickFull: number
   sickDates: number[]
   makeupDates: number[]
+  makeupTypes: Record<number, Record<string, number>>
 }
 
 const HE_MONTHS = ['ינואר','פברואר','מרץ','אפריל','מאי','יוני','יולי','אוגוסט','ספטמבר','אוקטובר','נובמבר','דצמבר']
@@ -105,6 +106,7 @@ export default async function PayrollPage() {
         sickFull: 0,
         sickDates: [],
         makeupDates: [],
+        makeupTypes: {},
       })
     }
     return monthsMap.get(key)!
@@ -122,6 +124,11 @@ export default async function PayrollPage() {
       if (mkReason !== 'העדרות מורה עם השלמה בתלוש נוכחי') {
         month.dayCounts[dayNum].makeup++
         if (!month.makeupDates.includes(dayNum)) month.makeupDates.push(dayNum)
+        const mkLessonType = groupType.get(lesson.group_id) ?? ''
+        if (mkLessonType) {
+          if (!month.makeupTypes[dayNum]) month.makeupTypes[dayNum] = {}
+          month.makeupTypes[dayNum][mkLessonType] = (month.makeupTypes[dayNum][mkLessonType] ?? 0) + 1
+        }
       }
       continue
     }

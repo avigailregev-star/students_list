@@ -4,6 +4,29 @@ import type { MonthPayroll, DayCount } from './page'
 
 const DAY_ABBREV = ["א'", "ב'", "ג'", "ד'", "ה'", "ו'", "ש'"]
 
+const TYPE_SHORT: Record<string, string> = {
+  individual_45: "פ45'",
+  individual_60: "פ60'",
+  melodies_individual: 'מנ',
+  melodies_group: 'מנ',
+  group: 'מנ',
+  orchestra: 'הר',
+  choir: 'הר',
+  theory: 'תא',
+  darcha: 'ד',
+}
+
+function formatMakeupTypes(types: Record<string, number>): string {
+  const merged: Record<string, number> = {}
+  for (const [type, count] of Object.entries(types)) {
+    const short = TYPE_SHORT[type] ?? type
+    merged[short] = (merged[short] ?? 0) + count
+  }
+  return Object.entries(merged)
+    .map(([label, count]) => count > 1 ? `${label}×${count}` : label)
+    .join(' · ')
+}
+
 function total(c: DayCount) {
   return c.individual_45 + c.individual_60 + c.melodies + c.ensemble + c.theory + c.darcha + c.makeup
 }
@@ -42,6 +65,7 @@ export default function PayrollView({ months, teacherName }: { months: MonthPayr
 
 function MonthTable({ month, teacherName }: { month: MonthPayroll; teacherName: string }) {
   const totals: DayCount = { individual_45: 0, individual_60: 0, melodies: 0, ensemble: 0, theory: 0, darcha: 0, makeup: 0 }
+  const totalMakeupTypes: Record<string, number> = {}
   let grandTotal = 0
   let workDays = 0
   for (let d = 1; d <= month.daysInMonth; d++) {
@@ -53,6 +77,10 @@ function MonthTable({ month, teacherName }: { month: MonthPayroll; teacherName: 
     totals.theory += c.theory
     totals.darcha += c.darcha
     totals.makeup += c.makeup
+    const types = month.makeupTypes[d] ?? {}
+    for (const [type, count] of Object.entries(types)) {
+      totalMakeupTypes[type] = (totalMakeupTypes[type] ?? 0) + count
+    }
     const dayTotal = total(c)
     grandTotal += dayTotal
     if (dayTotal > 0) workDays++
@@ -133,7 +161,18 @@ function MonthTable({ month, teacherName }: { month: MonthPayroll; teacherName: 
                     <td className={td}>{c.ensemble || ''}</td>
                     <td className={td}>{c.theory || ''}</td>
                     <td className={td}>{c.darcha || ''}</td>
-                    <td className={`${td} ${isMakeupDay ? 'bg-teal-50 text-teal-700 font-bold' : ''}`}>{c.makeup || ''}</td>
+                    <td className={`${td} ${isMakeupDay ? 'bg-teal-50 text-teal-700 font-bold' : ''}`}>
+                      {c.makeup ? (
+                        <div className="flex flex-col items-center leading-tight gap-0.5">
+                          <span>{c.makeup}</span>
+                          {month.makeupTypes[d] && (
+                            <span className="text-[8px] font-normal text-teal-600 whitespace-nowrap">
+                              {formatMakeupTypes(month.makeupTypes[d])}
+                            </span>
+                          )}
+                        </div>
+                      ) : ''}
+                    </td>
                     <td className={`${td} font-bold`}>{rowTotal || ''}</td>
                   </>
                 )}
@@ -150,7 +189,18 @@ function MonthTable({ month, teacherName }: { month: MonthPayroll; teacherName: 
             <td className={`${td} font-bold`}>{totals.ensemble || ''}</td>
             <td className={`${td} font-bold`}>{totals.theory || ''}</td>
             <td className={`${td} font-bold`}>{totals.darcha || ''}</td>
-            <td className={`${td} font-bold`}>{totals.makeup || ''}</td>
+            <td className={`${td} font-bold`}>
+              {totals.makeup ? (
+                <div className="flex flex-col items-center leading-tight gap-0.5">
+                  <span>{totals.makeup}</span>
+                  {Object.keys(totalMakeupTypes).length > 0 && (
+                    <span className="text-[8px] font-normal text-gray-500 whitespace-nowrap">
+                      {formatMakeupTypes(totalMakeupTypes)}
+                    </span>
+                  )}
+                </div>
+              ) : ''}
+            </td>
             <td className={`${td} font-bold`}>{grandTotal || ''}</td>
           </tr>
           <tr>
