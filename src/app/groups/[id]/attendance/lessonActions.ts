@@ -121,12 +121,11 @@ export async function cancelLesson(formData: FormData) {
   })()
 }
 
-export async function deleteMakeupLesson(makeupLessonId: string) {
+export async function deleteMakeupLesson(makeupLessonId: string): Promise<string> {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
-  // Find the original lesson that points to this makeup
   const admin = createAdminClient()
   const { data: makeupLesson } = await admin
     .from('lessons')
@@ -138,11 +137,16 @@ export async function deleteMakeupLesson(makeupLessonId: string) {
   const teacherId = (makeupLesson?.groups as any)?.teacher_id
   if (!makeupLesson || teacherId !== user.id) throw new Error('אין הרשאה')
 
-  // Clear makeup_lesson_id from the original lesson (keep it canceled, just without a makeup)
+  const groupId = makeupLesson.group_id as string
+
+  // Clear makeup reference from the original lesson
   await admin
     .from('lessons')
     .update({ makeup_lesson_id: null, makeup_start_time: null })
     .eq('makeup_lesson_id', makeupLessonId)
+
+  // Delete attendance records first (foreign key constraint)
+  await admin.from('attendance').delete().eq('lesson_id', makeupLessonId)
 
   // Delete GCal event
   if (makeupLesson.google_event_id) {
@@ -154,7 +158,8 @@ export async function deleteMakeupLesson(makeupLessonId: string) {
 
   revalidatePath('/')
   revalidatePath('/groups/[id]/attendance', 'page')
-  redirect(`/groups/${makeupLesson.group_id}`)
+
+  return groupId
 }
 
 export async function restoreLesson(lessonId: string) {
