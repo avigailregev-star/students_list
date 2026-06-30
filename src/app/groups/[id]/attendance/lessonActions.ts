@@ -121,6 +121,42 @@ export async function cancelLesson(formData: FormData) {
   })()
 }
 
+export async function deleteMakeupLesson(makeupLessonId: string) {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) redirect('/login')
+
+  // Find the original lesson that points to this makeup
+  const admin = createAdminClient()
+  const { data: makeupLesson } = await admin
+    .from('lessons')
+    .select('google_event_id, group_id, groups(teacher_id)')
+    .eq('id', makeupLessonId)
+    .single()
+
+  // Security: only the teacher who owns the group may delete
+  const teacherId = (makeupLesson?.groups as any)?.teacher_id
+  if (!makeupLesson || teacherId !== user.id) throw new Error('אין הרשאה')
+
+  // Clear makeup_lesson_id from the original lesson (keep it canceled, just without a makeup)
+  await admin
+    .from('lessons')
+    .update({ makeup_lesson_id: null, makeup_start_time: null })
+    .eq('makeup_lesson_id', makeupLessonId)
+
+  // Delete GCal event
+  if (makeupLesson.google_event_id) {
+    try { await deleteGCalEvent(user.id, makeupLesson.google_event_id) } catch { /* ignore */ }
+  }
+
+  const { error } = await admin.from('lessons').delete().eq('id', makeupLessonId)
+  if (error) throw new Error('שגיאה במחיקת שיעור ההשלמה')
+
+  revalidatePath('/')
+  revalidatePath('/groups/[id]/attendance', 'page')
+  redirect(`/groups/${makeupLesson.group_id}`)
+}
+
 export async function restoreLesson(lessonId: string) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()

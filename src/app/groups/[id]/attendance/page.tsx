@@ -5,6 +5,7 @@ import { getStudentsByGroup } from '@/lib/queries/students'
 import { getOrCreateLesson, getAttendanceForLesson } from '@/lib/queries/attendance'
 import AttendanceSection from '@/components/attendance/AttendanceSection'
 import CancelLessonButton from './CancelLessonButton'
+import DeleteMakeupButton from './DeleteMakeupButton'
 import { getLastLessonDate, isHolidayDate } from '@/lib/utils/schedule'
 import { formatDateHe } from '@/lib/utils/hebrew'
 import type { Group, GroupSchedule, Holiday, AttendanceStatus, Lesson } from '@/types/database'
@@ -154,13 +155,13 @@ export default async function AttendancePage({ params, searchParams }: Props) {
           </div>
         ) : (
           <>
-            {/* Makeup lesson banner */}
+            {/* Makeup lesson banner + delete */}
             {lesson.is_makeup && (
               <div className="mb-4 bg-purple-50 border border-purple-100 rounded-2xl px-4 py-3 flex items-center gap-3">
                 <div className="w-8 h-8 bg-purple-100 rounded-xl flex items-center justify-center shrink-0 text-base">
                   🔄
                 </div>
-                <div>
+                <div className="flex-1">
                   <p className="text-sm font-bold text-purple-700">שיעור השלמה</p>
                   {originalLessonDate && (
                     <p className="text-xs text-purple-400">
@@ -168,6 +169,7 @@ export default async function AttendancePage({ params, searchParams }: Props) {
                     </p>
                   )}
                 </div>
+                <DeleteMakeupButton lessonId={lesson.id} />
               </div>
             )}
 
