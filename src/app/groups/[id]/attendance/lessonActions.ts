@@ -121,51 +121,57 @@ export async function cancelLesson(formData: FormData) {
   })()
 }
 
-export async function deleteMakeupLesson(makeupLessonId: string): Promise<void> {
+export async function deleteMakeupLesson(makeupLessonId: string): Promise<{ ok: true } | { ok: false; error: string }> {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
   const admin = createAdminClient()
 
-  // Fetch the makeup lesson with admin client (no RLS)
-  const { data: makeupLesson } = await admin
+  const { data: makeupLesson, error: fetchErr } = await admin
     .from('lessons')
     .select('google_event_id, group_id')
     .eq('id', makeupLessonId)
     .single()
 
-  if (!makeupLesson) throw new Error('שיעור לא נמצא')
+  if (fetchErr || !makeupLesson) {
+    return { ok: false, error: 'שיעור לא נמצא: ' + (fetchErr?.message ?? 'null') }
+  }
 
-  const groupId = makeupLesson.group_id as string
-
-  // Verify ownership: teacher's client (with RLS) can only see their own groups
-  const { data: ownedGroup } = await supabase
+  // Verify ownership
+  const { data: ownedGroup, error: groupErr } = await supabase
     .from('groups')
     .select('id')
-    .eq('id', groupId)
+    .eq('id', makeupLesson.group_id)
+    .eq('teacher_id', user.id)
     .single()
 
-  if (!ownedGroup) throw new Error('אין הרשאה')
+  if (groupErr || !ownedGroup) {
+    return { ok: false, error: 'אין הרשאה: ' + (groupErr?.message ?? 'group not found') }
+  }
 
   // Clear makeup reference from the original lesson
-  await admin
+  const { error: clearErr } = await admin
     .from('lessons')
     .update({ makeup_lesson_id: null, makeup_start_time: null })
     .eq('makeup_lesson_id', makeupLessonId)
 
+  if (clearErr) return { ok: false, error: 'שגיאה בניקוי הפניה: ' + clearErr.message }
+
   // Delete attendance records first (foreign key constraint)
-  await admin.from('attendance').delete().eq('lesson_id', makeupLessonId)
+  const { error: attErr } = await admin.from('attendance').delete().eq('lesson_id', makeupLessonId)
+  if (attErr) return { ok: false, error: 'שגיאה במחיקת נוכחות: ' + attErr.message }
 
   // Delete GCal event (fire-and-forget)
   if (makeupLesson.google_event_id) {
     void deleteGCalEvent(user.id, makeupLesson.google_event_id).catch(() => null)
   }
 
-  const { error } = await admin.from('lessons').delete().eq('id', makeupLessonId)
-  if (error) throw new Error('שגיאה במחיקת שיעור ההשלמה: ' + error.message)
+  const { error: deleteErr } = await admin.from('lessons').delete().eq('id', makeupLessonId)
+  if (deleteErr) return { ok: false, error: 'שגיאה במחיקת השיעור: ' + deleteErr.message }
 
   revalidatePath('/')
+  return { ok: true }
 }
 
 export async function restoreLesson(lessonId: string) {

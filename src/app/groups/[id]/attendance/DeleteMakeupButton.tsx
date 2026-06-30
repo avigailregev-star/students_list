@@ -14,7 +14,8 @@ export default function DeleteMakeupButton({ lessonId, groupId }: { lessonId: st
     setErrorMsg(null)
     startTransition(async () => {
       try {
-        await deleteMakeupLesson(lessonId)
+        const result = await deleteMakeupLesson(lessonId)
+        if (!result.ok) { setErrorMsg(result.error); return }
         router.push(`/groups/${groupId}`)
       } catch (e: unknown) {
         setErrorMsg(e instanceof Error ? e.message : String(e))
