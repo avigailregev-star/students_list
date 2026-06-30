@@ -97,12 +97,20 @@ export async function inviteTeacher(pendingId: string, email: string, name: stri
     return `שגיאה בשליחת המייל: ${e instanceof Error ? e.message : String(e)}`
   }
 
-  await supabase.from('teachers').delete().eq('id', pendingId)
+  // Insert the new teacher record FIRST so FK refs can be updated
   const { error: dbError } = await supabase
     .from('teachers')
     .insert({ id: newUserId, name, email, role: 'teacher', is_pending: false })
-
   if (dbError) return `שגיאה בשמירה: ${dbError.message}`
+
+  // If the auth user got a new id, migrate all cascaded associations before deleting the old record
+  if (newUserId !== pendingId) {
+    await supabase.from('teacher_availability_ranges').update({ teacher_id: newUserId }).eq('teacher_id', pendingId)
+    await supabase.from('messages').update({ teacher_id: newUserId }).eq('teacher_id', pendingId)
+    await supabase.from('vacation_requests').update({ teacher_id: newUserId }).eq('teacher_id', pendingId)
+  }
+
+  await supabase.from('teachers').delete().eq('id', pendingId)
   revalidatePath('/admin/teachers')
   redirect(`/admin/teachers/${newUserId}`)
 }
