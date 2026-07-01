@@ -147,19 +147,43 @@ export async function resendTeacherInvite(teacherId: string, email: string, name
 
   if (recoveryError) {
     // User doesn't exist in Auth yet — fall back to invite type
-    const isNotFound = recoveryError.message.toLowerCase().includes('not found') ||
-      recoveryError.message.toLowerCase().includes('user not found')
-    if (!isNotFound) return `שגיאה ביצירת קישור: ${recoveryError.message}`
-
     const { data: inviteData, error: inviteError } = await supabase.auth.admin.generateLink({
       type: 'invite',
       email,
       options: { redirectTo: resetCallbackUrl, data: { name } },
     })
-    if (inviteError) return `שגיאה ביצירת קישור: ${inviteError.message}`
+
+    let newUserId: string | undefined
+    let newInviteLink: string | undefined
+
+    if (!inviteError) {
+      newUserId = inviteData.user.id
+      newInviteLink = inviteData.properties.action_link
+    } else {
+      // invite also failed — try createUser + recovery as last resort
+      // (happens when email is in a soft-deleted state in Supabase Auth)
+      const { data: created, error: createError } = await supabase.auth.admin.createUser({
+        email,
+        user_metadata: { name },
+        email_confirm: false,
+      })
+      if (createError) {
+        // All attempts failed — report the original recovery error
+        return `שגיאה ביצירת קישור: ${recoveryError.message} (invite: ${inviteError.message})`
+      }
+      newUserId = created.user.id
+
+      // Generate recovery link for the freshly created user
+      const { data: newRecovery, error: newRecoveryError } = await supabase.auth.admin.generateLink({
+        type: 'recovery',
+        email,
+        options: { redirectTo: resetCallbackUrl },
+      })
+      if (newRecoveryError) return `שגיאה ביצירת קישור: ${newRecoveryError.message}`
+      newInviteLink = newRecovery.properties.action_link
+    }
 
     // Register the new auth user id in teachers table
-    const newUserId = inviteData.user.id
     if (newUserId !== teacherId) {
       await supabase.from('teacher_availability_ranges').update({ teacher_id: newUserId }).eq('teacher_id', teacherId)
       await supabase.from('messages').update({ teacher_id: newUserId }).eq('teacher_id', teacherId)
@@ -171,7 +195,7 @@ export async function resendTeacherInvite(teacherId: string, email: string, name
       await supabase.from('teachers').update({ email, is_pending: false }).eq('id', teacherId)
     }
 
-    inviteLink = inviteData.properties.action_link
+    inviteLink = newInviteLink!
   } else {
     inviteLink = recoveryData.properties.action_link
   }
@@ -182,6 +206,35 @@ export async function resendTeacherInvite(teacherId: string, email: string, name
     return `שגיאה בשליחת המייל: ${e instanceof Error ? e.message : String(e)}`
   }
   revalidatePath('/admin/teachers')
+}
+
+export async function mergeTeachers(pendingId: string, registeredId: string): Promise<string | void> {
+  await _requireAdmin('/admin')
+  const supabase = createAdminClient()
+
+  const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+  if (!UUID_RE.test(pendingId) || !UUID_RE.test(registeredId)) return 'מזהה לא תקין'
+  if (pendingId === registeredId) return 'לא ניתן למזג מורה עם עצמה'
+
+  const { data: pending } = await supabase
+    .from('teachers')
+    .select('id, is_pending')
+    .eq('id', pendingId)
+    .single()
+
+  if (!pending) return 'המורה הממתינה לא נמצאה'
+  if (!pending.is_pending) return 'ניתן למזג רק מורה ממתינה'
+
+  await supabase.from('groups').update({ teacher_id: registeredId }).eq('teacher_id', pendingId)
+  await supabase.from('teacher_availability_ranges').update({ teacher_id: registeredId }).eq('teacher_id', pendingId)
+  await supabase.from('messages').update({ teacher_id: registeredId }).eq('teacher_id', pendingId)
+  await supabase.from('vacation_requests').update({ teacher_id: registeredId }).eq('teacher_id', pendingId)
+
+  const { error } = await supabase.from('teachers').delete().eq('id', pendingId)
+  if (error) return `שגיאה במחיקת המורה הממתינה: ${error.message}`
+
+  revalidatePath('/admin/teachers')
+  redirect(`/admin/teachers/${registeredId}`)
 }
 
 export async function deleteTeacher(teacherId: string) {

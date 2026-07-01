@@ -4,6 +4,7 @@ import EditTeacherForm from './EditTeacherForm'
 import AdminTeacherTabs from './AdminTeacherTabs'
 import DeleteTeacherButton from './DeleteTeacherButton'
 import ResendInviteButton from './ResendInviteButton'
+import MergeTeacherButton from './MergeTeacherButton'
 import { requireAdmin } from '@/lib/auth'
 import { createAdminClient } from '@/lib/supabase/admin'
 import type { GroupWithSchedulesAndStudents, TeacherAvailabilityRange } from '@/types/database'
@@ -22,6 +23,17 @@ export default async function TeacherDetailPage({ params }: Props) {
     .single()
 
   if (!teacher) notFound()
+
+  const { data: registeredTeachersRaw } = teacher.is_pending
+    ? await supabase
+        .from('teachers')
+        .select('id, name, email')
+        .eq('is_pending', false)
+        .eq('role', 'teacher')
+        .neq('id', id)
+        .order('name', { ascending: true })
+    : { data: null }
+  const registeredTeachers = (registeredTeachersRaw ?? []) as { id: string; name: string; email: string | null }[]
 
   // If email not stored in teachers table, fetch from auth (for teachers added externally)
   let teacherEmail = teacher.email ?? null
@@ -100,6 +112,9 @@ export default async function TeacherDetailPage({ params }: Props) {
           isPending={teacher.is_pending ?? false}
           email={teacher.email ?? null}
         />
+        {(teacher.is_pending ?? false) && registeredTeachers.length > 0 && (
+          <MergeTeacherButton pendingId={teacher.id} registeredTeachers={registeredTeachers} />
+        )}
         <AdminTeacherTabs
           teacherId={teacher.id}
           groups={groups}
