@@ -137,18 +137,51 @@ export async function resendTeacherInvite(teacherId: string, email: string, name
 
   const resetCallbackUrl = await getResetCallbackUrl()
 
-  const { data, error } = await supabase.auth.admin.generateLink({
+  let inviteLink: string
+
+  const { data: recoveryData, error: recoveryError } = await supabase.auth.admin.generateLink({
     type: 'recovery',
     email,
     options: { redirectTo: resetCallbackUrl },
   })
-  if (error) return `שגיאה ביצירת קישור: ${error.message}`
+
+  if (recoveryError) {
+    // User doesn't exist in Auth yet — fall back to invite type
+    const isNotFound = recoveryError.message.toLowerCase().includes('not found') ||
+      recoveryError.message.toLowerCase().includes('user not found')
+    if (!isNotFound) return `שגיאה ביצירת קישור: ${recoveryError.message}`
+
+    const { data: inviteData, error: inviteError } = await supabase.auth.admin.generateLink({
+      type: 'invite',
+      email,
+      options: { redirectTo: resetCallbackUrl, data: { name } },
+    })
+    if (inviteError) return `שגיאה ביצירת קישור: ${inviteError.message}`
+
+    // Register the new auth user id in teachers table
+    const newUserId = inviteData.user.id
+    if (newUserId !== teacherId) {
+      await supabase.from('teacher_availability_ranges').update({ teacher_id: newUserId }).eq('teacher_id', teacherId)
+      await supabase.from('messages').update({ teacher_id: newUserId }).eq('teacher_id', teacherId)
+      await supabase.from('vacation_requests').update({ teacher_id: newUserId }).eq('teacher_id', teacherId)
+      await supabase.from('groups').update({ teacher_id: newUserId }).eq('teacher_id', teacherId)
+      await supabase.from('teachers').insert({ id: newUserId, name, email, role: 'teacher', is_pending: false })
+      await supabase.from('teachers').delete().eq('id', teacherId)
+    } else {
+      await supabase.from('teachers').update({ email, is_pending: false }).eq('id', teacherId)
+    }
+
+    inviteLink = inviteData.properties.action_link
+  } else {
+    inviteLink = recoveryData.properties.action_link
+  }
 
   try {
-    await sendTeacherInviteEmail({ teacherEmail: email, teacherName: name, inviteLink: data.properties.action_link })
+    await sendTeacherInviteEmail({ teacherEmail: email, teacherName: name, inviteLink })
   } catch (e: unknown) {
     return `שגיאה בשליחת המייל: ${e instanceof Error ? e.message : String(e)}`
   }
+  revalidatePath('/admin/teachers')
 }
 
 export async function deleteTeacher(teacherId: string) {
