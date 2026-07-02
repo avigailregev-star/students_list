@@ -7,8 +7,16 @@ import './globals.css'
 const inter = Inter({ subsets: ['latin'], variable: '--font-inter' })
 
 export const metadata: Metadata = {
-  title: 'מעקב נוכחות',
-  description: 'אפליקציית מעקב נוכחות למורים',
+  title: 'רותי – מעקב נוכחות',
+  description: 'אפליקציית מעקב נוכחות למורים | קונסרבטוריון דימונה',
+  openGraph: {
+    title: 'רותי – מעקב נוכחות',
+    description: 'אפליקציית מעקב נוכחות למורים | קונסרבטוריון דימונה',
+    url: 'https://teacher-attendance-app-xi.vercel.app',
+    siteName: 'רותי',
+    locale: 'he_IL',
+    type: 'website',
+  },
 }
 
 export default function RootLayout({
