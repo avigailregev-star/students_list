@@ -171,7 +171,7 @@ export default async function PayrollPage() {
       if (gapDays > 1) { incidentStart = date; incidentDay = 1 }
       else incidentDay++
     }
-    sickDateCategory.set(date, incidentDay === 1 ? 'unpaid' : incidentDay === 2 ? 'half' : 'full')
+    sickDateCategory.set(date, incidentDay === 1 ? 'unpaid' : incidentDay <= 3 ? 'half' : 'full')
   }
 
   for (const [date, cat] of sickDateCategory) {

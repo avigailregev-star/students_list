@@ -97,8 +97,8 @@ export default function LoginPage() {
             await transferTeacherGroups(existingId, data.user.id)
           }
 
-          const { error: insertError } = await supabase.from('teachers').insert({ id: data.user.id, name, email })
-          if (insertError) throw insertError
+          const { error: insertError } = await supabase.from('teachers').insert({ id: data.user.id, name, email, role: 'teacher', is_pending: false })
+          if (insertError) throw new Error(insertError.message)
           setMessage('נרשמת בהצלחה!')
         }
         return
@@ -117,9 +117,9 @@ export default function LoginPage() {
       window.location.href = role === 'admin' ? '/admin' : (role ? '/' : '/redirect')
 
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'שגיאה לא ידועה'
+      const msg = err instanceof Error ? err.message : (err as { message?: string })?.message ?? 'שגיאה לא ידועה'
       if (msg.includes('Invalid login credentials')) setError('אימייל או סיסמה שגויים')
-      else if (msg.includes('User already registered')) setError('המשתמש כבר קיים — נסי להתחבר')
+      else if (msg.includes('User already registered') || msg.includes('already registered')) setError('המשתמש כבר קיים — נסי להתחבר')
       else setError(msg)
     } finally {
       setLoading(false)
