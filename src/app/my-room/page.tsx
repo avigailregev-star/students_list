@@ -47,7 +47,7 @@ export default async function MyRoomPage() {
         <h1 className="text-xl font-bold">החדר שלי</h1>
       </div>
       <MyRoomClient roomName={roomName} initialMessages={messages} userId={user.id} />
-      <BottomNav isAdmin={isAdmin} />
+      <BottomNav isAdmin={isAdmin} userId={user.id} />
     </div>
   )
 }

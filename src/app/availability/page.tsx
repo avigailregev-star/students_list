@@ -29,7 +29,7 @@ export default async function AvailabilityPage() {
 
       <AvailabilityClient initialRanges={ranges} isAdmin={isAdmin}/>
 
-      <BottomNav isAdmin={isAdmin}/>
+      <BottomNav isAdmin={isAdmin} userId={user.id} />
     </div>
   )
 }

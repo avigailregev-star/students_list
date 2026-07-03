@@ -1,6 +1,7 @@
 'use client'
 
 import Link from 'next/link'
+import { useState, useEffect } from 'react'
 import { usePathname, useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 
@@ -51,9 +52,31 @@ const items = [
   },
 ]
 
-export default function BottomNav({ isAdmin }: { isAdmin?: boolean }) {
+export default function BottomNav({ isAdmin, userId }: { isAdmin?: boolean; userId?: string }) {
   const pathname = usePathname()
   const router = useRouter()
+  const [hasAdminMessages, setHasAdminMessages] = useState(false)
+
+  useEffect(() => {
+    if (!userId) return
+    const supabase = createClient()
+    const checkAdminMessages = async () => {
+      const { count } = await supabase
+        .from('messages')
+        .select('id', { count: 'exact', head: true })
+        .eq('teacher_id', userId)
+        .eq('from_admin', true)
+      setHasAdminMessages((count ?? 0) > 0)
+    }
+    checkAdminMessages()
+    const channel = supabase
+      .channel('nav-admin-badge')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'messages', filter: `teacher_id=eq.${userId}` }, async () => {
+        await checkAdminMessages()
+      })
+      .subscribe()
+    return () => { supabase.removeChannel(channel) }
+  }, [userId])
 
   async function handleLogout() {
     const supabase = createClient()
@@ -66,13 +89,19 @@ export default function BottomNav({ isAdmin }: { isAdmin?: boolean }) {
     <nav className="fixed bottom-0 right-0 left-0 bg-white border-t border-gray-100 flex justify-around px-2 py-2 pb-safe z-50">
       {items.map(item => {
         const active = pathname === item.href
+        const showDot = item.href === '/my-room' && hasAdminMessages && pathname !== '/my-room'
         return (
           <Link
             key={item.href}
             href={item.href}
             className={`flex flex-col items-center gap-0.5 px-5 py-1.5 rounded-2xl transition-colors ${active ? 'bg-teal-50' : ''}`}
           >
-            {item.icon(active)}
+            <div className="relative">
+              {item.icon(active)}
+              {showDot && (
+                <span className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-white" />
+              )}
+            </div>
             <span className={`text-[10px] font-bold ${active ? 'text-teal-500' : 'text-gray-400'}`}>{item.label}</span>
           </Link>
         )

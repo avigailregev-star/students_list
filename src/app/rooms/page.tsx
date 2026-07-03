@@ -36,7 +36,7 @@ export default async function RoomsPage() {
         teachers={teachers}
         currentUserId={user.id}
       />
-      <BottomNav isAdmin={isAdmin}/>
+      <BottomNav isAdmin={isAdmin} userId={user.id} />
     </div>
   )
 }

@@ -32,6 +32,7 @@ export default async function HomePage() {
       events={events}
       isAdmin={isAdmin}
       makeupSlots={makeupSlots}
+      userId={user.id}
     />
   )
 }

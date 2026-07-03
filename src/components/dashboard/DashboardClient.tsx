@@ -16,9 +16,10 @@ interface Props {
   events: SchoolEvent[]
   isAdmin?: boolean
   makeupSlots: LessonSlot[]
+  userId?: string
 }
 
-export default function DashboardClient({ groups, teacherName, events, isAdmin, makeupSlots }: Props) {
+export default function DashboardClient({ groups, teacherName, events, isAdmin, makeupSlots, userId }: Props) {
   const [view, setView] = useState<'day' | 'week' | 'month'>('day')
   const [dayInitialDate, setDayInitialDate] = useState<Date | undefined>(undefined)
 
@@ -93,7 +94,7 @@ export default function DashboardClient({ groups, teacherName, events, isAdmin, 
         )}
       </div>
 
-      <BottomNav isAdmin={isAdmin} />
+      <BottomNav isAdmin={isAdmin} userId={userId} />
     </div>
   )
 }
