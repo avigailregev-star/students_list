@@ -2,11 +2,11 @@
 
 import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
-import { replyToMessage } from './messageActions'
+import { replyToMessage, sendAdminMessage } from './messageActions'
 import { decideVacationRequest } from './vacationActions'
 import { markResolved } from '@/app/admin/bugs/bugActions'
 import type { VacationRequestWithTeacher } from '@/types/database'
-import type { BugReport } from './page'
+import type { BugReport, TeacherOption } from './page'
 
 type MessageWithTeacher = {
   id: string
@@ -16,6 +16,7 @@ type MessageWithTeacher = {
   status: 'pending' | 'replied'
   created_at: string
   replied_at: string | null
+  from_admin?: boolean
   teachers: { name: string } | null
 }
 
@@ -33,9 +34,10 @@ interface Props {
   initialMessages: MessageWithTeacher[]
   initialVacationRequests: VacationRequestWithTeacher[]
   initialBugReports: BugReport[]
+  teachers: TeacherOption[]
 }
 
-export default function MessagesInboxClient({ initialMessages, initialVacationRequests, initialBugReports }: Props) {
+export default function MessagesInboxClient({ initialMessages, initialVacationRequests, initialBugReports, teachers }: Props) {
   const [tab, setTab] = useState<'messages' | 'vacations' | 'bugs'>('messages')
   const [messages, setMessages] = useState<MessageWithTeacher[]>(initialMessages)
   const [vacations, setVacations] = useState<VacationRequestWithTeacher[]>(initialVacationRequests)
@@ -45,6 +47,13 @@ export default function MessagesInboxClient({ initialMessages, initialVacationRe
   const [pendingIds, setPendingIds] = useState<Set<string>>(new Set())
   const [rejectingId, setRejectingId] = useState<string | null>(null)
   const [adminNotes, setAdminNotes] = useState<Record<string, string>>({})
+
+  // Compose form state
+  const [composeOpen, setComposeOpen] = useState(false)
+  const [composeTeacherId, setComposeTeacherId] = useState<string>('all')
+  const [composeContent, setComposeContent] = useState('')
+  const [composePending, setComposePending] = useState(false)
+  const [composeError, setComposeError] = useState('')
 
   useEffect(() => {
     const supabase = createClient()
@@ -89,11 +98,23 @@ export default function MessagesInboxClient({ initialMessages, initialVacationRe
     setPendingIds(prev => { const s = new Set(prev); s.delete(id); return s })
   }
 
-  const pendingMessages = messages.filter(m => m.status === 'pending').length
+  async function handleSendAdminMessage() {
+    setComposeError('')
+    setComposePending(true)
+    const result = await sendAdminMessage(composeTeacherId, composeContent)
+    setComposePending(false)
+    if (result.error) { setComposeError(result.error); return }
+    setComposeContent('')
+    setComposeOpen(false)
+  }
+
+  // Exclude admin-initiated messages from inbox counts and lists
+  const inboxMessages = messages.filter(m => !m.from_admin)
+  const pendingMessages = inboxMessages.filter(m => m.status === 'pending').length
   const pendingVacations = vacations.filter(v => v.status === 'pending').length
   const newBugs = bugs.filter(b => b.status === 'new').length
-  const pending = messages.filter(m => m.status === 'pending')
-  const replied = messages.filter(m => m.status === 'replied')
+  const pending = inboxMessages.filter(m => m.status === 'pending')
+  const replied = inboxMessages.filter(m => m.status === 'replied')
   const pendingVac = vacations.filter(v => v.status === 'pending')
   const decidedVac = vacations.filter(v => v.status !== 'pending')
 
@@ -130,7 +151,60 @@ export default function MessagesInboxClient({ initialMessages, initialVacationRe
       {/* Messages tab */}
       {tab === 'messages' && (
         <div className="px-4 py-5 flex flex-col gap-5">
-          {messages.length === 0 && (
+
+          {/* Compose button / form */}
+          {!composeOpen ? (
+            <button
+              onClick={() => setComposeOpen(true)}
+              className="w-full py-3 bg-teal-500 text-white text-sm font-bold rounded-2xl hover:bg-teal-600 transition-colors"
+            >
+              ✉️ שלח הודעה חדשה
+            </button>
+          ) : (
+            <div className="bg-white rounded-2xl shadow-sm p-4 border border-teal-100 flex flex-col gap-3">
+              <div className="flex items-center justify-between">
+                <p className="text-sm font-bold text-gray-700">הודעה חדשה</p>
+                <button onClick={() => setComposeOpen(false)} className="text-gray-400 hover:text-gray-600 text-xl leading-none">×</button>
+              </div>
+              <select
+                value={composeTeacherId}
+                onChange={e => setComposeTeacherId(e.target.value)}
+                className="border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-teal-400"
+                dir="rtl"
+              >
+                <option value="all">📢 כל המורות</option>
+                {teachers.map(t => (
+                  <option key={t.id} value={t.id}>{t.name}</option>
+                ))}
+              </select>
+              <textarea
+                value={composeContent}
+                onChange={e => setComposeContent(e.target.value)}
+                placeholder="כתבי את ההודעה..."
+                rows={3}
+                className="border border-gray-200 rounded-xl px-3 py-2 text-sm resize-none focus:outline-none focus:border-teal-400"
+                dir="rtl"
+              />
+              {composeError && <p className="text-xs text-red-500">{composeError}</p>}
+              <div className="flex gap-2">
+                <button
+                  onClick={handleSendAdminMessage}
+                  disabled={composePending || !composeContent.trim()}
+                  className="flex-1 py-2 bg-teal-500 text-white text-sm font-bold rounded-xl hover:bg-teal-600 disabled:opacity-40 transition-colors"
+                >
+                  {composePending ? 'שולח...' : 'שלח'}
+                </button>
+                <button
+                  onClick={() => { setComposeOpen(false); setComposeError('') }}
+                  className="flex-1 py-2 bg-gray-100 text-gray-600 text-sm font-bold rounded-xl hover:bg-gray-200 transition-colors"
+                >
+                  ביטול
+                </button>
+              </div>
+            </div>
+          )}
+
+          {inboxMessages.length === 0 && (
             <p className="text-sm text-gray-400 text-center py-8">אין הודעות עדיין</p>
           )}
           {pending.length > 0 && (
@@ -306,6 +380,7 @@ export default function MessagesInboxClient({ initialMessages, initialVacationRe
           )}
         </div>
       )}
+
       {/* Bugs tab */}
       {tab === 'bugs' && (
         <div className="px-4 py-5 flex flex-col gap-3">

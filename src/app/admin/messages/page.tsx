@@ -13,6 +13,7 @@ type MessageWithTeacher = {
   status: 'pending' | 'replied'
   created_at: string
   replied_at: string | null
+  from_admin?: boolean
   teachers: { name: string } | null
 }
 
@@ -26,6 +27,8 @@ export type BugReport = {
   created_at: string
 }
 
+export type TeacherOption = { id: string; name: string }
+
 export default async function AdminMessagesPage() {
   const { supabase } = await requireAdmin()
   const adminSupabase = createAdminClient()
@@ -34,15 +37,18 @@ export default async function AdminMessagesPage() {
     { data: messagesRaw },
     { data: vacationsRaw },
     { data: bugsRaw },
+    { data: teachersRaw },
   ] = await Promise.all([
     supabase.from('messages').select('*, teachers(name)').order('created_at', { ascending: false }),
     supabase.from('vacation_requests').select('*, teachers(name)').order('created_at', { ascending: false }),
     adminSupabase.from('bug_reports').select('id, teacher_name, page_url, error_message, user_description, status, created_at').order('created_at', { ascending: false }),
+    adminSupabase.from('teachers').select('id, name').neq('role', 'admin').order('name'),
   ])
 
   const messages = (messagesRaw ?? []) as MessageWithTeacher[]
   const vacationRequests = (vacationsRaw ?? []) as VacationRequestWithTeacher[]
   const bugReports = (bugsRaw ?? []) as BugReport[]
+  const teachers = (teachersRaw ?? []) as TeacherOption[]
 
   return (
     <div className="flex flex-col min-h-screen">
@@ -50,7 +56,7 @@ export default async function AdminMessagesPage() {
         <p className="text-xs font-semibold text-teal-100 uppercase tracking-widest">ניהול</p>
         <h1 className="text-xl font-bold">הודעות מורים</h1>
       </div>
-      <MessagesInboxClient initialMessages={messages} initialVacationRequests={vacationRequests} initialBugReports={bugReports} />
+      <MessagesInboxClient initialMessages={messages} initialVacationRequests={vacationRequests} initialBugReports={bugReports} teachers={teachers} />
     </div>
   )
 }
