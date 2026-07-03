@@ -51,6 +51,14 @@ export function getLastLessonDate(schedules: GroupSchedule[], from: Date = new D
 }
 
 /**
+ * July (6) and August (7) are summer — no regular lessons.
+ * Makeup slots are tracked separately and bypass this check.
+ */
+export function isSummerMonth(month: number): boolean {
+  return month === 6 || month === 7
+}
+
+/**
  * Checks if a date is a holiday (Friday, Saturday, or exists in holidays list).
  */
 export function isHolidayDate(
@@ -92,6 +100,8 @@ export function getLessonSlotsForWeek(
       const date = new Date(weekStart)
       date.setDate(weekStart.getDate() + schedule.day_of_week)
 
+      if (isSummerMonth(date.getMonth())) continue
+
       slots.push({
         groupId: group.id,
         groupName: group.name,
@@ -123,6 +133,8 @@ export function getLessonSlotsForMonth(
   year: number,
   month: number  // 0-indexed (0=Jan)
 ): LessonSlot[] {
+  if (isSummerMonth(month)) return []
+
   const slots: LessonSlot[] = []
   const daysInMonth = new Date(year, month + 1, 0).getDate()
 
