@@ -139,6 +139,7 @@ export type Message = {
   status: 'pending' | 'replied'
   created_at: string
   replied_at: string | null
+  from_admin?: boolean
 }
 
 export type VacationRequest = {
