@@ -54,6 +54,7 @@ export default function MessagesInboxClient({ initialMessages, initialVacationRe
   const [composeContent, setComposeContent] = useState('')
   const [composePending, setComposePending] = useState(false)
   const [composeError, setComposeError] = useState('')
+  const [composeSuccess, setComposeSuccess] = useState('')
 
   useEffect(() => {
     const supabase = createClient()
@@ -104,8 +105,12 @@ export default function MessagesInboxClient({ initialMessages, initialVacationRe
     const result = await sendAdminMessage(composeTeacherId, composeContent)
     setComposePending(false)
     if (result.error) { setComposeError(result.error); return }
+    const recipientLabel = composeTeacherId === 'all' ? 'כל המורות' : teachers.find(t => t.id === composeTeacherId)?.name ?? 'המורה'
     setComposeContent('')
+    setComposeTeacherId('all')
     setComposeOpen(false)
+    setComposeSuccess(`ההודעה נשלחה ל${recipientLabel} בהצלחה`)
+    setTimeout(() => setComposeSuccess(''), 4000)
   }
 
   // Exclude admin-initiated messages from inbox counts and lists
@@ -151,6 +156,13 @@ export default function MessagesInboxClient({ initialMessages, initialVacationRe
       {/* Messages tab */}
       {tab === 'messages' && (
         <div className="px-4 py-5 flex flex-col gap-5">
+
+          {/* Success toast */}
+          {composeSuccess && (
+            <div className="bg-emerald-500 text-white rounded-2xl px-4 py-3 text-sm font-bold text-center">
+              ✓ {composeSuccess}
+            </div>
+          )}
 
           {/* Compose button / form */}
           {!composeOpen ? (
