@@ -19,6 +19,8 @@ export default function MyRoomClient({ roomName, initialMessages, userId }: Prop
   const [sendError, setSendError] = useState('')
   const [isPending, startTransition] = useTransition()
   const [replyToast, setReplyToast] = useState(false)
+  const [adminReplyTexts, setAdminReplyTexts] = useState<Record<string, string>>({})
+  const [adminReplyPending, setAdminReplyPending] = useState<Set<string>>(new Set())
   const router = useRouter()
 
   useEffect(() => {
@@ -40,7 +42,7 @@ export default function MyRoomClient({ roomName, initialMessages, userId }: Prop
         if (data) {
           const newMessages = data as Message[]
           setMessages(prev => {
-            const prevPending = new Set(prev.filter(m => m.status === 'pending').map(m => m.id))
+            const prevPending = new Set(prev.filter(m => m.status === 'pending' && !m.from_admin).map(m => m.id))
             const gotReply = newMessages.some(m => m.status === 'replied' && prevPending.has(m.id))
             if (gotReply) setReplyToast(true)
             return newMessages
@@ -67,6 +69,21 @@ export default function MyRoomClient({ roomName, initialMessages, userId }: Prop
       setContent('')
     })
   }
+
+  function handleAdminReply(msgId: string) {
+    const replyContent = adminReplyTexts[msgId] ?? ''
+    if (!replyContent.trim()) return
+    setAdminReplyPending(prev => new Set(prev).add(msgId))
+    startTransition(async () => {
+      const result = await sendMessage(replyContent)
+      setAdminReplyPending(prev => { const s = new Set(prev); s.delete(msgId); return s })
+      if (result.error === 'unauthorized') { router.push('/login'); return }
+      if (!result.error) setAdminReplyTexts(prev => ({ ...prev, [msgId]: '' }))
+    })
+  }
+
+  const adminMessages = messages.filter(m => m.from_admin)
+  const myMessages = messages.filter(m => !m.from_admin)
 
   return (
     <div className="px-4 py-5 flex flex-col gap-4" dir="rtl">
@@ -95,6 +112,41 @@ export default function MyRoomClient({ roomName, initialMessages, userId }: Prop
         ← ראי את הלוח השבועי
       </Link>
 
+      {/* Admin messages */}
+      {adminMessages.length > 0 && (
+        <div className="flex flex-col gap-2">
+          <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">הודעות מהמנהל</p>
+          {adminMessages.map(msg => (
+            <div key={msg.id} className="bg-blue-50 border border-blue-100 rounded-2xl p-4">
+              <div className="flex items-center gap-2 mb-2">
+                <span className="text-xs font-bold bg-blue-500 text-white px-2 py-0.5 rounded-full">מהמנהל</span>
+                <span className="text-[10px] text-gray-400">
+                  {new Date(msg.created_at).toLocaleDateString('he-IL')}
+                </span>
+              </div>
+              <p className="text-sm text-blue-900 mb-3">{msg.content}</p>
+              <div className="flex gap-2">
+                <textarea
+                  value={adminReplyTexts[msg.id] ?? ''}
+                  onChange={e => setAdminReplyTexts(prev => ({ ...prev, [msg.id]: e.target.value }))}
+                  placeholder="השב למנהל..."
+                  rows={2}
+                  className="flex-1 border border-blue-200 rounded-xl px-3 py-2 text-sm resize-none focus:outline-none focus:border-blue-400 bg-white"
+                  dir="rtl"
+                />
+                <button
+                  onClick={() => handleAdminReply(msg.id)}
+                  disabled={adminReplyPending.has(msg.id) || !(adminReplyTexts[msg.id] ?? '').trim()}
+                  className="self-end px-4 py-2 bg-blue-500 text-white text-sm font-bold rounded-xl hover:bg-blue-600 disabled:opacity-40 transition-colors"
+                >
+                  {adminReplyPending.has(msg.id) ? '...' : 'שלח'}
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
       {/* Send message */}
       <div className="bg-white rounded-2xl shadow-sm p-4 flex flex-col gap-3">
         <p className="text-sm font-bold text-gray-700">שליחת הודעה למזכירות</p>
@@ -116,11 +168,11 @@ export default function MyRoomClient({ roomName, initialMessages, userId }: Prop
         </button>
       </div>
 
-      {/* Messages history */}
-      {messages.length > 0 && (
+      {/* Teacher's own messages */}
+      {myMessages.length > 0 && (
         <div className="flex flex-col gap-2">
           <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">הודעות שלי</p>
-          {messages.map(msg => (
+          {myMessages.map(msg => (
             <div key={msg.id} className="bg-white rounded-2xl shadow-sm p-4">
               <div className="flex items-center justify-between mb-2">
                 <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${
