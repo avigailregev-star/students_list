@@ -21,6 +21,7 @@ export default function MyRoomClient({ roomName, initialMessages, userId }: Prop
   const [replyToast, setReplyToast] = useState(false)
   const [adminReplyTexts, setAdminReplyTexts] = useState<Record<string, string>>({})
   const [adminReplyPending, setAdminReplyPending] = useState<Set<string>>(new Set())
+  const [adminReplySent, setAdminReplySent] = useState<Set<string>>(new Set())
   const router = useRouter()
 
   useEffect(() => {
@@ -78,7 +79,11 @@ export default function MyRoomClient({ roomName, initialMessages, userId }: Prop
       const result = await sendMessage(replyContent)
       setAdminReplyPending(prev => { const s = new Set(prev); s.delete(msgId); return s })
       if (result.error === 'unauthorized') { router.push('/login'); return }
-      if (!result.error) setAdminReplyTexts(prev => ({ ...prev, [msgId]: '' }))
+      if (!result.error) {
+        setAdminReplyTexts(prev => ({ ...prev, [msgId]: '' }))
+        setAdminReplySent(prev => new Set(prev).add(msgId))
+        setTimeout(() => setAdminReplySent(prev => { const s = new Set(prev); s.delete(msgId); return s }), 3000)
+      }
     })
   }
 
@@ -133,13 +138,17 @@ export default function MyRoomClient({ roomName, initialMessages, userId }: Prop
                 className="w-full border border-blue-200 rounded-xl px-3 py-2 text-sm resize-none focus:outline-none focus:border-blue-400 bg-white"
                 dir="rtl"
               />
-              <button
-                onClick={() => handleAdminReply(msg.id)}
-                disabled={adminReplyPending.has(msg.id) || !(adminReplyTexts[msg.id] ?? '').trim()}
-                className="mt-2 self-end px-4 py-2 bg-blue-500 text-white text-sm font-bold rounded-xl hover:bg-blue-600 disabled:opacity-40 transition-colors"
-              >
-                {adminReplyPending.has(msg.id) ? '...' : 'שלח'}
-              </button>
+              {adminReplySent.has(msg.id) ? (
+                <p className="mt-2 text-sm text-emerald-600 font-bold text-right">✓ תגובתך נשלחה</p>
+              ) : (
+                <button
+                  onClick={() => handleAdminReply(msg.id)}
+                  disabled={adminReplyPending.has(msg.id) || !(adminReplyTexts[msg.id] ?? '').trim()}
+                  className="mt-2 self-end px-4 py-2 bg-blue-500 text-white text-sm font-bold rounded-xl hover:bg-blue-600 disabled:opacity-40 transition-colors"
+                >
+                  {adminReplyPending.has(msg.id) ? '...' : 'שלח'}
+                </button>
+              )}
             </div>
           ))}
         </div>
