@@ -125,23 +125,21 @@ export default function MyRoomClient({ roomName, initialMessages, userId }: Prop
                 </span>
               </div>
               <p className="text-sm text-blue-900 mb-3">{msg.content}</p>
-              <div className="flex gap-2">
-                <textarea
-                  value={adminReplyTexts[msg.id] ?? ''}
-                  onChange={e => setAdminReplyTexts(prev => ({ ...prev, [msg.id]: e.target.value }))}
-                  placeholder="השב למנהל..."
-                  rows={2}
-                  className="flex-1 border border-blue-200 rounded-xl px-3 py-2 text-sm resize-none focus:outline-none focus:border-blue-400 bg-white"
-                  dir="rtl"
-                />
-                <button
-                  onClick={() => handleAdminReply(msg.id)}
-                  disabled={adminReplyPending.has(msg.id) || !(adminReplyTexts[msg.id] ?? '').trim()}
-                  className="self-end px-4 py-2 bg-blue-500 text-white text-sm font-bold rounded-xl hover:bg-blue-600 disabled:opacity-40 transition-colors"
-                >
-                  {adminReplyPending.has(msg.id) ? '...' : 'שלח'}
-                </button>
-              </div>
+              <textarea
+                value={adminReplyTexts[msg.id] ?? ''}
+                onChange={e => setAdminReplyTexts(prev => ({ ...prev, [msg.id]: e.target.value }))}
+                placeholder="השב למנהל..."
+                rows={2}
+                className="w-full border border-blue-200 rounded-xl px-3 py-2 text-sm resize-none focus:outline-none focus:border-blue-400 bg-white"
+                dir="rtl"
+              />
+              <button
+                onClick={() => handleAdminReply(msg.id)}
+                disabled={adminReplyPending.has(msg.id) || !(adminReplyTexts[msg.id] ?? '').trim()}
+                className="mt-2 self-end px-4 py-2 bg-blue-500 text-white text-sm font-bold rounded-xl hover:bg-blue-600 disabled:opacity-40 transition-colors"
+              >
+                {adminReplyPending.has(msg.id) ? '...' : 'שלח'}
+              </button>
             </div>
           ))}
         </div>
