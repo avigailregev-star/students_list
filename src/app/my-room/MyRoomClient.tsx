@@ -21,7 +21,12 @@ export default function MyRoomClient({ roomName, initialMessages, userId }: Prop
   const [replyToast, setReplyToast] = useState(false)
   const [adminReplyTexts, setAdminReplyTexts] = useState<Record<string, string>>({})
   const [adminReplyPending, setAdminReplyPending] = useState<Set<string>>(new Set())
-  const [adminReplySent, setAdminReplySent] = useState<Set<string>>(new Set())
+  const [repliedAdminIds, setRepliedAdminIds] = useState<Set<string>>(() => {
+    try {
+      const stored = localStorage.getItem(`repliedAdminMsgs_${userId}`)
+      return stored ? new Set<string>(JSON.parse(stored)) : new Set<string>()
+    } catch { return new Set<string>() }
+  })
   const router = useRouter()
 
   useEffect(() => {
@@ -81,8 +86,11 @@ export default function MyRoomClient({ roomName, initialMessages, userId }: Prop
       if (result.error === 'unauthorized') { router.push('/login'); return }
       if (!result.error) {
         setAdminReplyTexts(prev => ({ ...prev, [msgId]: '' }))
-        setAdminReplySent(prev => new Set(prev).add(msgId))
-        setTimeout(() => setAdminReplySent(prev => { const s = new Set(prev); s.delete(msgId); return s }), 3000)
+        setRepliedAdminIds(prev => {
+          const next = new Set(prev).add(msgId)
+          try { localStorage.setItem(`repliedAdminMsgs_${userId}`, JSON.stringify([...next])) } catch {}
+          return next
+        })
       }
     })
   }
@@ -121,36 +129,41 @@ export default function MyRoomClient({ roomName, initialMessages, userId }: Prop
       {adminMessages.length > 0 && (
         <div className="flex flex-col gap-2">
           <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">הודעות מהמנהל</p>
-          {adminMessages.map(msg => (
-            <div key={msg.id} className="bg-blue-50 border border-blue-100 rounded-2xl p-4">
-              <div className="flex items-center gap-2 mb-2">
-                <span className="text-xs font-bold bg-blue-500 text-white px-2 py-0.5 rounded-full">מהמנהל</span>
-                <span className="text-[10px] text-gray-400">
-                  {new Date(msg.created_at).toLocaleDateString('he-IL')}
-                </span>
+          {adminMessages.map(msg => {
+            const replied = repliedAdminIds.has(msg.id)
+            return (
+              <div key={msg.id} className={`border rounded-2xl p-4 transition-colors ${replied ? 'bg-gray-50 border-gray-200 opacity-70' : 'bg-blue-50 border-blue-100'}`}>
+                <div className="flex items-center gap-2 mb-2">
+                  <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${replied ? 'bg-emerald-100 text-emerald-700' : 'bg-blue-500 text-white'}`}>
+                    {replied ? '✓ ענית' : 'מהמנהל'}
+                  </span>
+                  <span className="text-[10px] text-gray-400">
+                    {new Date(msg.created_at).toLocaleDateString('he-IL')}
+                  </span>
+                </div>
+                <p className={`text-sm mb-3 ${replied ? 'text-gray-500' : 'text-blue-900'}`}>{msg.content}</p>
+                {!replied && (
+                  <>
+                    <textarea
+                      value={adminReplyTexts[msg.id] ?? ''}
+                      onChange={e => setAdminReplyTexts(prev => ({ ...prev, [msg.id]: e.target.value }))}
+                      placeholder="השב למנהל..."
+                      rows={2}
+                      className="w-full border border-blue-200 rounded-xl px-3 py-2 text-sm resize-none focus:outline-none focus:border-blue-400 bg-white"
+                      dir="rtl"
+                    />
+                    <button
+                      onClick={() => handleAdminReply(msg.id)}
+                      disabled={adminReplyPending.has(msg.id) || !(adminReplyTexts[msg.id] ?? '').trim()}
+                      className="mt-2 px-4 py-2 bg-blue-500 text-white text-sm font-bold rounded-xl hover:bg-blue-600 disabled:opacity-40 transition-colors"
+                    >
+                      {adminReplyPending.has(msg.id) ? '...' : 'שלח'}
+                    </button>
+                  </>
+                )}
               </div>
-              <p className="text-sm text-blue-900 mb-3">{msg.content}</p>
-              <textarea
-                value={adminReplyTexts[msg.id] ?? ''}
-                onChange={e => setAdminReplyTexts(prev => ({ ...prev, [msg.id]: e.target.value }))}
-                placeholder="השב למנהל..."
-                rows={2}
-                className="w-full border border-blue-200 rounded-xl px-3 py-2 text-sm resize-none focus:outline-none focus:border-blue-400 bg-white"
-                dir="rtl"
-              />
-              {adminReplySent.has(msg.id) ? (
-                <p className="mt-2 text-sm text-emerald-600 font-bold text-right">✓ תגובתך נשלחה</p>
-              ) : (
-                <button
-                  onClick={() => handleAdminReply(msg.id)}
-                  disabled={adminReplyPending.has(msg.id) || !(adminReplyTexts[msg.id] ?? '').trim()}
-                  className="mt-2 self-end px-4 py-2 bg-blue-500 text-white text-sm font-bold rounded-xl hover:bg-blue-600 disabled:opacity-40 transition-colors"
-                >
-                  {adminReplyPending.has(msg.id) ? '...' : 'שלח'}
-                </button>
-              )}
-            </div>
-          ))}
+            )
+          })}
         </div>
       )}
 
