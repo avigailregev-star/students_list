@@ -58,6 +58,7 @@ export default async function AdminTeacherReportsPage({ params }: Props) {
       .select('date, teacher_absence_reason')
       .in('group_id', groupIds)
       .eq('status', 'teacher_canceled')
+      .eq('is_holiday', false)
       .lte('date', todayStr)
       .order('date'),
   ])

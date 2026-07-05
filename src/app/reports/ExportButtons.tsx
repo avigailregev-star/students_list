@@ -8,6 +8,7 @@ interface HistoryEntry {
   status: string
   brought: boolean
   cancelReason?: string
+  isMakeup?: boolean
 }
 
 interface StudentRow {
@@ -131,8 +132,13 @@ export default function ExportButtons({ reportData, month, teacherName }: Props)
         }
         const dayNum = parseInt(dateStr.split('-')[2])
         const counts = dayCounts.get(dayNum)
-        const col = mapType(group.lesson_type)
-        if (counts && col) counts[col]++
+        if (!counts) continue
+        if (h.isMakeup) {
+          counts.makeup++
+        } else {
+          const col = mapType(group.lesson_type)
+          if (col) counts[col]++
+        }
       }
     }
 

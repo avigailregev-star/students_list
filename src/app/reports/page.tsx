@@ -17,6 +17,7 @@ type HistoryEntry = {
   eventType?: SchoolEventType
   eventName?: string
   cancelReason?: string
+  isMakeup?: boolean
 }
 
 type GroupWithData = Group & {
@@ -111,7 +112,7 @@ export default async function ReportsPage() {
       const history = [
         ...lessonList.map(lesson => {
           const att = studentAtt.find(a => a.lesson_id === lesson.id)
-          return { date: lesson.date, status: att?.status ?? 'no_data', brought: att?.brought_instrument ?? false }
+          return { date: lesson.date, status: att?.status ?? 'no_data', brought: att?.brought_instrument ?? false, isMakeup: lesson.is_makeup }
         }),
         ...canceledList.map(lesson => ({ date: lesson.date, status: 'teacher_canceled', brought: false, cancelReason: lesson.teacher_absence_reason ?? undefined })),
       ].sort((a, b) => b.date.localeCompare(a.date))
