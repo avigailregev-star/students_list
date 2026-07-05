@@ -120,6 +120,7 @@ export default function MessagesInboxClient({ initialMessages, initialVacationRe
   const newBugs = bugs.filter(b => b.status === 'new').length
   const pending = inboxMessages.filter(m => m.status === 'pending')
   const replied = inboxMessages.filter(m => m.status === 'replied')
+  const adminSentReplied = messages.filter(m => m.from_admin && m.status === 'replied')
   const pendingVac = vacations.filter(v => v.status === 'pending')
   const decidedVac = vacations.filter(v => v.status !== 'pending')
 
@@ -257,10 +258,10 @@ export default function MessagesInboxClient({ initialMessages, initialVacationRe
               ))}
             </div>
           )}
-          {replied.length > 0 && (
+          {(replied.length > 0 || adminSentReplied.length > 0) && (
             <div className="flex flex-col gap-2">
               <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">
-                נענו ({replied.length})
+                נענו ({replied.length + adminSentReplied.length})
               </p>
               {replied.map(msg => (
                 <div key={msg.id} className="bg-gray-50 rounded-2xl p-4 border border-gray-100">
@@ -274,6 +275,20 @@ export default function MessagesInboxClient({ initialMessages, initialVacationRe
                   </div>
                   <p className="text-xs text-gray-500 mb-2">{msg.content}</p>
                   <p className="text-sm text-emerald-700 font-medium">{msg.reply}</p>
+                </div>
+              ))}
+              {adminSentReplied.map(msg => (
+                <div key={msg.id} className="bg-blue-50 rounded-2xl p-4 border border-blue-100">
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-sm font-semibold text-gray-700">
+                      {msg.teachers?.name ?? 'מורה לא ידועה'}
+                    </span>
+                    <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-blue-100 text-blue-700">
+                      ענתה להודעתך
+                    </span>
+                  </div>
+                  <p className="text-xs text-gray-400 mb-1">שלחת: {msg.content}</p>
+                  <p className="text-sm text-blue-800 font-medium">{msg.reply}</p>
                 </div>
               ))}
             </div>

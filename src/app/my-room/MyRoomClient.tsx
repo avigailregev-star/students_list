@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import type { Message } from '@/types/database'
-import { sendMessage } from './messageActions'
+import { sendMessage, replyToAdminMessage } from './messageActions'
 
 interface Props {
   roomName: string | null
@@ -81,7 +81,7 @@ export default function MyRoomClient({ roomName, initialMessages, userId }: Prop
     if (!replyContent.trim()) return
     setAdminReplyPending(prev => new Set(prev).add(msgId))
     startTransition(async () => {
-      const result = await sendMessage(replyContent)
+      const result = await replyToAdminMessage(msgId, replyContent)
       setAdminReplyPending(prev => { const s = new Set(prev); s.delete(msgId); return s })
       if (result.error === 'unauthorized') { router.push('/login'); return }
       if (!result.error) {
