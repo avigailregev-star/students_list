@@ -80,6 +80,7 @@ export default function MessagesInboxClient({ initialMessages, initialVacationRe
     setPendingIds(prev => { const s = new Set(prev); s.delete(id); return s })
     if (result.error) { setErrors(prev => ({ ...prev, [id]: result.error! })); return }
     setReplyTexts(prev => ({ ...prev, [id]: '' }))
+    setMessages(prev => prev.map(m => m.id === id ? { ...m, reply: reply.trim(), status: 'replied' } : m))
   }
 
   async function handleDecide(id: string, status: 'approved' | 'rejected') {
