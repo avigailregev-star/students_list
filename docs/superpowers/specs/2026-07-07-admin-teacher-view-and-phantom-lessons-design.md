@@ -2,19 +2,21 @@
 
 ## Overview
 
-Triggered by an admin report: teachers' attendance-report screen shows lesson history rows with "0 הגיעו" (0 attended) that don't correspond to any real attendance being taken. Two bugs cause this, plus the admin currently has no way to see exactly what a teacher's app looks like to verify fixes or diagnose future reports. This spec covers both bug fixes and a new read-only "view as teacher" admin screen.
+Triggered by an admin report: teachers' attendance-report screen shows lesson history rows with "0 הגיעו" (0 attended) that don't correspond to any real attendance being taken. This spec covers the fix and a new read-only "view as teacher" admin screen.
 
-## Bug 1: Phantom lesson rows created on page view
+## Root cause: phantom lesson rows created on page view
 
-`getOrCreateLesson()` (`src/lib/queries/attendance.ts:4-27`) upserts a row into `lessons` every time the teacher's attendance page for a group/date is rendered — even if no attendance is ever recorded. This silently creates a permanent `lessons` row from a page view alone.
+`getOrCreateLesson()` (`src/lib/queries/attendance.ts:4-27`) upserts a row into `lessons` every time the teacher's attendance page for a group/date is rendered — even if no attendance is ever recorded. This silently creates a permanent `lessons` row from a page view alone (e.g. a teacher browsing past dates without marking anyone).
 
-**Fix**: `getOrCreateLesson` should only be called (or should only insert) when attendance is actually being saved, not on page load. The attendance page needs to read whether a lesson row exists for the date (without creating one) to render the form; the row itself gets created/upserted only inside the save action, alongside the `attendance` rows.
+**Rejected fix — true lazy creation:** Deferring row creation until an actual save would require restructuring `AttendanceSection`, `AttendanceToggle`, `CancelLessonButton` (including its sick-leave file upload, which keys storage paths off `lessonId`), and `DeleteMakeupButton` to work without a pre-existing `lessonId`. This app has no automated test suite and is in active use by teachers, so this level of change to the core interactive flow was judged too risky relative to the benefit. Rejected in favor of the filter-based fix below.
 
-## Bug 2: Reports screen displays lessons with no attendance as "held"
+**Chosen fix — treat "no attendance recorded" as "not a real lesson," everywhere it's counted:** A lesson counts as having actually happened only if it has **at least one `attendance` row, in any status** (present/absent/late/excused — any explicit mark means the teacher engaged with that lesson; zero attendance rows means nobody ever did). Phantom rows keep getting written to `lessons` (harmless — they're just never counted), but three places that currently count/display *every* non-canceled lesson row must instead only count/display lessons with ≥1 attendance row:
 
-`src/app/reports/page.tsx:91` and `ReportGroup.tsx:152-159` treat every non-canceled `lessons` row as a held lesson — rendering a green dot and "X הגיעו" (defaulting to 0) regardless of whether any `attendance` rows exist for it.
+1. **`src/app/reports/page.tsx`** (`ReportGroup.tsx:152-159` display) — the teacher's own attendance-history view. This is what the original screenshot showed.
+2. **`src/app/reports/payroll/page.tsx`** — the teacher's own "חשבות שכר" (payroll) calculation. Confirmed this counts every non-canceled `lessons` row via `mapType()` with no attendance check — phantom rows currently inflate paid lesson counts.
+3. **`src/app/admin/teachers/[id]/reports/page.tsx`** — the admin's payroll view for a given teacher. Same duplicated counting logic as #2, same bug.
 
-**Fix**: In `reports/page.tsx`, when building `dateSummary` per lesson, check whether the lesson has zero associated `attendance` rows. If so, exclude it from the history list (or, if the date is in the future / today and no attendance is expected yet, that's expected — the check should specifically target *past* lessons with zero attendance rows, which indicates the phantom-creation bug rather than a legitimately empty class). This is a safety net on top of Bug 1's fix, covering already-existing phantom rows in the database.
+All three need a query for which `lesson_id`s (within the relevant group set and date range) have ≥1 `attendance` row, then filter/skip lessons not in that set before counting/displaying them.
 
 ## Feature: Admin "View as Teacher" screen
 
@@ -63,6 +65,7 @@ fed admin-fetched data, viewOnly=true hides mutation controls
 
 ## Testing
 
-- Bug 1: verify opening the attendance page for a future/untouched date does not create a `lessons` row; verify saving attendance still creates/updates the row correctly.
-- Bug 2: verify a lesson with zero attendance rows (simulating a leftover phantom row) no longer shows in the reports history; verify lessons with real attendance still show correctly.
-- View-as-teacher: verify admin can navigate to `/admin/teachers/[id]/view` and see the same data a teacher would see for their own dashboard/reports/group; verify mutation controls are hidden/disabled; verify a non-admin cannot access these routes.
+There is no automated test suite in this project (no test runner configured). Verification is manual, via the dev server and `npx tsc --noEmit` / `npm run lint`.
+
+- Phantom lesson filter: a lesson with zero attendance rows (simulating a leftover phantom row) no longer shows in the teacher's reports history, and no longer counts toward either payroll view's totals; a lesson with ≥1 attendance row (any status) still shows/counts correctly in all three places.
+- View-as-teacher: admin can navigate to `/admin/teachers/[id]/view` and see the same data a teacher would see for their own dashboard/reports/group; mutation controls are hidden/disabled; a non-admin cannot access these routes.
