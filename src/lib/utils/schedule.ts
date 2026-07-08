@@ -1,6 +1,11 @@
 import type { GroupSchedule, GroupWithSchedules, Holiday, LessonSlot } from '@/types/database'
 
 /**
+ * שנת הלימודים הנוכחית מתחילה ב-1.9.2026 — אין שיעורים לפני תאריך זה.
+ */
+export const SCHOOL_YEAR_START = new Date(2026, 8, 1)
+
+/**
  * Given a day_of_week (0=Sun..6=Sat), returns the next Date that falls on that day
  * starting from `from` (inclusive if same day).
  */
@@ -19,7 +24,8 @@ export function getNextDateForDayOfWeek(dayOfWeek: number, from: Date = new Date
  */
 export function getNextLessonDate(schedules: GroupSchedule[], from: Date = new Date()): Date | null {
   if (schedules.length === 0) return null
-  const candidates = schedules.map(s => getNextDateForDayOfWeek(s.day_of_week, from))
+  const effectiveFrom = from < SCHOOL_YEAR_START ? SCHOOL_YEAR_START : from
+  const candidates = schedules.map(s => getNextDateForDayOfWeek(s.day_of_week, effectiveFrom))
   candidates.sort((a, b) => a.getTime() - b.getTime())
   return candidates[0]
 }
@@ -47,6 +53,7 @@ export function getLastLessonDate(schedules: GroupSchedule[], from: Date = new D
   const today = new Date()
   today.setHours(0, 0, 0, 0)
   if (result > today) return null
+  if (result < SCHOOL_YEAR_START) return null
   return result
 }
 
@@ -100,6 +107,7 @@ export function getLessonSlotsForWeek(
       const date = new Date(weekStart)
       date.setDate(weekStart.getDate() + schedule.day_of_week)
 
+      if (date < SCHOOL_YEAR_START) continue
       if (isSummerMonth(date.getMonth())) continue
 
       slots.push({
@@ -140,6 +148,7 @@ export function getLessonSlotsForMonth(
 
   for (let day = 1; day <= daysInMonth; day++) {
     const date = new Date(year, month, day)
+    if (date < SCHOOL_YEAR_START) continue
     const dow = date.getDay()
     for (const group of groups) {
       for (const schedule of group.group_schedules) {
