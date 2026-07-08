@@ -132,6 +132,15 @@ export default async function TeacherDetailPage({ params }: Props) {
           </svg>
           חשבות שכר לפי חודשים
         </Link>
+        <Link
+          href={`/admin/teachers/${teacher.id}/view`}
+          className="flex items-center justify-center gap-2 w-full py-3 bg-teal-50 border border-teal-200 text-teal-700 font-bold text-sm rounded-2xl hover:bg-teal-100 transition-colors"
+        >
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>
+          </svg>
+          צפייה כמורה
+        </Link>
         {!(teacher.is_pending ?? false) && (
           <ResendInviteButton
             teacherId={teacher.id}
