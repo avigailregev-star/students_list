@@ -11,9 +11,10 @@ interface Props {
   /** Only read at mount. Safe because the component is conditionally rendered and remounts on each tab switch. */
   initialDate?: Date
   events: SchoolEvent[]
+  viewOnly?: boolean
 }
 
-export default function DayView({ allSlots, initialDate, events }: Props) {
+export default function DayView({ allSlots, initialDate, events, viewOnly }: Props) {
   const [selectedDate, setSelectedDate] = useState(() => {
     const d = initialDate ? new Date(initialDate) : new Date()
     d.setHours(0, 0, 0, 0)
@@ -120,7 +121,7 @@ export default function DayView({ allSlots, initialDate, events }: Props) {
                   <div className={`w-1.5 h-1.5 rounded-full ${isNext ? 'bg-teal-400' : 'bg-gray-200'}`} />
                 </div>
                 <div className="flex-1">
-                  <LessonCard slot={slot} isNext={isNext} hideTime />
+                  <LessonCard slot={slot} isNext={isNext} hideTime viewOnly={viewOnly} />
                 </div>
               </div>
             )

@@ -5,9 +5,10 @@ interface Props {
   slot: LessonSlot
   isNext?: boolean
   hideTime?: boolean
+  viewOnly?: boolean
 }
 
-export default function LessonCard({ slot, isNext, hideTime }: Props) {
+export default function LessonCard({ slot, isNext, hideTime, viewOnly }: Props) {
   const isMakeup = slot.isMakeup === true
 
   const dateStr = `${slot.date.getFullYear()}-${String(slot.date.getMonth() + 1).padStart(2, '0')}-${String(slot.date.getDate()).padStart(2, '0')}`
@@ -23,11 +24,10 @@ export default function LessonCard({ slot, isNext, hideTime }: Props) {
     ? (isMakeup ? 'ring-2 ring-purple-400' : 'ring-2 ring-teal-400')
     : ''
 
-  return (
-    <Link
-      href={href}
-      className={`bg-white rounded-2xl p-4 flex items-center gap-3 shadow-sm active:opacity-80 transition-opacity ${ringClass} ${isMakeup ? 'border border-purple-100' : ''}`}
-    >
+  const className = `bg-white rounded-2xl p-4 flex items-center gap-3 shadow-sm ${viewOnly ? '' : 'active:opacity-80 transition-opacity'} ${ringClass} ${isMakeup ? 'border border-purple-100' : ''}`
+
+  const content = (
+    <>
       {/* Avatar */}
       <div className={`w-11 h-11 rounded-2xl flex items-center justify-center text-white font-bold text-base shrink-0 ${avatarBg}`}>
         {slot.groupName.charAt(0)}
@@ -72,6 +72,16 @@ export default function LessonCard({ slot, isNext, hideTime }: Props) {
           <polyline points="20 6 9 17 4 12" />
         </svg>
       </div>
+    </>
+  )
+
+  if (viewOnly) {
+    return <div className={className}>{content}</div>
+  }
+
+  return (
+    <Link href={href} className={className}>
+      {content}
     </Link>
   )
 }

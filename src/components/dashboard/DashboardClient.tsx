@@ -17,9 +17,10 @@ interface Props {
   isAdmin?: boolean
   makeupSlots: LessonSlot[]
   userId?: string
+  viewOnly?: boolean
 }
 
-export default function DashboardClient({ groups, teacherName, events, isAdmin, makeupSlots, userId }: Props) {
+export default function DashboardClient({ groups, teacherName, events, isAdmin, makeupSlots, userId, viewOnly }: Props) {
   const [view, setView] = useState<'day' | 'week' | 'month'>('day')
   const [dayInitialDate, setDayInitialDate] = useState<Date | undefined>(undefined)
 
@@ -83,8 +84,8 @@ export default function DashboardClient({ groups, teacherName, events, isAdmin, 
 
       {/* Content */}
       <div className="flex-1 px-4 py-5 pb-28 overflow-y-auto">
-        {view === 'day' && <DayView allSlots={weekSlots} initialDate={dayInitialDate} events={events} />}
-        {view === 'week' && <WeekView allSlots={weekSlots} events={events} />}
+        {view === 'day' && <DayView allSlots={weekSlots} initialDate={dayInitialDate} events={events} viewOnly={viewOnly} />}
+        {view === 'week' && <WeekView allSlots={weekSlots} events={events} viewOnly={viewOnly} />}
         {view === 'month' && (
           <MonthView
             groups={groups}
@@ -94,7 +95,7 @@ export default function DashboardClient({ groups, teacherName, events, isAdmin, 
         )}
       </div>
 
-      <BottomNav isAdmin={isAdmin} userId={userId} />
+      {!viewOnly && <BottomNav isAdmin={isAdmin} userId={userId} />}
     </div>
   )
 }

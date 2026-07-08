@@ -9,11 +9,12 @@ import type { LessonSlot, SchoolEvent } from '@/types/database'
 interface Props {
   allSlots: LessonSlot[]
   events: SchoolEvent[]
+  viewOnly?: boolean
 }
 
 const WORK_DAYS = [0, 1, 2, 3, 4]
 
-export default function WeekView({ allSlots, events }: Props) {
+export default function WeekView({ allSlots, events, viewOnly }: Props) {
   const today = new Date()
   today.setHours(0, 0, 0, 0)
 
@@ -70,6 +71,7 @@ export default function WeekView({ allSlots, events }: Props) {
                 <LessonCard
                   key={`${slot.groupId}-${slot.startTime}`}
                   slot={slot}
+                  viewOnly={viewOnly}
                 />
               ))}
             </div>
