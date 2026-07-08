@@ -93,7 +93,7 @@ export default async function PayrollPage() {
   const lessonIdsWithAttendance = await getLessonIdsWithAttendance(supabase, (lessons ?? []).map(l => l.id))
   const heldLessons = (lessons ?? []).filter(l =>
     lessonIdsWithAttendance.has(l.id) ||
-    ((l as any).status === 'teacher_canceled' && (l as any).teacher_absence_reason === LEGACY_PAYSLIP_REASON)
+    (l.status === 'teacher_canceled' && l.teacher_absence_reason === LEGACY_PAYSLIP_REASON)
   )
 
   const monthsMap = new Map<string, MonthPayroll>()
