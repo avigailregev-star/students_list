@@ -88,8 +88,13 @@ export default async function PayrollPage() {
 
   // A lesson only counts toward payroll if at least one attendance row (any status) was
   // recorded — otherwise it's a phantom row created just by opening the attendance page.
+  // Exception: canceled lessons with the legacy "תלוש נוכחי" reason must still be counted.
+  const LEGACY_PAYSLIP_REASON = 'העדרות מורה עם השלמה בתלוש נוכחי'
   const lessonIdsWithAttendance = await getLessonIdsWithAttendance(supabase, (lessons ?? []).map(l => l.id))
-  const heldLessons = (lessons ?? []).filter(l => lessonIdsWithAttendance.has(l.id))
+  const heldLessons = (lessons ?? []).filter(l =>
+    lessonIdsWithAttendance.has(l.id) ||
+    ((l as any).status === 'teacher_canceled' && (l as any).teacher_absence_reason === LEGACY_PAYSLIP_REASON)
+  )
 
   const monthsMap = new Map<string, MonthPayroll>()
 
