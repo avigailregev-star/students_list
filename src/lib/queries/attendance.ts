@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import type { Attendance, AttendanceStatus, Lesson } from '@/types/database'
+import type { SupabaseClient } from '@supabase/supabase-js'
 
 export async function getOrCreateLesson(
   groupId: string,
@@ -81,4 +82,17 @@ export async function upsertAttendance(
     brought_instrument: broughtInstrument,
   }, { onConflict: 'lesson_id,student_id' })
   if (error) throw error
+}
+
+export async function getLessonIdsWithAttendance(
+  supabase: SupabaseClient,
+  lessonIds: string[]
+): Promise<Set<string>> {
+  if (lessonIds.length === 0) return new Set()
+  const { data, error } = await supabase
+    .from('attendance')
+    .select('lesson_id')
+    .in('lesson_id', lessonIds)
+  if (error) throw error
+  return new Set((data ?? []).map((row: { lesson_id: string }) => row.lesson_id))
 }
