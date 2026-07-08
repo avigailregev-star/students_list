@@ -107,10 +107,16 @@ export default async function ReportsPage() {
       attendanceRows = (att ?? []) as Attendance[]
     }
 
+    // A lesson only counts as held if at least one attendance row (any status) was recorded.
+    // Lessons with zero attendance rows are "phantom" — created just by opening the attendance
+    // page — and must not be shown or counted anywhere.
+    const lessonIdsWithAttendance = new Set(attendanceRows.map(a => a.lesson_id))
+    const heldLessonList = lessonList.filter(l => lessonIdsWithAttendance.has(l.id))
+
     const studentsWithStats = studentList.map(student => {
       const studentAtt = attendanceRows.filter(a => a.student_id === student.id)
       const history = [
-        ...lessonList.map(lesson => {
+        ...heldLessonList.map(lesson => {
           const att = studentAtt.find(a => a.lesson_id === lesson.id)
           return { date: lesson.date, status: att?.status ?? 'no_data', brought: att?.brought_instrument ?? false, isMakeup: lesson.is_makeup }
         }),
@@ -119,7 +125,7 @@ export default async function ReportsPage() {
 
       return {
         ...student,
-        total_lessons: lessonList.length,
+        total_lessons: heldLessonList.length,
         lessons_attended: studentAtt.filter(a => a.status === 'present' || a.status === 'late').length,
         lessons_absent: studentAtt.filter(a => a.status === 'absent').length,
         brought_instrument: studentAtt.filter(a => a.brought_instrument).length,
@@ -150,7 +156,7 @@ export default async function ReportsPage() {
       history: [...student.history, ...eventEntries].sort((a, b) => b.date.localeCompare(a.date)),
     }))
 
-    reportData.push({ ...group, students: studentsWithEventHistory, total_lessons: lessonList.length, canceled_lessons: canceledList.length })
+    reportData.push({ ...group, students: studentsWithEventHistory, total_lessons: heldLessonList.length, canceled_lessons: canceledList.length })
   }
 
   reportData.sort((a, b) => {
