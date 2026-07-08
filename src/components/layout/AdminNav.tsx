@@ -33,6 +33,13 @@ export default function AdminNav({ messagesCount = 0 }: { messagesCount?: number
   const pathname = usePathname()
   const router = useRouter()
 
+  // The admin "view as teacher" screens render their own ViewNav instead —
+  // showing the real admin nav there would let an admin navigate away
+  // mid-impersonation via the wrong controls (e.g. sign-out).
+  if (/^\/admin\/teachers\/[^/]+\/view(\/|$)/.test(pathname ?? '')) {
+    return null
+  }
+
   const NAV_ITEMS: NavItem[] = [
     {
       href: '/',
