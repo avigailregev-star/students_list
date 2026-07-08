@@ -8,6 +8,7 @@ import { submitVacationRequest } from './vacationActions'
 
 interface Props {
   initialRequests: VacationRequest[]
+  viewOnly?: boolean
 }
 
 function StatusBadge({ status }: { status: VacationRequest['status'] }) {
@@ -18,7 +19,7 @@ function StatusBadge({ status }: { status: VacationRequest['status'] }) {
   return <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-600">ממתין</span>
 }
 
-export default function VacationSection({ initialRequests }: Props) {
+export default function VacationSection({ initialRequests, viewOnly }: Props) {
   const [open, setOpen] = useState(false)
   const [error, setError] = useState('')
   const [isPending, startTransition] = useTransition()
@@ -41,7 +42,7 @@ export default function VacationSection({ initialRequests }: Props) {
     <div className="px-4 pb-6 max-w-md mx-auto w-full flex flex-col gap-4 print:hidden" dir="rtl">
       <div className="flex items-center justify-between">
         <p className="text-sm font-bold text-gray-700">בקשות חופשה</p>
-        {!open && (
+        {!open && !viewOnly && (
           <button
             onClick={() => setOpen(true)}
             className="px-4 py-2 bg-teal-500 text-white text-sm font-bold rounded-xl hover:bg-teal-600 transition-colors"
