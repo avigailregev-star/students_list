@@ -2,6 +2,7 @@ import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import { requireAdmin } from '@/lib/auth'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { getLessonIdsWithAttendance } from '@/lib/queries/attendance'
 import PayrollView from '@/app/reports/payroll/PayrollView'
 import type { MonthPayroll, DayCount } from '@/app/reports/payroll/page'
 import BottomNav from '@/components/layout/BottomNav'
@@ -49,7 +50,7 @@ export default async function AdminTeacherReportsPage({ params }: Props) {
 
   const [{ data: lessons }, { data: canceledLessons }] = await Promise.all([
     supabase.from('lessons')
-      .select('group_id, date, status, teacher_absence_reason, is_makeup')
+      .select('id, group_id, date, status, teacher_absence_reason, is_makeup')
       .in('group_id', groupIds)
       .eq('is_holiday', false)
       .lte('date', todayStr)
@@ -62,6 +63,17 @@ export default async function AdminTeacherReportsPage({ params }: Props) {
       .lte('date', todayStr)
       .order('date'),
   ])
+
+  // A lesson only counts toward payroll if at least one attendance row (any status) was
+  // recorded — otherwise it's a phantom row created just by opening the attendance page.
+  // However, lessons canceled with the legacy reason must still be counted (they never
+  // get attendance rows because canceling doesn't write to the attendance table).
+  const LEGACY_PAYSLIP_REASON = 'העדרות מורה עם השלמה בתלוש נוכחי'
+  const lessonIdsWithAttendance = await getLessonIdsWithAttendance(supabase, (lessons ?? []).map(l => l.id))
+  const heldLessons = (lessons ?? []).filter(l =>
+    lessonIdsWithAttendance.has(l.id) ||
+    (l.status === 'teacher_canceled' && l.teacher_absence_reason === LEGACY_PAYSLIP_REASON)
+  )
 
   const monthsMap = new Map<string, MonthPayroll>()
 
@@ -91,7 +103,7 @@ export default async function AdminTeacherReportsPage({ params }: Props) {
     return monthsMap.get(key)!
   }
 
-  for (const lesson of (lessons ?? [])) {
+  for (const lesson of heldLessons) {
     const parts = lesson.date.split('-')
     const key = `${parts[0]}-${parts[1]}`
     const dayNum = parseInt(parts[2])
