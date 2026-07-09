@@ -130,7 +130,7 @@ export default function MyRoomClient({ roomName, initialMessages, userId }: Prop
         <div className="flex flex-col gap-2">
           <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">הודעות מהמנהל</p>
           {adminMessages.map(msg => {
-            const replied = repliedAdminIds.has(msg.id)
+            const replied = msg.status === 'replied' || repliedAdminIds.has(msg.id)
             return (
               <div key={msg.id} className={`border rounded-2xl p-4 transition-colors ${replied ? 'bg-gray-50 border-gray-200 opacity-70' : 'bg-blue-50 border-blue-100'}`}>
                 <div className="flex items-center gap-2 mb-2">
