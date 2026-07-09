@@ -2,7 +2,7 @@
 
 import { useState, useTransition, useMemo } from 'react'
 import { createEvent, updateEvent, deleteEvent, bulkImportSchoolYear5787 } from './calendarActions'
-import type { SchoolEvent, SchoolEventType, Teacher, Holiday } from '@/types/database'
+import type { SchoolEvent, SchoolEventType, Teacher } from '@/types/database'
 
 const MONTHS_HE = ['ינואר','פברואר','מרץ','אפריל','מאי','יוני','יולי','אוגוסט','ספטמבר','אוקטובר','נובמבר','דצמבר']
 const DAYS_HE   = ['א','ב','ג','ד','ה','ו','ש']
@@ -50,7 +50,6 @@ function toDateStr(d: Date) {
 interface Props {
   events: SchoolEvent[]
   teachers: Teacher[]
-  holidays: Pick<Holiday, 'date' | 'name'>[]
   assignments: Record<string, string[]>
 }
 
@@ -96,7 +95,7 @@ function BulkImportButton() {
   )
 }
 
-export default function CalendarClient({ events, teachers, holidays, assignments }: Props) {
+export default function CalendarClient({ events, teachers, assignments }: Props) {
   const schoolYear = getSchoolYear()
   const [addOpen, setAddOpen] = useState(false)
   const [selectedDate, setSelectedDate] = useState('')
@@ -128,13 +127,6 @@ export default function CalendarClient({ events, teachers, holidays, assignments
     }
     return m
   }, [events])
-
-  // Build a map: dateStr → holiday name
-  const holidayMap = useMemo(() => {
-    const m: Record<string, string> = {}
-    for (const h of holidays) m[h.date] = h.name
-    return m
-  }, [holidays])
 
   // Two school years: current + next
   const schoolYears = useMemo(() => {
@@ -317,7 +309,6 @@ export default function CalendarClient({ events, teachers, holidays, assignments
                       const dow = new Date(year, monthIndex, day).getDay()
                       const isWeekend = dow === 5 || dow === 6
                       const isToday = dateStr === toDateStr(new Date())
-                      const holidayName = holidayMap[dateStr]
 
                       let cellClass = 'text-gray-700 hover:bg-gray-50'
                       if (isWeekend) cellClass = 'text-gray-300 bg-gray-50'
@@ -329,15 +320,12 @@ export default function CalendarClient({ events, teachers, holidays, assignments
                           key={day}
                           onClick={() => !isWeekend && openAdd(dateStr)}
                           disabled={isWeekend}
-                          title={ev?.name ?? holidayName}
+                          title={ev?.name}
                           className={`border-b border-l border-gray-200 min-h-[2.25rem] py-1 flex flex-col items-center justify-center gap-0.5 text-xs transition-colors relative disabled:cursor-default ${cellClass}`}
                         >
                           <span>{day}</span>
                           {ev && (
                             <span className="text-[8px] font-semibold leading-tight px-0.5 text-center max-w-full truncate w-full text-center">{ev.name}</span>
-                          )}
-                          {holidayName && !ev && (
-                            <span className="text-[8px] leading-tight text-amber-600 px-0.5 text-center max-w-full truncate w-full text-center">{holidayName}</span>
                           )}
                         </button>
                       )

@@ -29,8 +29,11 @@ export default function DayView({ allSlots, initialDate, events, viewOnly }: Pro
 
   const activeEvents = useMemo(() => getActiveEvents(events, selectedDate), [events, selectedDate])
 
+  // A day with an active event (holiday, vacation, etc.) has no lessons — same rule as MonthView.
+  const visibleSlots = activeEvents.length > 0 ? [] : daySlots
+
   const now = new Date()
-  const nextSlotIndex = daySlots.findIndex(s => {
+  const nextSlotIndex = visibleSlots.findIndex(s => {
     const [h, m] = s.startTime.split(':').map(Number)
     const slotTime = new Date(selectedDate)
     slotTime.setHours(h, m, 0, 0)
@@ -100,17 +103,17 @@ export default function DayView({ allSlots, initialDate, events, viewOnly }: Pro
       {nextSlotIndex >= 0 && selectedDate.toDateString() === new Date().toDateString() && (
         <div className="inline-flex items-center gap-1.5 bg-teal-500 text-white text-[11px] font-bold px-3 py-1.5 rounded-full self-start shadow-sm shadow-teal-200">
           <span className="w-1.5 h-1.5 rounded-full bg-white inline-block" />
-          הבא — {daySlots[nextSlotIndex].startTime}
+          הבא — {visibleSlots[nextSlotIndex].startTime}
         </div>
       )}
 
-      {daySlots.length === 0 ? (
+      {visibleSlots.length === 0 ? (
         <div className="text-center py-16 text-gray-400 text-sm">
           אין שיעורים ביום זה
         </div>
       ) : (
         <div className="flex flex-col gap-2">
-          {daySlots.map((slot, i) => {
+          {visibleSlots.map((slot, i) => {
             const isNext = i === nextSlotIndex && selectedDate.toDateString() === new Date().toDateString()
             return (
               <div key={`${slot.groupId}-${slot.date.toDateString()}-${slot.startTime}`} className="flex items-center gap-3">

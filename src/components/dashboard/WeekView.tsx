@@ -45,6 +45,8 @@ export default function WeekView({ allSlots, events, viewOnly }: Props) {
         dayDate.setDate(weekStart.getDate() + day)
         const dayEvents = getActiveEvents(events, dayDate)
         if (slots.length === 0 && dayEvents.length === 0) return null
+        // A day with an active event (holiday, vacation, etc.) has no lessons — same rule as MonthView.
+        const visibleSlots = dayEvents.length > 0 ? [] : slots
         const isToday = today.getDay() === day
         return (
           <div key={day}>
@@ -67,7 +69,7 @@ export default function WeekView({ allSlots, events, viewOnly }: Props) {
                   </div>
                 )
               })}
-              {slots.map(slot => (
+              {visibleSlots.map(slot => (
                 <LessonCard
                   key={`${slot.groupId}-${slot.startTime}`}
                   slot={slot}

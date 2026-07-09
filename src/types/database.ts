@@ -8,13 +8,6 @@ export type Teacher = {
   created_at: string
 }
 
-export type Holiday = {
-  id: string
-  name: string
-  date: string // ISO date string "YYYY-MM-DD"
-  created_at: string
-}
-
 export type LessonType =
   | 'individual_45'
   | 'individual_60'

@@ -1,4 +1,4 @@
-import type { GroupSchedule, GroupWithSchedules, Holiday, LessonSlot } from '@/types/database'
+import type { GroupSchedule, GroupWithSchedules, LessonSlot, SchoolEvent } from '@/types/database'
 
 /**
  * שנת הלימודים הנוכחית מתחילה ב-1.9.2026 — אין שיעורים לפני תאריך זה.
@@ -66,18 +66,18 @@ export function isSummerMonth(month: number): boolean {
 }
 
 /**
- * Checks if a date is a holiday (Friday, Saturday, or exists in holidays list).
+ * Checks if a date is a holiday (Friday, Saturday, or within a holiday/vacation school_events range).
  */
 export function isHolidayDate(
   date: Date,
-  holidays: Holiday[]
+  holidayEvents: SchoolEvent[]
 ): { isHoliday: boolean; name?: string } {
   const day = date.getDay()
   if (day === 5) return { isHoliday: true, name: 'שישי' }
   if (day === 6) return { isHoliday: true, name: 'שבת' }
 
   const dateStr = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
-  const match = holidays.find(h => h.date === dateStr)
+  const match = holidayEvents.find(e => e.start_date <= dateStr && dateStr <= e.end_date)
   if (match) return { isHoliday: true, name: match.name }
 
   return { isHoliday: false }

@@ -8,7 +8,7 @@ import CancelLessonButton from './CancelLessonButton'
 import DeleteMakeupButton from './DeleteMakeupButton'
 import { getLastLessonDate, isHolidayDate } from '@/lib/utils/schedule'
 import { formatDateHe } from '@/lib/utils/hebrew'
-import type { Group, GroupSchedule, Holiday, AttendanceStatus, Lesson } from '@/types/database'
+import type { Group, GroupSchedule, SchoolEvent, AttendanceStatus, Lesson } from '@/types/database'
 
 interface Props {
   params: Promise<{ id: string }>
@@ -34,13 +34,16 @@ export default async function AttendancePage({ params, searchParams }: Props) {
   const typedGroup = group as Group & { group_schedules: GroupSchedule[] }
   if (typedGroup.group_schedules.length === 0) notFound()
 
-  const { data: holidaysData } = await supabase.from('holidays').select('*')
-  const holidays = (holidaysData ?? []) as Holiday[]
+  const { data: eventsData } = await supabase
+    .from('school_events')
+    .select('*')
+    .in('event_type', ['holiday', 'vacation'])
+  const holidayEvents = (eventsData ?? []) as SchoolEvent[]
 
   const lessonDate = dateParam
     ? new Date(dateParam + 'T12:00:00')
     : (getLastLessonDate(typedGroup.group_schedules) ?? new Date())
-  const holidayCheck = isHolidayDate(lessonDate, holidays)
+  const holidayCheck = isHolidayDate(lessonDate, holidayEvents)
 
   const matchingSchedule = typedGroup.group_schedules.find(
     s => s.day_of_week === lessonDate.getDay()
