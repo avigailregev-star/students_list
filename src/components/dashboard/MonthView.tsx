@@ -2,6 +2,7 @@
 
 import { useState, useMemo } from 'react'
 import { getLessonSlotsForMonth } from '@/lib/utils/schedule'
+import { cancelsLessons } from '@/lib/utils/eventColors'
 import type { GroupWithSchedules, SchoolEvent, SchoolEventType } from '@/types/database'
 
 const MONTHS_HE = ['ינואר','פברואר','מרץ','אפריל','מאי','יוני','יולי','אוגוסט','ספטמבר','אוקטובר','נובמבר','דצמבר']
@@ -160,8 +161,8 @@ export default function MonthView({ groups, events, onDayClick }: Props) {
                 </span>
               )}
 
-              {/* Lesson dots — only on non-event days */}
-              {!ev && groupIds.length > 0 && (
+              {/* Lesson dots — hidden only on holiday/vacation days */}
+              {!cancelsLessons(ev ? [ev] : []) && groupIds.length > 0 && (
                 <div className="flex gap-0.5 mt-auto flex-wrap">
                   {groupIds.map(gid => (
                     <span

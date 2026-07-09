@@ -3,7 +3,7 @@
 import { useState, useMemo } from 'react'
 import LessonCard from './LessonCard'
 import { formatDateHe } from '@/lib/utils/hebrew'
-import { EVENT_COLORS, getActiveEvents } from '@/lib/utils/eventColors'
+import { EVENT_COLORS, getActiveEvents, cancelsLessons } from '@/lib/utils/eventColors'
 import type { LessonSlot, SchoolEvent } from '@/types/database'
 
 interface Props {
@@ -29,8 +29,8 @@ export default function DayView({ allSlots, initialDate, events, viewOnly }: Pro
 
   const activeEvents = useMemo(() => getActiveEvents(events, selectedDate), [events, selectedDate])
 
-  // A day with an active event (holiday, vacation, etc.) has no lessons — same rule as MonthView.
-  const visibleSlots = activeEvents.length > 0 ? [] : daySlots
+  // Only holiday/vacation events cancel lessons — other event types are informational.
+  const visibleSlots = cancelsLessons(activeEvents) ? [] : daySlots
 
   const now = new Date()
   const nextSlotIndex = visibleSlots.findIndex(s => {

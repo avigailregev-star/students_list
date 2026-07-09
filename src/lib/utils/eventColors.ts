@@ -18,3 +18,12 @@ export function getActiveEvents(events: SchoolEvent[], date: Date): SchoolEvent[
   const ds = toDateStr(date)
   return events.filter(ev => ev.start_date <= ds && ds <= ev.end_date)
 }
+
+/**
+ * Only holidays and vacations cancel lessons. Other event types (special_day,
+ * concert, makeup_day, school_start, school_end) are informational — lessons
+ * still happen on those days.
+ */
+export function cancelsLessons(events: SchoolEvent[]): boolean {
+  return events.some(ev => ev.event_type === 'holiday' || ev.event_type === 'vacation')
+}
