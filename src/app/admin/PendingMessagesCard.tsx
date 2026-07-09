@@ -20,6 +20,7 @@ export default function PendingMessagesCard({ initialCount }: { initialCount: nu
           .from('messages')
           .select('*', { count: 'exact', head: true })
           .eq('status', 'pending')
+          .eq('from_admin', false)
         setCount(newCount ?? 0)
       })
       .subscribe()

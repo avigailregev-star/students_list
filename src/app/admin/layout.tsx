@@ -10,7 +10,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
     { count: vacationsCount, error: vacationsError },
   ] = await Promise.all([
     supabase.from('bug_reports').select('*', { count: 'exact', head: true }).eq('status', 'new'),
-    supabase.from('messages').select('*', { count: 'exact', head: true }).eq('status', 'pending'),
+    supabase.from('messages').select('*', { count: 'exact', head: true }).eq('status', 'pending').eq('from_admin', false),
     supabase.from('vacation_requests').select('*', { count: 'exact', head: true }).eq('status', 'pending'),
   ])
 

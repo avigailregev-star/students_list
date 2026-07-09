@@ -15,7 +15,7 @@ export default async function AdminHomePage() {
   const [{ count: teacherCount }, { count: pendingCount }, { count: pendingMessagesCount }, { count: googleAlertsCount }] = await Promise.all([
     supabase.from('teachers').select('*', { count: 'exact', head: true }).eq('role', 'teacher'),
     supabase.from('lessons').select('*', { count: 'exact', head: true }).eq('admin_approval_status', 'pending'),
-    supabase.from('messages').select('*', { count: 'exact', head: true }).eq('status', 'pending'),
+    supabase.from('messages').select('*', { count: 'exact', head: true }).eq('status', 'pending').eq('from_admin', false),
     supabase.from('google_sync_alerts').select('*', { count: 'exact', head: true }).eq('resolved', false),
   ])
 
