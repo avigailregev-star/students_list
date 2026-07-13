@@ -110,8 +110,14 @@ export default function LoginPage() {
 
       // Save this tab's session so the middleware can inject it into server requests,
       // giving each browser tab an independent server-side session.
-      const { data: { session } } = await supabase.auth.getSession()
-      if (session) sessionStorage.setItem('_sb_tab_session', sessionToBase64(session))
+      // Wrapped separately so a storage failure (unsupported/restricted mobile
+      // browser) still lets a valid login proceed via the shared cookie session.
+      try {
+        const { data: { session } } = await supabase.auth.getSession()
+        if (session) sessionStorage.setItem('_sb_tab_session', sessionToBase64(session))
+      } catch {
+        // sessionStorage unavailable — falls back to shared cookie session
+      }
 
       const role = (data.user?.user_metadata as Record<string, string>)?.role
       window.location.href = role === 'admin' ? '/admin' : (role ? '/' : '/redirect')

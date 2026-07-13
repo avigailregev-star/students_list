@@ -10,8 +10,13 @@ export default function TabAuthGuard() {
 
   useLayoutEffect(() => {
     if (PUBLIC_PATHS.some(p => pathname.startsWith(p))) return
-    if (!sessionStorage.getItem('_sb_tab_session')) {
-      window.location.href = '/login'
+    try {
+      if (!sessionStorage.getItem('_sb_tab_session')) {
+        window.location.href = '/login'
+      }
+    } catch {
+      // sessionStorage unavailable in this browser — the server-side auth
+      // check (proxy.ts) is the real gate, so don't force a redirect here.
     }
   }, [pathname])
 
