@@ -37,6 +37,13 @@ export default function WeekView({ allSlots, events, viewOnly }: Props) {
     return map
   }, [allSlots])
 
+  const weekHasContent = WORK_DAYS.some(day => {
+    if ((byDay.get(day) ?? []).length > 0) return true
+    const dayDate = new Date(weekStart)
+    dayDate.setDate(weekStart.getDate() + day)
+    return getActiveEvents(events, dayDate).length > 0
+  })
+
   return (
     <div className="flex flex-col gap-5">
       {WORK_DAYS.map(day => {
@@ -80,11 +87,7 @@ export default function WeekView({ allSlots, events, viewOnly }: Props) {
           </div>
         )
       })}
-      {allSlots.length === 0 && !WORK_DAYS.some(day => {
-        const d = new Date(weekStart)
-        d.setDate(weekStart.getDate() + day)
-        return getActiveEvents(events, d).length > 0
-      }) && (
+      {!weekHasContent && (
         <div className="text-center py-16 text-gray-400 text-sm">
           אין שיעורים השבוע
         </div>
