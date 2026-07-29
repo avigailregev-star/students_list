@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { getLessonIdsWithAttendance } from '@/lib/queries/attendance'
+import { categorizeSickDates } from '@/lib/payroll/sickLeaveTiers'
 import PayrollView from './PayrollView'
 import BottomNav from '@/components/layout/BottomNav'
 
@@ -78,7 +79,7 @@ export default async function PayrollPage() {
       .lte('date', todayStr)
       .order('date'),
     supabase.from('lessons')
-      .select('date, teacher_absence_reason')
+      .select('date, teacher_absence_reason, admin_approval_status')
       .in('group_id', groupIds)
       .eq('status', 'teacher_canceled')
       .eq('is_holiday', false)
@@ -162,29 +163,9 @@ export default async function PayrollPage() {
     if (col) month.dayCounts[dayNum][col]++
   }
 
-  // Collect unique sick dates and group into consecutive illness incidents
-  const sickDatesSet = new Set<string>()
-  for (const lesson of (canceledLessons ?? [])) {
-    if (lesson.teacher_absence_reason === 'מחלת מורה') sickDatesSet.add(lesson.date)
-  }
-  const sortedSickDates = Array.from(sickDatesSet).sort()
-
-  // Group consecutive dates into illness incidents (gap > 1 calendar day = new incident)
-  const sickDateCategory = new Map<string, 'unpaid' | 'half' | 'full'>()
-  let incidentStart: string | null = null
-  let incidentDay = 0
-  for (const date of sortedSickDates) {
-    if (!incidentStart) {
-      incidentStart = date; incidentDay = 1
-    } else {
-      const prev = new Date(sortedSickDates[sortedSickDates.indexOf(date) - 1])
-      const curr = new Date(date)
-      const gapDays = Math.round((curr.getTime() - prev.getTime()) / 86400000)
-      if (gapDays > 1) { incidentStart = date; incidentDay = 1 }
-      else incidentDay++
-    }
-    sickDateCategory.set(date, incidentDay === 1 ? 'unpaid' : incidentDay <= 3 ? 'half' : 'full')
-  }
+  // Collect unique sick dates and group into consecutive illness incidents.
+  // A rejected sick-leave claim gets no sick-pay tier at all.
+  const sickDateCategory = categorizeSickDates(canceledLessons ?? [])
 
   for (const [date, cat] of sickDateCategory) {
     const parts = date.split('-')
