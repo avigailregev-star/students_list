@@ -3,6 +3,7 @@ import Link from 'next/link'
 import { requireAdmin } from '@/lib/auth'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { getLessonIdsWithAttendance } from '@/lib/queries/attendance'
+import { categorizeSickDates } from '@/lib/payroll/sickLeaveTiers'
 import PayrollView from '@/app/reports/payroll/PayrollView'
 import type { MonthPayroll, DayCount } from '@/app/reports/payroll/page'
 import BottomNav from '@/components/layout/BottomNav'
@@ -56,7 +57,7 @@ export default async function AdminTeacherReportsPage({ params }: Props) {
       .lte('date', todayStr)
       .order('date'),
     supabase.from('lessons')
-      .select('date, teacher_absence_reason')
+      .select('date, teacher_absence_reason, admin_approval_status')
       .in('group_id', groupIds)
       .eq('status', 'teacher_canceled')
       .eq('is_holiday', false)
@@ -136,26 +137,7 @@ export default async function AdminTeacherReportsPage({ params }: Props) {
     if (col) month.dayCounts[dayNum][col]++
   }
 
-  const sickDatesSet = new Set<string>()
-  for (const lesson of (canceledLessons ?? [])) {
-    if (lesson.teacher_absence_reason === 'מחלת מורה') sickDatesSet.add(lesson.date)
-  }
-  const sortedSickDates = Array.from(sickDatesSet).sort()
-
-  const sickDateCategory = new Map<string, 'unpaid' | 'half' | 'full'>()
-  let incidentDay = 0
-  for (let i = 0; i < sortedSickDates.length; i++) {
-    const date = sortedSickDates[i]
-    if (i === 0) { incidentDay = 1 }
-    else {
-      const prev = new Date(sortedSickDates[i - 1])
-      const curr = new Date(date)
-      const gapDays = Math.round((curr.getTime() - prev.getTime()) / 86400000)
-      if (gapDays > 1) incidentDay = 1
-      else incidentDay++
-    }
-    sickDateCategory.set(date, incidentDay === 1 ? 'unpaid' : incidentDay <= 3 ? 'half' : 'full')
-  }
+  const sickDateCategory = categorizeSickDates(canceledLessons ?? [])
 
   for (const [date, cat] of sickDateCategory) {
     const parts = date.split('-')
