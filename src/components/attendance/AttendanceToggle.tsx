@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useTransition } from 'react'
+import { useRef, useState, useTransition } from 'react'
 import type { AttendanceStatus } from '@/types/database'
 
 interface Props {
@@ -26,29 +26,60 @@ export default function AttendanceToggle({
   const [saved, setSaved] = useState(!!initialStatus)
   const [saveError, setSaveError] = useState<string | null>(null)
 
-  async function save(newStatus: AttendanceStatus | null, newBrought: boolean) {
-    setSaveError(null)
-    startTransition(async () => {
-      try {
-        const res = await fetch('/api/attendance', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            lessonId,
-            studentId,
-            status: newStatus ?? 'absent',
-            broughtInstrument: newBrought,
-          }),
-        })
-        if (res.ok) {
-          setSaved(true)
-        } else {
-          const body = await res.json().catch(() => ({}))
-          setSaveError(body.error ?? `שגיאה ${res.status}`)
-        }
-      } catch {
-        setSaveError('שגיאת רשת')
+  // Requests are serialized (never sent in parallel) so a save can never be written
+  // to the server out of the order the teacher actually clicked in, and a failed
+  // save rolls the UI back to the last value that was actually confirmed saved.
+  const lastSavedRef = useRef<{ status: AttendanceStatus | null; brought: boolean }>({
+    status: initialStatus,
+    brought: initialBrought,
+  })
+  const inFlightRef = useRef(false)
+  const queuedRef = useRef<{ status: AttendanceStatus | null; brought: boolean } | null>(null)
+
+  async function runSave(newStatus: AttendanceStatus | null, newBrought: boolean) {
+    inFlightRef.current = true
+    try {
+      const res = await fetch('/api/attendance', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          lessonId,
+          studentId,
+          status: newStatus ?? 'absent',
+          broughtInstrument: newBrought,
+        }),
+      })
+      if (res.ok) {
+        lastSavedRef.current = { status: newStatus, brought: newBrought }
+        setSaved(true)
+      } else {
+        const body = await res.json().catch(() => ({}))
+        setSaveError(body.error ?? `שגיאה ${res.status}`)
+        setStatus(lastSavedRef.current.status)
+        setBrought(lastSavedRef.current.brought)
       }
+    } catch {
+      setSaveError('שגיאת רשת')
+      setStatus(lastSavedRef.current.status)
+      setBrought(lastSavedRef.current.brought)
+    } finally {
+      inFlightRef.current = false
+      if (queuedRef.current) {
+        const next = queuedRef.current
+        queuedRef.current = null
+        await runSave(next.status, next.brought)
+      }
+    }
+  }
+
+  function save(newStatus: AttendanceStatus | null, newBrought: boolean) {
+    setSaveError(null)
+    if (inFlightRef.current) {
+      queuedRef.current = { status: newStatus, brought: newBrought }
+      return
+    }
+    startTransition(async () => {
+      await runSave(newStatus, newBrought)
     })
   }
 
