@@ -6,6 +6,11 @@ import type { GroupSchedule, GroupWithSchedules, LessonSlot, SchoolEvent } from 
 export const SCHOOL_YEAR_START = new Date(2026, 8, 1)
 
 /**
+ * שנת הלימודים הנוכחית מסתיימת ב-30.6.2027 — יולי-אוגוסט הם חופש (אלא אם יש השלמות).
+ */
+export const SCHOOL_YEAR_END = new Date(2027, 5, 30)
+
+/**
  * Given a day_of_week (0=Sun..6=Sat), returns the next Date that falls on that day
  * starting from `from` (inclusive if same day).
  */
@@ -54,6 +59,7 @@ export function getLastLessonDate(schedules: GroupSchedule[], from: Date = new D
   today.setHours(0, 0, 0, 0)
   if (result > today) return null
   if (result < SCHOOL_YEAR_START) return null
+  if (isSummerMonth(result.getMonth())) return null
   return result
 }
 

@@ -6,7 +6,7 @@ import { getOrCreateLesson, getAttendanceForLesson } from '@/lib/queries/attenda
 import AttendanceSection from '@/components/attendance/AttendanceSection'
 import CancelLessonButton from './CancelLessonButton'
 import DeleteMakeupButton from './DeleteMakeupButton'
-import { getLastLessonDate, isHolidayDate } from '@/lib/utils/schedule'
+import { getLastLessonDate, isHolidayDate, SCHOOL_YEAR_START, SCHOOL_YEAR_END } from '@/lib/utils/schedule'
 import { formatDateHe } from '@/lib/utils/hebrew'
 import type { Group, GroupSchedule, SchoolEvent, AttendanceStatus, Lesson } from '@/types/database'
 
@@ -40,9 +40,38 @@ export default async function AttendancePage({ params, searchParams }: Props) {
     .in('event_type', ['holiday', 'vacation'])
   const holidayEvents = (eventsData ?? []) as SchoolEvent[]
 
+  const lastLessonDate = getLastLessonDate(typedGroup.group_schedules)
+
+  // No explicit date requested and no lesson has occurred yet this school year
+  // (e.g. browsing before the school year starts) — don't create a lesson record.
+  if (!dateParam && !lastLessonDate) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex flex-col pb-6">
+        <div className="bg-gradient-to-bl from-teal-400 to-teal-600 shadow-teal-200 text-white rounded-b-[36px] shadow-lg px-5 pt-8 pb-6">
+          <div className="flex items-start gap-3">
+            <Link
+              href={`/groups/${id}`}
+              className="w-9 h-9 rounded-2xl bg-white/20 flex items-center justify-center shrink-0"
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="15 18 9 12 15 6" />
+              </svg>
+            </Link>
+            <h1 className="text-xl font-bold truncate">{typedGroup.name}</h1>
+          </div>
+        </div>
+        <div className="px-4 py-16 max-w-md mx-auto w-full text-center">
+          <p className="text-gray-400 text-sm">
+            עדיין אין שיעורים — שנת הלימודים מתחילה ב-{formatDateHe(SCHOOL_YEAR_START)}
+          </p>
+        </div>
+      </div>
+    )
+  }
+
   const lessonDate = dateParam
     ? new Date(dateParam + 'T12:00:00')
-    : (getLastLessonDate(typedGroup.group_schedules) ?? new Date())
+    : lastLessonDate!
   const holidayCheck = isHolidayDate(lessonDate, holidayEvents)
 
   const matchingSchedule = typedGroup.group_schedules.find(
@@ -70,13 +99,8 @@ export default async function AttendancePage({ params, searchParams }: Props) {
   }
 
   // Count advance-notice cancellations for this teacher in the current school year
-  const now = new Date()
-  const schoolYearStart = now.getMonth() >= 8
-    ? `${now.getFullYear()}-09-01`
-    : `${now.getFullYear() - 1}-09-01`
-  const schoolYearEnd = now.getMonth() >= 8
-    ? `${now.getFullYear() + 1}-08-31`
-    : `${now.getFullYear()}-08-31`
+  const schoolYearStart = `${SCHOOL_YEAR_START.getFullYear()}-${String(SCHOOL_YEAR_START.getMonth() + 1).padStart(2, '0')}-${String(SCHOOL_YEAR_START.getDate()).padStart(2, '0')}`
+  const schoolYearEnd = `${SCHOOL_YEAR_END.getFullYear()}-${String(SCHOOL_YEAR_END.getMonth() + 1).padStart(2, '0')}-${String(SCHOOL_YEAR_END.getDate()).padStart(2, '0')}`
 
   const { data: teacherGroups } = await supabase.from('groups').select('id').eq('teacher_id', user.id)
   const teacherGroupIds = (teacherGroups ?? []).map(g => g.id)
