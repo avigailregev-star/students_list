@@ -17,11 +17,27 @@ export async function saveStudent(formData: FormData) {
   const parentPhone = formData.get('parent_phone') as string
 
   if (studentId) {
+    const { data: existing } = await supabase
+      .from('students')
+      .select('id, groups!inner(teacher_id)')
+      .eq('id', studentId)
+      .single()
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    if (!existing || (existing.groups as any).teacher_id !== user.id) throw new Error('תלמיד לא נמצא')
+
     const { error } = await supabase.from('students').update({
       name, instrument: instrument || null, parent_phone: parentPhone || null,
     }).eq('id', studentId)
     if (error) throw new Error('שגיאה בעדכון התלמיד')
   } else {
+    const { data: group } = await supabase
+      .from('groups')
+      .select('id')
+      .eq('id', groupId)
+      .eq('teacher_id', user.id)
+      .single()
+    if (!group) throw new Error('קבוצה לא נמצאה')
+
     const { error } = await supabase.from('students').insert({
       group_id: groupId, name, instrument: instrument || null, parent_phone: parentPhone || null, is_active: true,
     })
@@ -37,7 +53,13 @@ export async function removeStudent(studentId: string, groupId: string) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
-  const { data: student } = await supabase.from('students').select('name').eq('id', studentId).single()
+  const { data: student } = await supabase
+    .from('students')
+    .select('name, groups!inner(teacher_id)')
+    .eq('id', studentId)
+    .single()
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  if (!student || (student.groups as any).teacher_id !== user.id) throw new Error('תלמיד לא נמצא')
 
   const { error } = await supabase
     .from('students')

@@ -32,6 +32,19 @@ export async function cancelLesson(formData: FormData) {
   const isSickLeave = formData.get('is_sick_leave') === 'true'
   const documentUrl = formData.get('document_url') as string | null
 
+  const admin = createAdminClient()
+
+  // Verify ownership
+  const { data: lessonForAuth } = await admin.from('lessons').select('group_id').eq('id', lessonId).single()
+  if (!lessonForAuth) throw new Error('שיעור לא נמצא')
+  const { data: ownedGroup } = await supabase
+    .from('groups')
+    .select('id')
+    .eq('id', lessonForAuth.group_id)
+    .eq('teacher_id', user.id)
+    .single()
+  if (!ownedGroup) throw new Error('אין הרשאה')
+
   const ADVANCE_NOTICE_REASON = 'ביטול מוצדק של תלמיד (עד שניים בשנה)'
   const isAdvanceNotice = reason === ADVANCE_NOTICE_REASON
   const hasMakeup = (reason === 'ביטול מורה עם השלמה' || isAdvanceNotice) && notes && makeupStartTime
@@ -39,7 +52,6 @@ export async function cancelLesson(formData: FormData) {
   // Create the makeup lesson record first (so we have its ID for the update)
   let makeupLessonId: string | null = null
   if (hasMakeup) {
-    const admin = createAdminClient()
     const { data: orig } = await admin
       .from('lessons')
       .select('group_id')
@@ -174,14 +186,48 @@ export async function restoreLesson(lessonId: string) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
-  // Fetch makeup_lesson_id before updating
-  const { data: origLesson } = await supabase
+  const admin = createAdminClient()
+
+  // Fetch group_id + makeup_lesson_id, and verify ownership
+  const { data: origLesson } = await admin
     .from('lessons')
-    .select('makeup_lesson_id')
+    .select('group_id, makeup_lesson_id')
     .eq('id', lessonId)
     .single()
+  if (!origLesson) throw new Error('שיעור לא נמצא')
+
+  const { data: ownedGroup } = await supabase
+    .from('groups')
+    .select('id')
+    .eq('id', origLesson.group_id)
+    .eq('teacher_id', user.id)
+    .single()
+  if (!ownedGroup) throw new Error('אין הרשאה')
 
   const makeupLessonId = origLesson?.makeup_lesson_id ?? null
+
+  // If the makeup lesson already has recorded attendance (i.e. it was already
+  // taught and is payroll-relevant), don't destroy it when undoing the
+  // cancellation — just unlink it and leave it as a standalone lesson.
+  let shouldDeleteMakeup = false
+  let makeupGoogleEventId: string | null = null
+  if (makeupLessonId) {
+    const { data: makeupAttendance } = await admin
+      .from('attendance')
+      .select('id')
+      .eq('lesson_id', makeupLessonId)
+      .single()
+    shouldDeleteMakeup = !makeupAttendance
+
+    if (shouldDeleteMakeup) {
+      const { data: makeupLesson } = await admin
+        .from('lessons')
+        .select('google_event_id')
+        .eq('id', makeupLessonId)
+        .single()
+      makeupGoogleEventId = makeupLesson?.google_event_id ?? null
+    }
+  }
 
   const { error } = await supabase
     .from('lessons')
@@ -199,27 +245,21 @@ export async function restoreLesson(lessonId: string) {
 
   if (error) throw new Error('שגיאה בשחזור השיעור')
 
+  if (makeupLessonId && shouldDeleteMakeup) {
+    const { error: deleteErr } = await admin.from('lessons').delete().eq('id', makeupLessonId)
+    if (deleteErr) throw new Error('שגיאה במחיקת שיעור ההשלמה')
+  }
+
   revalidatePath('/')
   revalidatePath('/groups/[id]/attendance', 'page')
 
-  // Delete makeup lesson + its GCal event (fire-and-forget)
-  if (makeupLessonId) {
+  // Delete the makeup lesson's GCal event (fire-and-forget, best-effort)
+  if (makeupGoogleEventId) {
     void (async () => {
       try {
-        const admin = createAdminClient()
-        const { data: makeupLesson } = await admin
-          .from('lessons')
-          .select('google_event_id')
-          .eq('id', makeupLessonId)
-          .single()
-
-        if (makeupLesson?.google_event_id) {
-          await deleteGCalEvent(user.id, makeupLesson.google_event_id)
-        }
-
-        await admin.from('lessons').delete().eq('id', makeupLessonId)
+        await deleteGCalEvent(user.id, makeupGoogleEventId!)
       } catch (e) {
-        console.error('restoreLesson: makeup cleanup failed', e)
+        console.error('restoreLesson: makeup GCal cleanup failed', e)
       }
     })()
   }
