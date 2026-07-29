@@ -31,6 +31,17 @@ export async function deleteRoom(id: string): Promise<{ error?: string }> {
   return {}
 }
 
+function timeRangesOverlap(
+  aStart: string | null,
+  aEnd: string | null,
+  bStart: string | null,
+  bEnd: string | null,
+): boolean {
+  // An assignment with no specific time is treated as covering the whole day.
+  if (!aStart || !aEnd || !bStart || !bEnd) return true
+  return aStart < bEnd && bStart < aEnd
+}
+
 export async function assignRoom(
   roomId: string,
   teacherId: string,
@@ -41,6 +52,26 @@ export async function assignRoom(
 ): Promise<{ error?: string }> {
   const supabase = await requireAdmin()
   if (dayOfWeek < 0 || dayOfWeek > 6) return { error: 'יום בשבוע לא תקין' }
+
+  const newStart = startTime || null
+  const newEnd = endTime || null
+
+  const [{ data: sameRoomDay, error: roomFetchError }, { data: sameTeacherDay, error: teacherFetchError }] = await Promise.all([
+    supabase.from('teacher_room_assignments').select('id, start_time, end_time').eq('room_id', roomId).eq('day_of_week', dayOfWeek),
+    supabase.from('teacher_room_assignments').select('id, start_time, end_time').eq('teacher_id', teacherId).eq('day_of_week', dayOfWeek),
+  ])
+  if (roomFetchError) return { error: roomFetchError.message }
+  if (teacherFetchError) return { error: teacherFetchError.message }
+
+  const roomConflict = (sameRoomDay ?? []).some(a =>
+    a.id !== assignmentId && timeRangesOverlap(newStart, newEnd, a.start_time, a.end_time)
+  )
+  if (roomConflict) return { error: 'החדר כבר משובץ בשעה הזו ביום הזה' }
+
+  const teacherConflict = (sameTeacherDay ?? []).some(a =>
+    a.id !== assignmentId && timeRangesOverlap(newStart, newEnd, a.start_time, a.end_time)
+  )
+  if (teacherConflict) return { error: 'המורה כבר משובץ/ת לחדר אחר בשעה הזו' }
 
   if (assignmentId) {
     const { error } = await supabase
