@@ -2,12 +2,16 @@
 
 import Link from 'next/link'
 import * as XLSX from 'xlsx'
+import { categorizeSickDates } from '@/lib/payroll/sickLeaveTiers'
+import { isLegacyPayableCancellation } from '@/lib/payroll/legacyPayslipReason'
+import type { AdminApprovalStatus } from '@/types/database'
 
 interface HistoryEntry {
   date: string
   status: string
   brought: boolean
   cancelReason?: string
+  cancelApprovalStatus?: AdminApprovalStatus | null
   isMakeup?: boolean
 }
 
@@ -112,7 +116,7 @@ export default function ExportButtons({ reportData, month, teacherName }: Props)
 
     const dayCounts = new Map<number, Record<ColKey, number>>()
     for (let d = 1; d <= 31; d++) dayCounts.set(d, mkEmpty())
-    const sickDates = new Set<string>()
+    const sickCancellations: { date: string; teacher_absence_reason: string | null; admin_approval_status?: AdminApprovalStatus | null }[] = []
 
     for (const group of reportData) {
       const seenDates = new Map<string, HistoryEntry>()
@@ -127,8 +131,10 @@ export default function ExportButtons({ reportData, month, teacherName }: Props)
         if (!dateStr.startsWith(month)) continue
         if (h.status === 'school_event' || h.status === 'no_data') continue
         if (h.status === 'teacher_canceled') {
-          if (h.cancelReason === 'מחלת מורה') sickDates.add(dateStr)
-          continue
+          sickCancellations.push({ date: dateStr, teacher_absence_reason: h.cancelReason ?? null, admin_approval_status: h.cancelApprovalStatus })
+          // Legacy-reason cancellations were still paid — count them like a held lesson.
+          // Every other cancellation reason (including illness) earns no lesson pay.
+          if (!isLegacyPayableCancellation(h.cancelReason)) continue
         }
         const dayNum = parseInt(dateStr.split('-')[2])
         const counts = dayCounts.get(dayNum)
@@ -141,6 +147,8 @@ export default function ExportButtons({ reportData, month, teacherName }: Props)
         }
       }
     }
+
+    const sickDates = categorizeSickDates(sickCancellations)
 
     const dayAbbrev = ["א'", "ב'", "ג'", "ד'", "ה'", "ו'", "ש'"]
     const COLS = 10

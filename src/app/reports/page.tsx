@@ -1,7 +1,7 @@
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
-import type { Group, Student, Lesson, Attendance } from '@/types/database'
+import type { AdminApprovalStatus, Group, Student, Lesson, Attendance } from '@/types/database'
 import ReportGroup from './ReportGroup'
 import ExportButtons from './ExportButtons'
 import BottomNav from '@/components/layout/BottomNav'
@@ -17,6 +17,7 @@ type HistoryEntry = {
   eventType?: SchoolEventType
   eventName?: string
   cancelReason?: string
+  cancelApprovalStatus?: AdminApprovalStatus | null
   isMakeup?: boolean
 }
 
@@ -89,11 +90,11 @@ export default async function ReportsPage() {
   for (const group of groups as Group[]) {
     const [{ data: lessons }, { data: canceled }] = await Promise.all([
       supabase.from('lessons').select('*').eq('group_id', group.id).eq('is_holiday', false).neq('status', 'teacher_canceled').lte('date', todayStr).order('date', { ascending: false }),
-      supabase.from('lessons').select('id, date, teacher_absence_reason').eq('group_id', group.id).eq('status', 'teacher_canceled').lte('date', todayStr).order('date', { ascending: false }),
+      supabase.from('lessons').select('id, date, teacher_absence_reason, admin_approval_status').eq('group_id', group.id).eq('status', 'teacher_canceled').lte('date', todayStr).order('date', { ascending: false }),
     ])
 
     const lessonList = (lessons ?? []) as Lesson[]
-    const canceledList = (canceled ?? []) as { id: string; date: string; teacher_absence_reason: string | null }[]
+    const canceledList = (canceled ?? []) as { id: string; date: string; teacher_absence_reason: string | null; admin_approval_status: AdminApprovalStatus | null }[]
     const lessonIds = lessonList.map(l => l.id)
 
     const { data: students } = await supabase
@@ -120,7 +121,7 @@ export default async function ReportsPage() {
           const att = studentAtt.find(a => a.lesson_id === lesson.id)
           return { date: lesson.date, status: att?.status ?? 'no_data', brought: att?.brought_instrument ?? false, isMakeup: lesson.is_makeup }
         }),
-        ...canceledList.map(lesson => ({ date: lesson.date, status: 'teacher_canceled', brought: false, cancelReason: lesson.teacher_absence_reason ?? undefined })),
+        ...canceledList.map(lesson => ({ date: lesson.date, status: 'teacher_canceled', brought: false, cancelReason: lesson.teacher_absence_reason ?? undefined, cancelApprovalStatus: lesson.admin_approval_status })),
       ].sort((a, b) => b.date.localeCompare(a.date))
 
       return {

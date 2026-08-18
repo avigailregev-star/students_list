@@ -3,6 +3,7 @@ import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { getLessonIdsWithAttendance } from '@/lib/queries/attendance'
 import { categorizeSickDates } from '@/lib/payroll/sickLeaveTiers'
+import { isLegacyPayableCancellation } from '@/lib/payroll/legacyPayslipReason'
 import PayrollView from './PayrollView'
 import BottomNav from '@/components/layout/BottomNav'
 
@@ -90,11 +91,10 @@ export default async function PayrollPage() {
   // A lesson only counts toward payroll if at least one attendance row (any status) was
   // recorded — otherwise it's a phantom row created just by opening the attendance page.
   // Exception: canceled lessons with the legacy "תלוש נוכחי" reason must still be counted.
-  const LEGACY_PAYSLIP_REASON = 'העדרות מורה עם השלמה בתלוש נוכחי'
   const lessonIdsWithAttendance = await getLessonIdsWithAttendance(supabase, (lessons ?? []).map(l => l.id))
   const heldLessons = (lessons ?? []).filter(l =>
     lessonIdsWithAttendance.has(l.id) ||
-    (l.status === 'teacher_canceled' && l.teacher_absence_reason === LEGACY_PAYSLIP_REASON)
+    (l.status === 'teacher_canceled' && isLegacyPayableCancellation(l.teacher_absence_reason))
   )
 
   const monthsMap = new Map<string, MonthPayroll>()
@@ -134,7 +134,7 @@ export default async function PayrollPage() {
     // Makeup lesson — all makeups count in השלמות column, except legacy "תלוש נוכחי" where original is already counted
     if ((lesson as any).is_makeup) {
       const mkReason = (lesson as any).teacher_absence_reason ?? ''
-      if (mkReason !== 'העדרות מורה עם השלמה בתלוש נוכחי') {
+      if (!isLegacyPayableCancellation(mkReason)) {
         month.dayCounts[dayNum].makeup++
         if (!month.makeupDates.includes(dayNum)) month.makeupDates.push(dayNum)
         const mkLessonType = groupType.get(lesson.group_id) ?? ''
@@ -150,7 +150,7 @@ export default async function PayrollPage() {
     if ((lesson as any).status === 'teacher_canceled') {
       const r = (lesson as any).teacher_absence_reason ?? ''
       // Backward compat: "תלוש נוכחי" — keep original in regular column
-      if (r === 'העדרות מורה עם השלמה בתלוש נוכחי') {
+      if (isLegacyPayableCancellation(r)) {
         const col = mapType(groupType.get(lesson.group_id) ?? '')
         if (col) month.dayCounts[dayNum][col]++
       }
