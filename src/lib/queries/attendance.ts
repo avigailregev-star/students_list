@@ -11,6 +11,29 @@ export async function getOrCreateLesson(
 ): Promise<Lesson> {
   const supabase = await createClient()
 
+  const { data: existing } = await supabase
+    .from('lessons')
+    .select('*')
+    .eq('group_id', groupId)
+    .eq('date', date)
+    .eq('start_time', startTime)
+    .maybeSingle()
+
+  if (existing) {
+    const { data: attendanceRow } = await supabase
+      .from('attendance')
+      .select('id')
+      .eq('lesson_id', existing.id)
+      .limit(1)
+      .maybeSingle()
+
+    // A lesson that already has recorded attendance keeps its holiday status
+    // frozen — a holiday/vacation added afterwards must not silently hide it
+    // or drop it out of payroll. Explicit cancellation is the only way to
+    // change that once real attendance exists.
+    if (attendanceRow) return existing as Lesson
+  }
+
   const { data, error } = await supabase
     .from('lessons')
     .upsert({
@@ -25,6 +48,12 @@ export async function getOrCreateLesson(
 
   if (error) throw error
   return data as Lesson
+}
+
+// Once a lesson has real recorded attendance, a holiday/vacation added
+// afterwards for its date must not hide it or make it uneditable.
+export function shouldDisplayAsHoliday(isHoliday: boolean, attendanceRowCount: number): boolean {
+  return isHoliday && attendanceRowCount === 0
 }
 
 export async function getAttendanceForLesson(lessonId: string): Promise<Attendance[]> {

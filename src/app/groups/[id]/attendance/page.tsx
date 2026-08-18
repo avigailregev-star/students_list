@@ -2,7 +2,7 @@ import { notFound, redirect } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { getStudentsByGroup } from '@/lib/queries/students'
-import { getOrCreateLesson, getAttendanceForLesson } from '@/lib/queries/attendance'
+import { getOrCreateLesson, getAttendanceForLesson, shouldDisplayAsHoliday } from '@/lib/queries/attendance'
 import AttendanceSection from '@/components/attendance/AttendanceSection'
 import CancelLessonButton from './CancelLessonButton'
 import DeleteMakeupButton from './DeleteMakeupButton'
@@ -127,9 +127,13 @@ export default async function AttendancePage({ params, searchParams }: Props) {
 
   const attendanceMap = new Map(attendanceRows.map(a => [a.student_id, a]))
 
+  // A lesson that already has recorded attendance must stay editable and
+  // visible even if a holiday/vacation was added afterwards covering its date.
+  const effectiveIsHoliday = shouldDisplayAsHoliday(holidayCheck.isHoliday, attendanceRows.length)
+
   const headerGradient = lesson.is_makeup
     ? 'from-purple-400 to-purple-600 shadow-purple-200'
-    : holidayCheck.isHoliday
+    : effectiveIsHoliday
     ? 'from-amber-400 to-orange-500 shadow-amber-200'
     : isCanceled
     ? 'from-red-400 to-red-600 shadow-red-200'
@@ -167,7 +171,7 @@ export default async function AttendancePage({ params, searchParams }: Props) {
           </Link>
         </div>
 
-        {holidayCheck.isHoliday && (
+        {effectiveIsHoliday && (
           <div className="bg-white/20 rounded-2xl px-4 py-2.5 mt-3 text-sm font-bold">
             {holidayCheck.name} — אין שיעור
           </div>
@@ -176,7 +180,7 @@ export default async function AttendancePage({ params, searchParams }: Props) {
 
       {/* Content */}
       <div className="px-4 py-5 max-w-md mx-auto w-full">
-        {holidayCheck.isHoliday ? (
+        {effectiveIsHoliday ? (
           <div className="text-center py-16">
             <p className="text-gray-400 text-sm">השיעור בוטל בגלל {holidayCheck.name}</p>
           </div>
