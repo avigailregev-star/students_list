@@ -51,7 +51,13 @@ export async function createPendingTeacher(name: string): Promise<string | void>
   revalidatePath('/admin/teachers')
 }
 
-export async function inviteTeacher(pendingId: string, email: string, name: string): Promise<string | void> {
+export type InviteResult = {
+  error?: string
+  link?: string
+  newUserId?: string
+}
+
+export async function inviteTeacher(pendingId: string, email: string, name: string): Promise<InviteResult> {
   await _requireAdmin('/admin')
   const supabase = createAdminClient()
 
@@ -71,7 +77,7 @@ export async function inviteTeacher(pendingId: string, email: string, name: stri
 
   if (linkError) {
     if (!linkError.message.toLowerCase().includes('already')) {
-      return `שגיאה ביצירת ההזמנה: ${linkError.message}`
+      return { error: `שגיאה ביצירת ההזמנה: ${linkError.message}` }
     }
     // Auth user already exists — generate a recovery (password reset) link instead
     const { data: recoveryData, error: recoveryError } = await supabase.auth.admin.generateLink({
@@ -79,12 +85,12 @@ export async function inviteTeacher(pendingId: string, email: string, name: stri
       email,
       options: { redirectTo: resetCallbackUrl },
     })
-    if (recoveryError) return `שגיאה ביצירת קישור: ${recoveryError.message}`
+    if (recoveryError) return { error: `שגיאה ביצירת קישור: ${recoveryError.message}` }
     inviteLink = recoveryData.properties.action_link
 
     const { data: { users } } = await supabase.auth.admin.listUsers({ page: 1, perPage: 1000 })
     const existingUser = users?.find(u => u.email === email)
-    if (!existingUser) return 'שגיאה: המשתמש קיים אך לא נמצא'
+    if (!existingUser) return { error: 'שגיאה: המשתמש קיים אך לא נמצא' }
     newUserId = existingUser.id
   } else {
     newUserId = linkData.user.id
@@ -95,7 +101,7 @@ export async function inviteTeacher(pendingId: string, email: string, name: stri
   const { error: dbError } = await supabase
     .from('teachers')
     .insert({ id: newUserId, name, email, role: 'teacher', is_pending: false })
-  if (dbError) return `שגיאה בשמירה: ${dbError.message}`
+  if (dbError) return { error: `שגיאה בשמירה: ${dbError.message}` }
 
   // Migrate all associations before deleting the old record
   if (newUserId !== pendingId) {
@@ -108,14 +114,15 @@ export async function inviteTeacher(pendingId: string, email: string, name: stri
   await supabase.from('teachers').delete().eq('id', pendingId)
   revalidatePath('/admin/teachers')
 
-  // Send email after DB is consistent — if this fails, teacher is already set up and can use "forgot password"
+  // Best-effort email send — the link is always returned to the caller so the
+  // admin can copy/share it manually if the email is silently dropped (Gmail does this).
   try {
     await sendTeacherInviteEmail({ teacherEmail: email, teacherName: name, inviteLink })
   } catch (e: unknown) {
-    return `המורה נוספה בהצלחה, אך המייל לא נשלח: ${e instanceof Error ? e.message : String(e)}`
+    console.error('[inviteTeacher] email send failed:', e)
   }
 
-  redirect(`/admin/teachers/${newUserId}`)
+  return { link: inviteLink, newUserId }
 }
 
 export async function resetTeacherToPending(teacherId: string): Promise<string | void> {
@@ -134,7 +141,7 @@ export async function resetTeacherToPending(teacherId: string): Promise<string |
   revalidatePath('/admin/teachers')
 }
 
-export async function resendTeacherInvite(teacherId: string, email: string, name: string): Promise<string | void> {
+export async function resendTeacherInvite(teacherId: string, email: string, name: string): Promise<InviteResult> {
   await _requireAdmin('/admin')
   const supabase = createAdminClient()
 
@@ -172,7 +179,7 @@ export async function resendTeacherInvite(teacherId: string, email: string, name
       })
       if (createError) {
         // All attempts failed — report the original recovery error
-        return `שגיאה ביצירת קישור: ${recoveryError.message} (invite: ${inviteError.message})`
+        return { error: `שגיאה ביצירת קישור: ${recoveryError.message} (invite: ${inviteError.message})` }
       }
       newUserId = created.user.id
 
@@ -182,7 +189,7 @@ export async function resendTeacherInvite(teacherId: string, email: string, name
         email,
         options: { redirectTo: resetCallbackUrl },
       })
-      if (newRecoveryError) return `שגיאה ביצירת קישור: ${newRecoveryError.message}`
+      if (newRecoveryError) return { error: `שגיאה ביצירת קישור: ${newRecoveryError.message}` }
       newInviteLink = newRecovery.properties.action_link
     }
 
@@ -206,9 +213,10 @@ export async function resendTeacherInvite(teacherId: string, email: string, name
   try {
     await sendTeacherInviteEmail({ teacherEmail: email, teacherName: name, inviteLink })
   } catch (e: unknown) {
-    return `שגיאה בשליחת המייל: ${e instanceof Error ? e.message : String(e)}`
+    console.error('[resendTeacherInvite] email send failed:', e)
   }
   revalidatePath('/admin/teachers')
+  return { link: inviteLink }
 }
 
 export async function mergeTeachers(pendingId: string, registeredId: string): Promise<string | void> {
