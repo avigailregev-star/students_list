@@ -11,7 +11,7 @@ async function getResetCallbackUrl() {
   const headersList = await headers()
   const host = headersList.get('host') ?? 'localhost:3001'
   const protocol = host.includes('localhost') ? 'http' : 'https'
-  return `${protocol}://${host}/auth/reset-callback`
+  return `${protocol}://${host}/reset-password`
 }
 
 async function requireAdmin() {
