@@ -146,7 +146,6 @@ export default async function TeacherDetailPage({ params }: Props) {
             teacherId={teacher.id}
             email={teacherEmail}
             name={teacher.name}
-            isPending={false}
           />
         )}
         <DeleteTeacherButton teacherId={teacher.id} />
