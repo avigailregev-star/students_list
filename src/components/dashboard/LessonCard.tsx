@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import type { LessonSlot } from '@/types/database'
+import { LESSON_TYPE_CONFIG } from '@/lib/utils/lessonTypes'
 
 interface Props {
   slot: LessonSlot
@@ -10,6 +11,8 @@ interface Props {
 
 export default function LessonCard({ slot, isNext, hideTime, viewOnly }: Props) {
   const isMakeup = slot.isMakeup === true
+  const lessonType = LESSON_TYPE_CONFIG[slot.lessonType]
+  const isCollective = ['group', 'orchestra', 'choir', 'melodies_group'].includes(slot.lessonType)
 
   const dateStr = `${slot.date.getFullYear()}-${String(slot.date.getMonth() + 1).padStart(2, '0')}-${String(slot.date.getDate()).padStart(2, '0')}`
   const href = isMakeup
@@ -18,7 +21,7 @@ export default function LessonCard({ slot, isNext, hideTime, viewOnly }: Props) 
 
   const avatarBg = isMakeup
     ? 'bg-purple-500'
-    : slot.lessonType === 'group' ? 'bg-teal-500' : 'bg-violet-500'
+    : lessonType.bg
 
   const ringClass = isNext
     ? (isMakeup ? 'ring-2 ring-purple-400' : 'ring-2 ring-teal-400')
@@ -44,11 +47,11 @@ export default function LessonCard({ slot, isNext, hideTime, viewOnly }: Props) 
             </span>
           ) : (
             <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
-              slot.lessonType === 'group'
+              isCollective
                 ? 'bg-teal-50 text-teal-600'
                 : 'bg-violet-50 text-violet-600'
             }`}>
-              {slot.lessonType === 'group' ? 'קבוצה' : 'יחיד'}
+              {lessonType.label}
             </span>
           )}
           {slot.isMangan && (
