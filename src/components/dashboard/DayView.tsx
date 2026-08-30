@@ -12,9 +12,10 @@ interface Props {
   initialDate?: Date
   events: SchoolEvent[]
   viewOnly?: boolean
+  viewOnlyTeacherId?: string
 }
 
-export default function DayView({ allSlots, initialDate, events, viewOnly }: Props) {
+export default function DayView({ allSlots, initialDate, events, viewOnly, viewOnlyTeacherId }: Props) {
   const [selectedDate, setSelectedDate] = useState(() => {
     const d = initialDate ? new Date(initialDate) : new Date()
     d.setHours(0, 0, 0, 0)
@@ -124,7 +125,13 @@ export default function DayView({ allSlots, initialDate, events, viewOnly }: Pro
                   <div className={`w-1.5 h-1.5 rounded-full ${isNext ? 'bg-teal-400' : 'bg-gray-200'}`} />
                 </div>
                 <div className="flex-1">
-                  <LessonCard slot={slot} isNext={isNext} hideTime viewOnly={viewOnly} />
+                  <LessonCard
+                    slot={slot}
+                    isNext={isNext}
+                    hideTime
+                    viewOnly={viewOnly}
+                    viewOnlyHref={viewOnlyTeacherId ? `/admin/teachers/${viewOnlyTeacherId}/view/groups/${slot.groupId}` : undefined}
+                  />
                 </div>
               </div>
             )

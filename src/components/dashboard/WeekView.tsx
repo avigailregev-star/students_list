@@ -11,6 +11,7 @@ interface Props {
   allSlots: LessonSlot[]
   events: SchoolEvent[]
   viewOnly?: boolean
+  viewOnlyTeacherId?: string
 }
 
 const WORK_DAYS = [0, 1, 2, 3, 4]
@@ -22,7 +23,7 @@ function formatWeekRange(start: Date, end: Date): string {
   return `${startLabel} – ${endLabel}`
 }
 
-export default function WeekView({ allSlots, events, viewOnly }: Props) {
+export default function WeekView({ allSlots, events, viewOnly, viewOnlyTeacherId }: Props) {
   const today = new Date()
   today.setHours(0, 0, 0, 0)
 
@@ -126,6 +127,7 @@ export default function WeekView({ allSlots, events, viewOnly }: Props) {
                   key={`${slot.groupId}-${slot.startTime}`}
                   slot={slot}
                   viewOnly={viewOnly}
+                  viewOnlyHref={viewOnlyTeacherId ? `/admin/teachers/${viewOnlyTeacherId}/view/groups/${slot.groupId}` : undefined}
                 />
               ))}
             </div>

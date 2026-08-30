@@ -8,6 +8,19 @@ import type { GroupWithSchedules, LessonSlot, SchoolEvent } from '@/types/databa
 
 interface Props { params: Promise<{ id: string }> }
 
+type MakeupRow = {
+  group_id: string
+  date: string
+  start_time: string
+  groups: {
+    name: string
+    lesson_type: LessonSlot['lessonType']
+    is_mangan_school: boolean
+    school_name: string | null
+    grade: string | null
+  }
+}
+
 export default async function AdminTeacherViewDashboardPage({ params }: Props) {
   const { id } = await params
   await requireAdmin()
@@ -46,7 +59,7 @@ export default async function AdminTeacherViewDashboardPage({ params }: Props) {
     .eq('status', 'scheduled')
     .eq('groups.teacher_id', id)
 
-  const makeupSlots: LessonSlot[] = (makeupRows ?? []).map((row: any) => {
+  const makeupSlots: LessonSlot[] = ((makeupRows ?? []) as unknown as MakeupRow[]).map(row => {
     const d = new Date(row.date + 'T12:00:00')
     return {
       groupId: row.group_id,
@@ -71,6 +84,7 @@ export default async function AdminTeacherViewDashboardPage({ params }: Props) {
         events={events}
         makeupSlots={makeupSlots}
         viewOnly
+        viewOnlyTeacherId={id}
       />
       <ViewNav teacherId={id} />
     </>

@@ -1,7 +1,6 @@
 'use client'
 
 import { useState, useMemo } from 'react'
-import Image from 'next/image'
 import DayView from './DayView'
 import WeekView from './WeekView'
 import MonthView from './MonthView'
@@ -18,9 +17,10 @@ interface Props {
   makeupSlots: LessonSlot[]
   userId?: string
   viewOnly?: boolean
+  viewOnlyTeacherId?: string
 }
 
-export default function DashboardClient({ groups, teacherName, events, isAdmin, makeupSlots, userId, viewOnly }: Props) {
+export default function DashboardClient({ groups, teacherName, events, isAdmin, makeupSlots, userId, viewOnly, viewOnlyTeacherId }: Props) {
   const [view, setView] = useState<'day' | 'week' | 'month'>('day')
   const [dayInitialDate, setDayInitialDate] = useState<Date | undefined>(undefined)
 
@@ -84,8 +84,8 @@ export default function DashboardClient({ groups, teacherName, events, isAdmin, 
 
       {/* Content */}
       <div className="flex-1 px-4 py-5 pb-28 overflow-y-auto">
-        {view === 'day' && <DayView allSlots={weekSlots} initialDate={dayInitialDate} events={events} viewOnly={viewOnly} />}
-        {view === 'week' && <WeekView allSlots={weekSlots} events={events} viewOnly={viewOnly} />}
+        {view === 'day' && <DayView allSlots={weekSlots} initialDate={dayInitialDate} events={events} viewOnly={viewOnly} viewOnlyTeacherId={viewOnlyTeacherId} />}
+        {view === 'week' && <WeekView allSlots={weekSlots} events={events} viewOnly={viewOnly} viewOnlyTeacherId={viewOnlyTeacherId} />}
         {view === 'month' && (
           <MonthView
             groups={groups}

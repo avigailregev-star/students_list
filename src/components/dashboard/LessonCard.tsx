@@ -7,9 +7,10 @@ interface Props {
   isNext?: boolean
   hideTime?: boolean
   viewOnly?: boolean
+  viewOnlyHref?: string
 }
 
-export default function LessonCard({ slot, isNext, hideTime, viewOnly }: Props) {
+export default function LessonCard({ slot, isNext, hideTime, viewOnly, viewOnlyHref }: Props) {
   const isMakeup = slot.isMakeup === true
   const lessonType = LESSON_TYPE_CONFIG[slot.lessonType]
   const isCollective = ['group', 'orchestra', 'choir', 'melodies_group'].includes(slot.lessonType)
@@ -77,6 +78,10 @@ export default function LessonCard({ slot, isNext, hideTime, viewOnly }: Props) 
       </div>
     </>
   )
+
+  if (viewOnly && viewOnlyHref) {
+    return <Link href={viewOnlyHref} className={className}>{content}</Link>
+  }
 
   if (viewOnly) {
     return <div className={className}>{content}</div>

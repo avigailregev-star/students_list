@@ -4,6 +4,7 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import StudentList from '@/components/students/StudentList'
 import type { Group, GroupSchedule, Student } from '@/types/database'
 import { DAYS_HE } from '@/lib/utils/hebrew'
+import { LESSON_TYPE_CONFIG } from '@/lib/utils/lessonTypes'
 import ViewOnlyBanner from '../../ViewOnlyBanner'
 import ViewNav from '../../ViewNav'
 
@@ -45,7 +46,7 @@ export default async function AdminTeacherViewGroupPage({ params }: Props) {
       <div className={`bg-gradient-to-bl ${headerColor} text-white rounded-b-[36px] shadow-lg px-5 pt-8 pb-6`}>
         <h1 className="text-xl font-bold truncate">{typedGroup.name}</h1>
         <p className="text-sm text-white/70 mt-0.5">
-          {typedGroup.lesson_type === 'group' ? 'קבוצה' : 'שיעור יחיד'}
+          {LESSON_TYPE_CONFIG[typedGroup.lesson_type].label}
           {typedGroup.is_mangan_school && typedGroup.school_name && (
             <> · {typedGroup.school_name}{typedGroup.grade ? ` כיתה ${typedGroup.grade}` : ''}</>
           )}
