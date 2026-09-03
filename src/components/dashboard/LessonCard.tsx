@@ -41,7 +41,11 @@ export default function LessonCard({ slot, isNext, hideTime, viewOnly, viewOnlyH
       <div className="flex-1 min-w-0">
         <p className="text-sm font-bold text-gray-900 truncate">{slot.groupName}</p>
         <div className="flex items-center gap-2 mt-0.5">
-          {!hideTime && <span className="text-xs text-gray-400 font-medium">{slot.startTime}</span>}
+          {!hideTime && (
+            <span className="text-xs text-gray-400 font-medium" dir="ltr">
+              {slot.startTime}{slot.endTime ? `–${slot.endTime}` : ''}
+            </span>
+          )}
           {isMakeup ? (
             <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-purple-50 text-purple-600">
               השלמה

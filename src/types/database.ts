@@ -195,6 +195,7 @@ export type LessonSlot = {
   grade: string | null
   date: Date
   startTime: string // "HH:MM"
+  endTime?: string // "HH:MM"
   dayOfWeek: number
   isMakeup?: boolean
 }

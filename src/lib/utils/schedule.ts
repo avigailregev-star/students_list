@@ -125,6 +125,7 @@ export function getLessonSlotsForWeek(
         grade: group.grade,
         date,
         startTime: schedule.start_time.slice(0, 5),
+        endTime: schedule.end_time?.slice(0, 5),
         dayOfWeek: schedule.day_of_week,
       })
     }
@@ -168,6 +169,7 @@ export function getLessonSlotsForMonth(
             grade: group.grade,
             date: new Date(date),
             startTime: schedule.start_time.slice(0, 5),
+            endTime: schedule.end_time?.slice(0, 5),
             dayOfWeek: dow,
           })
         }

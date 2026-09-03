@@ -118,9 +118,9 @@ export default function DayView({ allSlots, initialDate, events, viewOnly, viewO
             const isNext = i === nextSlotIndex && selectedDate.toDateString() === new Date().toDateString()
             return (
               <div key={`${slot.groupId}-${slot.date.toDateString()}-${slot.startTime}`} className="flex items-center gap-3">
-                <div className="w-14 shrink-0 flex flex-col items-center gap-1">
+                <div className="w-24 shrink-0 flex flex-col items-center gap-1">
                   <span className={`text-sm font-bold tabular-nums ${isNext ? 'text-teal-500' : 'text-gray-400'}`}>
-                    {slot.startTime}
+                    <span dir="ltr">{slot.startTime}{slot.endTime ? `–${slot.endTime}` : ''}</span>
                   </span>
                   <div className={`w-1.5 h-1.5 rounded-full ${isNext ? 'bg-teal-400' : 'bg-gray-200'}`} />
                 </div>
