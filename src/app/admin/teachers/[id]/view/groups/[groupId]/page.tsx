@@ -5,6 +5,7 @@ import StudentList from '@/components/students/StudentList'
 import type { Group, GroupSchedule, Student } from '@/types/database'
 import { DAYS_HE } from '@/lib/utils/hebrew'
 import { LESSON_TYPE_CONFIG } from '@/lib/utils/lessonTypes'
+import { formatLessonTimeRange } from '@/lib/utils/lessonTimes'
 import ViewOnlyBanner from '../../ViewOnlyBanner'
 import ViewNav from '../../ViewNav'
 
@@ -54,8 +55,7 @@ export default async function AdminTeacherViewGroupPage({ params }: Props) {
         <div className="flex flex-wrap gap-2 mt-3">
           {typedGroup.group_schedules.map(s => (
             <span key={s.id} className="bg-white/20 text-white text-xs font-semibold px-3 py-1 rounded-xl">
-              {DAYS_HE[s.day_of_week]} · {s.start_time.slice(0, 5)}
-              {s.end_time ? `–${s.end_time.slice(0, 5)}` : ''}
+              {DAYS_HE[s.day_of_week]} · {formatLessonTimeRange(s.start_time, typedGroup.lesson_type, s.end_time)}
             </span>
           ))}
         </div>

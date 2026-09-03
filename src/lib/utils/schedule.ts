@@ -1,4 +1,5 @@
 import type { GroupSchedule, GroupWithSchedules, LessonSlot, SchoolEvent } from '@/types/database'
+import { getLessonEndTime } from './lessonTimes'
 
 /**
  * שנת הלימודים הנוכחית מתחילה ב-1.9.2026 — אין שיעורים לפני תאריך זה.
@@ -125,7 +126,7 @@ export function getLessonSlotsForWeek(
         grade: group.grade,
         date,
         startTime: schedule.start_time.slice(0, 5),
-        endTime: schedule.end_time?.slice(0, 5),
+        endTime: getLessonEndTime(schedule.start_time, group.lesson_type, schedule.end_time),
         dayOfWeek: schedule.day_of_week,
       })
     }
@@ -169,7 +170,7 @@ export function getLessonSlotsForMonth(
             grade: group.grade,
             date: new Date(date),
             startTime: schedule.start_time.slice(0, 5),
-            endTime: schedule.end_time?.slice(0, 5),
+            endTime: getLessonEndTime(schedule.start_time, group.lesson_type, schedule.end_time),
             dayOfWeek: dow,
           })
         }

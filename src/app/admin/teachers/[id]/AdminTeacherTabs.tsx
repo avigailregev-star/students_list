@@ -4,6 +4,7 @@ import { useState, useTransition } from 'react'
 import type { GroupWithSchedulesAndStudents, TeacherAvailabilityRange } from '@/types/database'
 import { LESSON_TYPE_CONFIG } from '@/lib/utils/lessonTypes'
 import { DAYS_HE } from '@/lib/utils/hebrew'
+import { formatLessonTimeRange } from '@/lib/utils/lessonTimes'
 import { deleteGroup } from './groupActions'
 import AdminGroupSheet from './AdminGroupSheet'
 import AdminAvailabilityClient from './AdminAvailabilityClient'
@@ -78,7 +79,7 @@ export default function AdminTeacherTabs({ teacherId, groups, ranges, completedL
                   <p className="text-sm font-semibold text-gray-900 truncate">{g.name}</p>
                   <p className="text-xs text-gray-400 mt-0.5">
                     {cfg?.label ?? g.lesson_type}
-                    {schedule && ` · ${DAYS_HE[schedule.day_of_week]} ${schedule.start_time.slice(0, 5)}${schedule.end_time ? `–${schedule.end_time.slice(0, 5)}` : ''}`}
+                    {schedule && ` · ${DAYS_HE[schedule.day_of_week]} ${formatLessonTimeRange(schedule.start_time, g.lesson_type, schedule.end_time)}`}
                     {` · ${g.students?.length ?? 0} תלמידים`}
                   </p>
                 </div>

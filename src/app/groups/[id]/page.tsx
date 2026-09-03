@@ -6,6 +6,7 @@ import StudentList from '@/components/students/StudentList'
 import DeleteGroupButton from './DeleteGroupButton'
 import type { Group, GroupSchedule } from '@/types/database'
 import { DAYS_HE } from '@/lib/utils/hebrew'
+import { formatLessonTimeRange } from '@/lib/utils/lessonTimes'
 
 interface Props {
   params: Promise<{ id: string }>
@@ -69,8 +70,7 @@ export default async function GroupDetailPage({ params }: Props) {
               key={s.id}
               className="bg-white/20 text-white text-xs font-semibold px-3 py-1 rounded-xl"
             >
-              {DAYS_HE[s.day_of_week]} · {s.start_time.slice(0, 5)}
-              {s.end_time ? `–${s.end_time.slice(0, 5)}` : ''}
+              {DAYS_HE[s.day_of_week]} · {formatLessonTimeRange(s.start_time, typedGroup.lesson_type, s.end_time)}
             </span>
           ))}
         </div>

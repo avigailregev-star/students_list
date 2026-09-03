@@ -105,6 +105,7 @@ export default function DayView({ allSlots, initialDate, events, viewOnly, viewO
         <div className="inline-flex items-center gap-1.5 bg-teal-500 text-white text-[11px] font-bold px-3 py-1.5 rounded-full self-start shadow-sm shadow-teal-200">
           <span className="w-1.5 h-1.5 rounded-full bg-white inline-block" />
           הבא — {visibleSlots[nextSlotIndex].startTime}
+          {visibleSlots[nextSlotIndex].endTime ? `–${visibleSlots[nextSlotIndex].endTime}` : ''}
         </div>
       )}
 

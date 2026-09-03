@@ -8,6 +8,7 @@ import CancelLessonButton from './CancelLessonButton'
 import DeleteMakeupButton from './DeleteMakeupButton'
 import { getLastLessonDate, isHolidayDate, SCHOOL_YEAR_START, SCHOOL_YEAR_END } from '@/lib/utils/schedule'
 import { formatDateHe } from '@/lib/utils/hebrew'
+import { addMinutesToTime, formatLessonTimeRange, getLessonDurationMinutes } from '@/lib/utils/lessonTimes'
 import type { Group, GroupSchedule, SchoolEvent, AttendanceStatus, Lesson } from '@/types/database'
 
 interface Props {
@@ -140,6 +141,9 @@ export default async function AttendancePage({ params, searchParams }: Props) {
     : 'from-teal-400 to-teal-600 shadow-teal-200'
 
   const displayTime = timeParam ?? startTime.slice(0, 5)
+  const displayTimeRange = timeParam
+    ? `${displayTime}–${addMinutesToTime(displayTime, getLessonDurationMinutes(matchingSchedule.start_time, typedGroup.lesson_type, matchingSchedule.end_time))}`
+    : formatLessonTimeRange(displayTime, typedGroup.lesson_type, matchingSchedule.end_time)
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col pb-6">
@@ -157,7 +161,7 @@ export default async function AttendancePage({ params, searchParams }: Props) {
           <div className="flex-1 min-w-0">
             <h1 className="text-xl font-bold truncate">{typedGroup.name}</h1>
             <p className="text-sm text-white/70 mt-0.5">
-              {formatDateHe(lessonDate)} · {displayTime.slice(0, 5)}
+              {formatDateHe(lessonDate)} · <span dir="ltr">{displayTimeRange}</span>
             </p>
           </div>
           <Link
