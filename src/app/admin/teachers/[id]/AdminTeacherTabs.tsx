@@ -78,7 +78,7 @@ export default function AdminTeacherTabs({ teacherId, groups, ranges, completedL
                   <p className="text-sm font-semibold text-gray-900 truncate">{g.name}</p>
                   <p className="text-xs text-gray-400 mt-0.5">
                     {cfg?.label ?? g.lesson_type}
-                    {schedule && ` · ${DAYS_HE[schedule.day_of_week]} ${schedule.start_time.slice(0, 5)}`}
+                    {schedule && ` · ${DAYS_HE[schedule.day_of_week]} ${schedule.start_time.slice(0, 5)}${schedule.end_time ? `–${schedule.end_time.slice(0, 5)}` : ''}`}
                     {` · ${g.students?.length ?? 0} תלמידים`}
                   </p>
                 </div>
