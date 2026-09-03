@@ -37,6 +37,7 @@ export default function AdminGroupSheet({ teacherId, group, isOpen, onClose, def
   const [newStudentPhone, setNewStudentPhone] = useState('')
   const [isPending, startTransition] = useTransition()
   const [error, setError] = useState<string | null>(null)
+  const requiresEndTime = lessonType === 'orchestra' || lessonType === 'choir'
 
   if (!isOpen) return null
 
@@ -144,7 +145,7 @@ export default function AdminGroupSheet({ teacherId, group, isOpen, onClose, def
               <input type="time" value={startTime} onChange={e => setStartTime(e.target.value)} className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-teal-400" dir="ltr"/>
             </div>
             <div className="flex-1">
-              <label className="block text-sm font-semibold text-gray-700 mb-1">שעת סיום (אופציונלי)</label>
+              <label className="block text-sm font-semibold text-gray-700 mb-1">שעת סיום{requiresEndTime ? '' : ' (אופציונלי)'}</label>
               <input type="time" value={endTime} onChange={e => setEndTime(e.target.value)} className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-teal-400" dir="ltr"/>
             </div>
           </div>
@@ -203,7 +204,7 @@ export default function AdminGroupSheet({ teacherId, group, isOpen, onClose, def
           <button
             type="button"
             onClick={handleSave}
-            disabled={isPending || !name.trim() || !startTime}
+            disabled={isPending || !name.trim() || !startTime || (requiresEndTime && !endTime)}
             className="flex-1 bg-teal-500 text-white font-bold py-3 rounded-2xl hover:bg-teal-600 transition-colors disabled:opacity-60 text-sm"
           >
             {isPending ? 'שומר...' : 'שמור'}

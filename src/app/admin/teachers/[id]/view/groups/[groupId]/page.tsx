@@ -55,6 +55,7 @@ export default async function AdminTeacherViewGroupPage({ params }: Props) {
           {typedGroup.group_schedules.map(s => (
             <span key={s.id} className="bg-white/20 text-white text-xs font-semibold px-3 py-1 rounded-xl">
               {DAYS_HE[s.day_of_week]} · {s.start_time.slice(0, 5)}
+              {s.end_time ? `–${s.end_time.slice(0, 5)}` : ''}
             </span>
           ))}
         </div>

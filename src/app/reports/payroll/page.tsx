@@ -4,6 +4,7 @@ import { createClient } from '@/lib/supabase/server'
 import { getLessonIdsWithAttendance } from '@/lib/queries/attendance'
 import { categorizeSickDates } from '@/lib/payroll/sickLeaveTiers'
 import { isLegacyPayableCancellation } from '@/lib/payroll/legacyPayslipReason'
+import { getLessonUnits } from '@/lib/payroll/lessonUnits'
 import PayrollView from './PayrollView'
 import BottomNav from '@/components/layout/BottomNav'
 
@@ -55,7 +56,7 @@ export default async function PayrollPage() {
 
   const [{ data: teacherData }, { data: groups }] = await Promise.all([
     supabase.from('teachers').select('name').eq('id', user.id).single(),
-    supabase.from('groups').select('id, lesson_type').eq('teacher_id', user.id),
+    supabase.from('groups').select('id, lesson_type, group_schedules(start_time, end_time)').eq('teacher_id', user.id),
   ])
 
   const teacherName = teacherData?.name ?? ''
@@ -71,10 +72,11 @@ export default async function PayrollPage() {
 
   const groupIds = groups.map(g => g.id)
   const groupType = new Map(groups.map(g => [g.id, g.lesson_type]))
+  const groupSchedules = new Map(groups.map(g => [g.id, g.group_schedules ?? []]))
 
   const [{ data: lessons }, { data: canceledLessons }] = await Promise.all([
     supabase.from('lessons')
-      .select('id, group_id, date, status, teacher_absence_reason, is_makeup')
+      .select('id, group_id, date, start_time, status, teacher_absence_reason, is_makeup')
       .in('group_id', groupIds)
       .eq('is_holiday', false)
       .lte('date', todayStr)
@@ -130,29 +132,31 @@ export default async function PayrollPage() {
     const key = `${parts[0]}-${parts[1]}`
     const dayNum = parseInt(parts[2])
     const month = ensureMonth(key)
+    const lessonType = groupType.get(lesson.group_id) ?? ''
+    const lessonUnits = getLessonUnits(lessonType, lesson.start_time, groupSchedules.get(lesson.group_id) ?? [])
 
     // Makeup lesson — all makeups count in השלמות column, except legacy "תלוש נוכחי" where original is already counted
-    if ((lesson as any).is_makeup) {
-      const mkReason = (lesson as any).teacher_absence_reason ?? ''
+    if (lesson.is_makeup) {
+      const mkReason = lesson.teacher_absence_reason ?? ''
       if (!isLegacyPayableCancellation(mkReason)) {
-        month.dayCounts[dayNum].makeup++
+        month.dayCounts[dayNum].makeup += lessonUnits
         if (!month.makeupDates.includes(dayNum)) month.makeupDates.push(dayNum)
         const mkLessonType = groupType.get(lesson.group_id) ?? ''
         if (mkLessonType) {
           if (!month.makeupTypes[dayNum]) month.makeupTypes[dayNum] = {}
-          month.makeupTypes[dayNum][mkLessonType] = (month.makeupTypes[dayNum][mkLessonType] ?? 0) + 1
+          month.makeupTypes[dayNum][mkLessonType] = (month.makeupTypes[dayNum][mkLessonType] ?? 0) + lessonUnits
         }
       }
       continue
     }
 
     // Canceled lesson
-    if ((lesson as any).status === 'teacher_canceled') {
-      const r = (lesson as any).teacher_absence_reason ?? ''
+    if (lesson.status === 'teacher_canceled') {
+      const r = lesson.teacher_absence_reason ?? ''
       // Backward compat: "תלוש נוכחי" — keep original in regular column
       if (isLegacyPayableCancellation(r)) {
         const col = mapType(groupType.get(lesson.group_id) ?? '')
-        if (col) month.dayCounts[dayNum][col]++
+        if (col) month.dayCounts[dayNum][col] += lessonUnits
       }
       // All other cancellation reasons: no pay (skip)
       continue
@@ -160,7 +164,7 @@ export default async function PayrollPage() {
 
     // Regular lesson
     const col = mapType(groupType.get(lesson.group_id) ?? '')
-    if (col) month.dayCounts[dayNum][col]++
+    if (col) month.dayCounts[dayNum][col] += lessonUnits
   }
 
   // Collect unique sick dates and group into consecutive illness incidents.

@@ -34,6 +34,7 @@ export async function createGroupForTeacher(teacherId: string, data: GroupFormDa
     if (!VALID_TYPES.includes(data.lessonType)) return { error: 'סוג שיעור לא תקין' }
     if (data.dayOfWeek < 0 || data.dayOfWeek > 4) return { error: 'יום לא תקין' }
     if (!data.startTime) return { error: 'שעת התחלה נדרשת' }
+    if ((data.lessonType === 'orchestra' || data.lessonType === 'choir') && !data.endTime) return { error: 'שעת סיום נדרשת לתזמורת או מקהלה' }
 
     await requireAdmin()
     const supabase = createAdminClient()
@@ -119,6 +120,7 @@ export async function updateGroup(groupId: string, teacherId: string, data: Grou
     if (!UUID_RE.test(groupId)) return { error: 'מזהה קבוצה לא תקין' }
     if (!data.name.trim()) return { error: 'שם קבוצה נדרש' }
     if (!VALID_TYPES.includes(data.lessonType)) return { error: 'סוג שיעור לא תקין' }
+    if ((data.lessonType === 'orchestra' || data.lessonType === 'choir') && !data.endTime) return { error: 'שעת סיום נדרשת לתזמורת או מקהלה' }
 
     await requireAdmin()
     const supabase = createAdminClient()

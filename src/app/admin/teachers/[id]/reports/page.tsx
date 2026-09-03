@@ -5,6 +5,7 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { getLessonIdsWithAttendance } from '@/lib/queries/attendance'
 import { categorizeSickDates } from '@/lib/payroll/sickLeaveTiers'
 import { isLegacyPayableCancellation } from '@/lib/payroll/legacyPayslipReason'
+import { getLessonUnits } from '@/lib/payroll/lessonUnits'
 import PayrollView from '@/app/reports/payroll/PayrollView'
 import type { MonthPayroll, DayCount } from '@/app/reports/payroll/page'
 import BottomNav from '@/components/layout/BottomNav'
@@ -30,7 +31,7 @@ export default async function AdminTeacherReportsPage({ params }: Props) {
 
   const [{ data: teacher }, { data: groups }] = await Promise.all([
     supabase.from('teachers').select('name').eq('id', id).single(),
-    supabase.from('groups').select('id, lesson_type').eq('teacher_id', id),
+    supabase.from('groups').select('id, lesson_type, group_schedules(start_time, end_time)').eq('teacher_id', id),
   ])
 
   if (!teacher) notFound()
@@ -49,10 +50,11 @@ export default async function AdminTeacherReportsPage({ params }: Props) {
 
   const groupIds = groups.map(g => g.id)
   const groupType = new Map(groups.map(g => [g.id, g.lesson_type]))
+  const groupSchedules = new Map(groups.map(g => [g.id, g.group_schedules ?? []]))
 
   const [{ data: lessons }, { data: canceledLessons }] = await Promise.all([
     supabase.from('lessons')
-      .select('id, group_id, date, status, teacher_absence_reason, is_makeup')
+      .select('id, group_id, date, start_time, status, teacher_absence_reason, is_makeup')
       .in('group_id', groupIds)
       .eq('is_holiday', false)
       .lte('date', todayStr)
@@ -109,32 +111,34 @@ export default async function AdminTeacherReportsPage({ params }: Props) {
     const key = `${parts[0]}-${parts[1]}`
     const dayNum = parseInt(parts[2])
     const month = ensureMonth(key)
+    const lessonType = groupType.get(lesson.group_id) ?? ''
+    const lessonUnits = getLessonUnits(lessonType, lesson.start_time, groupSchedules.get(lesson.group_id) ?? [])
 
-    if ((lesson as any).is_makeup) {
-      const mkReason = (lesson as any).teacher_absence_reason ?? ''
+    if (lesson.is_makeup) {
+      const mkReason = lesson.teacher_absence_reason ?? ''
       if (!isLegacyPayableCancellation(mkReason)) {
-        month.dayCounts[dayNum].makeup++
+        month.dayCounts[dayNum].makeup += lessonUnits
         if (!month.makeupDates.includes(dayNum)) month.makeupDates.push(dayNum)
         const mkLessonType = groupType.get(lesson.group_id) ?? ''
         if (mkLessonType) {
           if (!month.makeupTypes[dayNum]) month.makeupTypes[dayNum] = {}
-          month.makeupTypes[dayNum][mkLessonType] = (month.makeupTypes[dayNum][mkLessonType] ?? 0) + 1
+          month.makeupTypes[dayNum][mkLessonType] = (month.makeupTypes[dayNum][mkLessonType] ?? 0) + lessonUnits
         }
       }
       continue
     }
 
-    if ((lesson as any).status === 'teacher_canceled') {
-      const r = (lesson as any).teacher_absence_reason ?? ''
+    if (lesson.status === 'teacher_canceled') {
+      const r = lesson.teacher_absence_reason ?? ''
       if (isLegacyPayableCancellation(r)) {
         const col = mapType(groupType.get(lesson.group_id) ?? '')
-        if (col) month.dayCounts[dayNum][col]++
+        if (col) month.dayCounts[dayNum][col] += lessonUnits
       }
       continue
     }
 
     const col = mapType(groupType.get(lesson.group_id) ?? '')
-    if (col) month.dayCounts[dayNum][col]++
+    if (col) month.dayCounts[dayNum][col] += lessonUnits
   }
 
   const sickDateCategory = categorizeSickDates(canceledLessons ?? [])
