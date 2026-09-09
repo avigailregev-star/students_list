@@ -120,6 +120,7 @@ export function getLessonSlotsForWeek(
       slots.push({
         groupId: group.id,
         groupName: group.name,
+        studentNames: group.students?.map(student => student.name),
         lessonType: group.lesson_type,
         isMangan: group.is_mangan_school,
         schoolName: group.school_name,
@@ -164,6 +165,7 @@ export function getLessonSlotsForMonth(
           slots.push({
             groupId: group.id,
             groupName: group.name,
+            studentNames: group.students?.map(student => student.name),
             lessonType: group.lesson_type,
             isMangan: group.is_mangan_school,
             schoolName: group.school_name,

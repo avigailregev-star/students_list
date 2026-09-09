@@ -30,12 +30,15 @@ export default async function AdminTeacherViewDashboardPage({ params }: Props) {
   if (!teacher) notFound()
 
   const [{ data: groupsRaw }, { data: autoEvents }, { data: assignedRows }] = await Promise.all([
-    supabase.from('groups').select('*, group_schedules(*)').eq('teacher_id', id).order('created_at', { ascending: true }),
+    supabase.from('groups').select('*, group_schedules(*), students(*)').eq('teacher_id', id).order('created_at', { ascending: true }),
     supabase.from('school_events').select('*').in('event_type', ['holiday', 'vacation']),
     supabase.from('school_event_assignments').select('event_id').eq('teacher_id', id),
   ])
 
-  const groups = (groupsRaw ?? []) as GroupWithSchedules[]
+  const groups = ((groupsRaw ?? []) as GroupWithSchedules[]).map(group => ({
+    ...group,
+    students: (group.students ?? []).filter(student => student.is_active),
+  }))
 
   const assignedIds = (assignedRows ?? []).map((r: { event_id: string }) => r.event_id)
   let assignedEvents: SchoolEvent[] = []

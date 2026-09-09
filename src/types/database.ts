@@ -179,6 +179,7 @@ export type GoogleSyncAlert = {
 // Joined types used in queries
 export type GroupWithSchedules = Group & {
   group_schedules: GroupSchedule[]
+  students?: Student[]
 }
 
 export type GroupWithSchedulesAndStudents = Group & {
@@ -189,6 +190,7 @@ export type GroupWithSchedulesAndStudents = Group & {
 export type LessonSlot = {
   groupId: string
   groupName: string
+  studentNames?: string[]
   lessonType: LessonType
   isMangan: boolean
   schoolName: string | null

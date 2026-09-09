@@ -8,9 +8,12 @@ export async function getGroupsWithSchedules(): Promise<GroupWithSchedules[]> {
 
   const { data, error } = await supabase
     .from('groups')
-    .select('*, group_schedules(*)')
+    .select('*, group_schedules(*), students(*)')
     .eq('teacher_id', user.id)
     .order('created_at', { ascending: true })
   if (error) throw error
-  return (data ?? []) as GroupWithSchedules[]
+  return ((data ?? []) as GroupWithSchedules[]).map(group => ({
+    ...group,
+    students: (group.students ?? []).filter(student => student.is_active),
+  }))
 }

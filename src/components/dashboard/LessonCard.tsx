@@ -14,6 +14,9 @@ export default function LessonCard({ slot, isNext, hideTime, viewOnly, viewOnlyH
   const isMakeup = slot.isMakeup === true
   const lessonType = LESSON_TYPE_CONFIG[slot.lessonType]
   const isCollective = ['group', 'orchestra', 'choir', 'melodies_group'].includes(slot.lessonType)
+  const displayName = !isCollective && slot.studentNames?.length
+    ? slot.studentNames.join(', ')
+    : slot.groupName
 
   const dateStr = `${slot.date.getFullYear()}-${String(slot.date.getMonth() + 1).padStart(2, '0')}-${String(slot.date.getDate()).padStart(2, '0')}`
   const href = isMakeup
@@ -34,12 +37,12 @@ export default function LessonCard({ slot, isNext, hideTime, viewOnly, viewOnlyH
     <>
       {/* Avatar */}
       <div className={`w-11 h-11 rounded-2xl flex items-center justify-center text-white font-bold text-base shrink-0 ${avatarBg}`}>
-        {slot.groupName.charAt(0)}
+        {displayName.charAt(0)}
       </div>
 
       {/* Info */}
       <div className="flex-1 min-w-0">
-        <p className="text-sm font-bold text-gray-900 truncate">{slot.groupName}</p>
+        <p className="text-sm font-bold text-gray-900 truncate" title={displayName}>{displayName}</p>
         <div className="flex items-center gap-2 mt-0.5">
           {!hideTime && (
             <span className="text-xs text-gray-400 font-medium" dir="ltr">
