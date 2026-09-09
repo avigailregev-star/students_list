@@ -35,6 +35,7 @@ interface Props {
   reportData: GroupRow[]
   month: string
   teacherName: string
+  extraHours: { work_date: string; minutes: number }[]
 }
 
 function formatDateStr(dateStr: string): string {
@@ -57,7 +58,7 @@ function downloadXlsx(
   XLSX.writeFile(wb, filename)
 }
 
-export default function ExportButtons({ reportData, month, teacherName }: Props) {
+export default function ExportButtons({ reportData, month, teacherName, extraHours }: Props) {
   function exportAttendance() {
     const header = ['תאריך', 'שם שיעור', 'שם תלמיד', 'נוכחות', 'איחור', 'הביא כלי']
 
@@ -99,9 +100,9 @@ export default function ExportButtons({ reportData, month, teacherName }: Props)
     const hebrewMonths = ['ינואר', 'פברואר', 'מרץ', 'אפריל', 'מאי', 'יוני', 'יולי', 'אוגוסט', 'ספטמבר', 'אוקטובר', 'נובמבר', 'דצמבר']
     const monthDisplay = hebrewMonths[monthNum - 1]
 
-    type ColKey = 'individual_45' | 'individual_60' | 'melodies' | 'ensemble' | 'theory' | 'darcha' | 'makeup'
+    type ColKey = 'individual_45' | 'individual_60' | 'melodies' | 'ensemble' | 'theory' | 'darcha' | 'makeup' | 'extra_hours'
     const mkEmpty = (): Record<ColKey, number> => ({
-      individual_45: 0, individual_60: 0, melodies: 0, ensemble: 0, theory: 0, darcha: 0, makeup: 0,
+      individual_45: 0, individual_60: 0, melodies: 0, ensemble: 0, theory: 0, darcha: 0, makeup: 0, extra_hours: 0,
     })
 
     function mapType(t: string): ColKey | null {
@@ -148,27 +149,33 @@ export default function ExportButtons({ reportData, month, teacherName }: Props)
       }
     }
 
+    for (const item of extraHours) {
+      if (!item.work_date.startsWith(month)) continue
+      const counts = dayCounts.get(Number(item.work_date.split('-')[2]))
+      if (counts) counts.extra_hours += item.minutes / 60
+    }
+
     const sickDates = categorizeSickDates(sickCancellations)
 
     const dayAbbrev = ["א'", "ב'", "ג'", "ד'", "ה'", "ו'", "ש'"]
-    const COLS = 10
+    const COLS = 11
     const blank = (): (string | number)[] => new Array(COLS).fill('')
 
     const rows: (string | number)[][] = []
     // Row 0: כותרת ראשית
-    rows.push(['קונסרבטוריון דימונה - מבית רשת המרכזים הקהילתיים', '', '', '', '', '', '', '', '', ''])
+    rows.push(['קונסרבטוריון דימונה - מבית רשת המרכזים הקהילתיים', '', '', '', '', '', '', '', '', '', ''])
     // Row 1: חודש + שנה + ת.ז
-    rows.push([`דו"ח עבודה לחודש: ${monthDisplay}`, '', '', `שנה: ${year}`, '', 'ת.ז:', '', '', '', ''])
+    rows.push([`דו"ח עבודה לחודש: ${monthDisplay}`, '', '', `שנה: ${year}`, '', 'ת.ז:', '', '', '', '', ''])
     // Row 2: פרטי עובד
-    rows.push([`שם ומשפחה: ${teacherName}`, '', '', '', 'תפקיד:', '', 'עיר מגורים:', '', '', ''])
+    rows.push([`שם ומשפחה: ${teacherName}`, '', '', '', 'תפקיד:', '', 'עיר מגורים:', '', '', '', ''])
     // Row 3: ריק
     rows.push(blank())
     // Row 4: "פעילות" מעל עמודות השיעורים
-    rows.push(['', '', 'פעילות', '', '', '', '', '', '', ''])
+    rows.push(['', '', 'פעילות', '', '', '', '', '', '', '', ''])
     // Row 5: כותרות עמודות
-    rows.push(['תאריך', 'יום', "פרטני 45 דק'", "פרטני 60 דק'", 'מנגינות', 'הרכבים/תזמורות', 'תיאוריה', 'דרכא לימן', 'השלמות/החלפות', 'סה"כ'])
+    rows.push(['תאריך', 'יום', "פרטני 45 דק'", "פרטני 60 דק'", 'מנגינות', 'הרכבים/תזמורות', 'תיאוריה', 'דרכא לימן', 'השלמות/החלפות', 'שעות נוספות', 'סה"כ'])
     // Row 6: "מס' שיעורים" תחת כל עמודת שיעור
-    rows.push(['', '', "מס' שיעורים", "מס' שיעורים", "מס' שיעורים", "מס' שיעורים", "מס' שיעורים", "מס' שיעורים", "מס' שיעורים", ''])
+    rows.push(['', '', "מס' שיעורים", "מס' שיעורים", "מס' שיעורים", "מס' שיעורים", "מס' שיעורים", "מס' שיעורים", "מס' שיעורים", 'שעות', ''])
     // Row 7: ריק
     rows.push(blank())
 
@@ -178,7 +185,7 @@ export default function ExportButtons({ reportData, month, teacherName }: Props)
 
     for (let d = 1; d <= 31; d++) {
       if (d > daysInMonth) {
-        rows.push([d, '', '', '', '', '', '', '', '', ''])
+        rows.push([d, '', '', '', '', '', '', '', '', '', ''])
         continue
       }
       const dayName = dayAbbrev[new Date(year, monthNum - 1, d).getDay()]
@@ -191,6 +198,7 @@ export default function ExportButtons({ reportData, month, teacherName }: Props)
       totals.theory += c.theory
       totals.darcha += c.darcha
       totals.makeup += c.makeup
+      totals.extra_hours += c.extra_hours
       grandTotal += rowTotal
       if (rowTotal > 0) workDays++
       rows.push([
@@ -203,6 +211,7 @@ export default function ExportButtons({ reportData, month, teacherName }: Props)
         c.theory || '',
         c.darcha || '',
         c.makeup || '',
+        c.extra_hours || '',
         rowTotal || '',
       ])
     }
@@ -216,14 +225,15 @@ export default function ExportButtons({ reportData, month, teacherName }: Props)
       totals.theory || '',
       totals.darcha || '',
       totals.makeup || '',
+      totals.extra_hours || '',
       grandTotal || '',
     ])
     rows.push(blank())
-    rows.push(['סך ימי עבודה:', workDays || '', '', '', '', '', '', '', '', ''])
-    rows.push(['ימי בחירה/חופשה:', '', '', '', '', '', '', '', '', ''])
-    rows.push(['ימי מחלה:', sickDates.size || '', '', '', '', '', '', '', '', ''])
+    rows.push(['סך ימי עבודה:', workDays || '', '', '', '', '', '', '', '', '', ''])
+    rows.push(['ימי בחירה/חופשה:', '', '', '', '', '', '', '', '', '', ''])
+    rows.push(['ימי מחלה:', sickDates.size || '', '', '', '', '', '', '', '', '', ''])
     rows.push(blank())
-    rows.push(['חתימת המורה: _______________', '', '', '', '', 'חתימת מנהל: _______________', '', '', '', ''])
+    rows.push(['חתימת המורה: _______________', '', '', '', '', 'חתימת מנהל: _______________', '', '', '', '', ''])
 
     // הופכים את סדר העמודות כדי שהטבלה תיראה RTL גם בגוגל שיטס ללא הגדרה ידנית
     const finalRows = rows.map(row => [...row].reverse())
@@ -237,7 +247,7 @@ export default function ExportButtons({ reportData, month, teacherName }: Props)
     downloadXlsx(
       finalRows,
       `חשבות-שכר-${month}.xlsx`,
-      [10, 18, 12, 12, 18, 12, 13, 13, 6, 8],  // רוחבים הפוכים (סה"כ, השלמות, דרכא, תיאוריה, הרכבים, מנגינות, פ60, פ45, יום, תאריך)
+      [10, 12, 18, 12, 12, 18, 12, 13, 13, 6, 8],
       merges,
     )
   }

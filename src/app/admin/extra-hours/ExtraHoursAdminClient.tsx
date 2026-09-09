@@ -1,0 +1,30 @@
+'use client'
+
+import { useState, useTransition } from 'react'
+import { useRouter } from 'next/navigation'
+import type { ExtraHoursRequestWithTeacher } from '@/types/database'
+import { addExtraHours, decideExtraHours } from './actions'
+
+const fmt = (m: number) => `${Math.floor(m / 60)}:${String(m % 60).padStart(2, '0')}`
+
+export default function ExtraHoursAdminClient({ initialRequests, teachers }: { initialRequests: ExtraHoursRequestWithTeacher[]; teachers: { id: string; name: string }[] }) {
+  const [open, setOpen] = useState(false)
+  const [busy, startTransition] = useTransition()
+  const [error, setError] = useState('')
+  const [edits, setEdits] = useState<Record<string, { hours: number; minutes: number; note: string }>>({})
+  const router = useRouter()
+  const pending = initialRequests.filter(r => r.status === 'pending')
+  const history = initialRequests.filter(r => r.status !== 'pending')
+
+  function editFor(r: ExtraHoursRequestWithTeacher) { return edits[r.id] ?? { hours: Math.floor(r.minutes / 60), minutes: r.minutes % 60, note: '' } }
+  function decide(r: ExtraHoursRequestWithTeacher, status: 'approved' | 'rejected') { const e = editFor(r); setError(''); startTransition(async () => { const result = await decideExtraHours(r.id, status, e.hours * 60 + e.minutes, e.note); if (result.error) return setError(result.error); router.refresh() }) }
+  function add(e: React.FormEvent<HTMLFormElement>) { e.preventDefault(); const form = e.currentTarget; setError(''); startTransition(async () => { const result = await addExtraHours(new FormData(form)); if (result.error) return setError(result.error); form.reset(); setOpen(false); router.refresh() }) }
+
+  return <main className="px-4 py-5 max-w-2xl mx-auto flex flex-col gap-5" dir="rtl">
+    <div className="flex justify-between items-center"><p className="text-sm font-bold text-gray-700">בקשות ממתינות ({pending.length})</p><button onClick={() => setOpen(!open)} className="bg-violet-600 text-white px-4 py-2 rounded-xl text-sm font-bold">+ הוספה למורה</button></div>
+    {open && <form onSubmit={add} className="bg-violet-50 border border-violet-200 rounded-2xl p-4 grid grid-cols-2 gap-3"><select name="teacher_id" required defaultValue="" className="col-span-2 border rounded-xl px-3 py-2 text-sm"><option value="" disabled>בחירת מורה</option>{teachers.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}</select><input name="work_date" type="date" required className="border rounded-xl px-3 py-2 text-sm"/><select name="activity_type" required defaultValue="" className="border rounded-xl px-3 py-2 text-sm"><option value="" disabled>סוג פעילות</option><option>ישיבת צוות</option><option>חזרה</option><option>אירוע</option><option>עבודה מנהלתית</option><option>אחר</option></select><input name="hours" type="number" min="0" max="24" defaultValue="0" aria-label="שעות" className="border rounded-xl px-3 py-2 text-sm"/><input name="minutes" type="number" min="0" max="59" defaultValue="0" aria-label="דקות" className="border rounded-xl px-3 py-2 text-sm"/><textarea name="note" placeholder="פירוט" className="col-span-2 border rounded-xl px-3 py-2 text-sm resize-none"/>{error && <p className="col-span-2 text-xs text-red-600">{error}</p>}<button disabled={busy} className="bg-violet-600 text-white rounded-xl py-2 text-sm font-bold">הוסף ואשר</button><button type="button" onClick={() => setOpen(false)} className="bg-white border rounded-xl py-2 text-sm font-bold text-gray-500">ביטול</button></form>}
+    {!pending.length && <p className="text-sm text-gray-400 text-center py-6">אין בקשות שממתינות לאישור</p>}
+    {pending.map(r => { const e = editFor(r); return <div key={r.id} className="bg-white border border-amber-100 shadow-sm rounded-2xl p-4"><div className="flex justify-between"><span className="font-bold text-gray-800">{r.teachers?.name ?? 'מורה'}</span><span className="text-xs bg-amber-100 text-amber-700 px-2 py-1 rounded-full font-bold">ממתין</span></div><p className="text-sm mt-2">{new Date(r.work_date + 'T12:00:00').toLocaleDateString('he-IL')} · {r.activity_type}</p>{r.note && <p className="text-xs text-gray-500 mt-1">{r.note}</p>}<div className="grid grid-cols-2 gap-2 mt-3"><label className="text-xs text-gray-500">שעות<input type="number" min="0" max="24" value={e.hours} onChange={x => setEdits(v => ({...v, [r.id]: {...e, hours: Number(x.target.value)}}))} className="block w-full border rounded-lg px-2 py-1.5 mt-1"/></label><label className="text-xs text-gray-500">דקות<input type="number" min="0" max="59" value={e.minutes} onChange={x => setEdits(v => ({...v, [r.id]: {...e, minutes: Number(x.target.value)}}))} className="block w-full border rounded-lg px-2 py-1.5 mt-1"/></label></div><input placeholder="הערת מנהל (אופציונלי)" value={e.note} onChange={x => setEdits(v => ({...v, [r.id]: {...e, note: x.target.value}}))} className="w-full border rounded-lg px-3 py-2 text-sm mt-2"/>{error && <p className="text-xs text-red-600 mt-2">{error}</p>}<div className="flex gap-2 mt-3"><button disabled={busy} onClick={() => decide(r, 'approved')} className="flex-1 bg-emerald-500 text-white rounded-xl py-2 text-sm font-bold">אשר</button><button disabled={busy} onClick={() => decide(r, 'rejected')} className="flex-1 bg-red-50 text-red-600 rounded-xl py-2 text-sm font-bold">דחה</button></div></div> })}
+    {!!history.length && <><p className="text-xs font-bold text-gray-400 mt-2">היסטוריה</p>{history.map(r => <div key={r.id} className="bg-gray-50 border rounded-2xl p-4 flex justify-between gap-3"><div><p className="text-sm font-bold">{r.teachers?.name ?? 'מורה'} · {r.activity_type}</p><p className="text-xs text-gray-500">{new Date(r.work_date + 'T12:00:00').toLocaleDateString('he-IL')} · {r.source === 'admin' ? 'נוסף על ידי המנהל' : 'בקשת מורה'}</p></div><div className="text-left"><p className="font-bold text-violet-700">{fmt(r.minutes)}</p><span className={`text-xs font-bold ${r.status === 'approved' ? 'text-emerald-600' : 'text-red-500'}`}>{r.status === 'approved' ? 'אושר' : 'נדחה'}</span></div></div>)}</>}
+  </main>
+}

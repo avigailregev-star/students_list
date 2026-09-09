@@ -29,7 +29,7 @@ function BugIcon() {
   )
 }
 
-export default function AdminNav({ messagesCount = 0 }: { messagesCount?: number }) {
+export default function AdminNav({ messagesCount = 0, extraHoursCount = 0 }: { messagesCount?: number; extraHoursCount?: number }) {
   const pathname = usePathname()
   const router = useRouter()
 
@@ -103,6 +103,16 @@ export default function AdminNav({ messagesCount = 0 }: { messagesCount?: number
         </svg>
       ),
       badge: messagesCount,
+    },
+    {
+      href: '/admin/extra-hours',
+      label: 'שעות',
+      icon: (
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/><path d="M19 5l1.5-1.5"/>
+        </svg>
+      ),
+      badge: extraHoursCount,
     },
     {
       href: '/admin/sick-leave',

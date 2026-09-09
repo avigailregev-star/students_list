@@ -151,6 +151,25 @@ export type VacationRequestWithTeacher = VacationRequest & {
   teachers: { name: string } | null
 }
 
+export type ExtraHoursRequest = {
+  id: string
+  teacher_id: string
+  work_date: string
+  minutes: number
+  activity_type: string
+  note: string | null
+  status: 'pending' | 'approved' | 'rejected'
+  source: 'teacher' | 'admin'
+  admin_note: string | null
+  decided_by: string | null
+  decided_at: string | null
+  created_at: string
+}
+
+export type ExtraHoursRequestWithTeacher = ExtraHoursRequest & {
+  teachers: { name: string } | null
+}
+
 export type GoogleToken = {
   user_id: string
   refresh_token: string

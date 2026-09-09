@@ -16,6 +16,7 @@ export type DayCount = {
   theory: number
   darcha: number
   makeup: number
+  extra_hours: number
 }
 
 export type MonthPayroll = {
@@ -32,6 +33,7 @@ export type MonthPayroll = {
   sickDates: number[]
   makeupDates: number[]
   makeupTypes: Record<number, Record<string, number>>
+  extraHoursDetails: Record<number, { activityType: string; minutes: number }[]>
 }
 
 const HE_MONTHS = ['ינואר','פברואר','מרץ','אפריל','מאי','יוני','יולי','אוגוסט','ספטמבר','אוקטובר','נובמבר','דצמבר']
@@ -54,14 +56,15 @@ export default async function PayrollPage() {
   const now = new Date()
   const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
 
-  const [{ data: teacherData }, { data: groups }] = await Promise.all([
+  const [{ data: teacherData }, { data: groups }, { data: extraHours }] = await Promise.all([
     supabase.from('teachers').select('name').eq('id', user.id).single(),
     supabase.from('groups').select('id, lesson_type, group_schedules(start_time, end_time)').eq('teacher_id', user.id),
+    supabase.from('extra_hours_requests').select('work_date, minutes, activity_type').eq('teacher_id', user.id).eq('status', 'approved').lte('work_date', todayStr),
   ])
 
   const teacherName = teacherData?.name ?? ''
 
-  if (!groups || groups.length === 0) {
+  if ((!groups || groups.length === 0) && (!extraHours || extraHours.length === 0)) {
     return (
       <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center gap-2 text-gray-400">
         <p className="text-sm">אין קבוצות</p>
@@ -70,9 +73,10 @@ export default async function PayrollPage() {
     )
   }
 
-  const groupIds = groups.map(g => g.id)
-  const groupType = new Map(groups.map(g => [g.id, g.lesson_type]))
-  const groupSchedules = new Map(groups.map(g => [g.id, g.group_schedules ?? []]))
+  const safeGroups = groups ?? []
+  const groupIds = safeGroups.map(g => g.id)
+  const groupType = new Map(safeGroups.map(g => [g.id, g.lesson_type]))
+  const groupSchedules = new Map(safeGroups.map(g => [g.id, g.group_schedules ?? []]))
 
   const [{ data: lessons }, { data: canceledLessons }] = await Promise.all([
     supabase.from('lessons')
@@ -106,7 +110,7 @@ export default async function PayrollPage() {
       const [y, m] = key.split('-').map(Number)
       const dayCounts: Record<number, DayCount> = {}
       for (let d = 1; d <= 31; d++) {
-        dayCounts[d] = { individual_45: 0, individual_60: 0, melodies: 0, ensemble: 0, theory: 0, darcha: 0, makeup: 0 }
+        dayCounts[d] = { individual_45: 0, individual_60: 0, melodies: 0, ensemble: 0, theory: 0, darcha: 0, makeup: 0, extra_hours: 0 }
       }
       monthsMap.set(key, {
         key,
@@ -122,9 +126,19 @@ export default async function PayrollPage() {
         sickDates: [],
         makeupDates: [],
         makeupTypes: {},
+        extraHoursDetails: {},
       })
     }
     return monthsMap.get(key)!
+  }
+
+  for (const item of extraHours ?? []) {
+    const [year, month, day] = item.work_date.split('-')
+    const monthData = ensureMonth(`${year}-${month}`)
+    const dayNum = Number(day)
+    monthData.dayCounts[dayNum].extra_hours += item.minutes / 60
+    if (!monthData.extraHoursDetails[dayNum]) monthData.extraHoursDetails[dayNum] = []
+    monthData.extraHoursDetails[dayNum].push({ activityType: item.activity_type, minutes: item.minutes })
   }
 
   for (const lesson of heldLessons) {

@@ -9,6 +9,8 @@ import { getEventsForTeacher } from '@/lib/queries/events'
 import type { GroupSchedule, SchoolEventType } from '@/types/database'
 import VacationSection from './VacationSection'
 import type { VacationRequest } from '@/types/database'
+import type { ExtraHoursRequest } from '@/types/database'
+import ExtraHoursSection from './ExtraHoursSection'
 
 type HistoryEntry = {
   date: string
@@ -45,6 +47,13 @@ export default async function ReportsPage() {
     .order('created_at', { ascending: false })
   const vacationRequests = (vacationsRaw ?? []) as VacationRequest[]
 
+  const { data: extraHoursRaw } = await supabase
+    .from('extra_hours_requests')
+    .select('*')
+    .eq('teacher_id', user.id)
+    .order('work_date', { ascending: false })
+  const extraHoursRequests = (extraHoursRaw ?? []) as ExtraHoursRequest[]
+
   const { data: groups } = await supabase
     .from('groups')
     .select('*, group_schedules(*)')
@@ -74,6 +83,7 @@ export default async function ReportsPage() {
           <p className="text-sm">אין קבוצות עדיין</p>
         </div>
         <VacationSection initialRequests={vacationRequests} />
+        <ExtraHoursSection initialRequests={extraHoursRequests} />
       </div>
     )
   }
@@ -184,7 +194,12 @@ export default async function ReportsPage() {
           </div>
         </div>
         <p className="text-sm text-teal-100 mt-0.5 mr-12">{groups.length} קבוצות</p>
-        <ExportButtons reportData={reportData} month={monthKey} teacherName={teacherName} />
+        <ExportButtons
+          reportData={reportData}
+          month={monthKey}
+          teacherName={teacherName}
+          extraHours={extraHoursRequests.filter(r => r.status === 'approved').map(r => ({ work_date: r.work_date, minutes: r.minutes }))}
+        />
       </div>
 
       {/* Print header — visible only when printing */}
@@ -194,6 +209,7 @@ export default async function ReportsPage() {
       </div>
 
       <VacationSection initialRequests={vacationRequests} />
+      <ExtraHoursSection initialRequests={extraHoursRequests} />
 
       <div className="px-4 py-5 flex flex-col gap-3 max-w-md mx-auto w-full print:max-w-full print:px-6">
         {reportData.map((group, i) => {
