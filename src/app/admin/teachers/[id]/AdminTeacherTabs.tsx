@@ -70,6 +70,7 @@ export default function AdminTeacherTabs({ teacherId, groups, ranges, completedL
           {groups.map(g => {
             const cfg = LESSON_TYPE_CONFIG[g.lesson_type]
             const schedule = g.group_schedules?.[0]
+            const studentNames = (g.students ?? []).map(student => student.name).join(', ')
             return (
               <div key={g.id} onClick={() => openEdit(g)} className="bg-white rounded-2xl shadow-sm px-4 py-3 flex items-center gap-3 cursor-pointer active:bg-gray-50">
                 <div className={`w-9 h-9 rounded-xl flex items-center justify-center text-white font-bold text-sm shrink-0 ${cfg?.bg ?? 'bg-gray-400'}`}>
@@ -82,6 +83,11 @@ export default function AdminTeacherTabs({ teacherId, groups, ranges, completedL
                     {schedule && ` · ${DAYS_HE[schedule.day_of_week]} ${formatLessonTimeRange(schedule.start_time, g.lesson_type, schedule.end_time)}`}
                     {` · ${g.students?.length ?? 0} תלמידים`}
                   </p>
+                  {studentNames && (
+                    <p className="text-xs text-gray-600 mt-1 truncate" title={studentNames}>
+                      {studentNames}
+                    </p>
+                  )}
                 </div>
                 <button
                   onClick={e => { e.stopPropagation(); openEdit(g) }}
