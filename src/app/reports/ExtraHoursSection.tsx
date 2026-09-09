@@ -21,6 +21,8 @@ export default function ExtraHoursSection({ initialRequests, viewOnly = false }:
   const [open, setOpen] = useState(false)
   const [error, setError] = useState('')
   const [isPending, startTransition] = useTransition()
+  const [unitMinutes, setUnitMinutes] = useState(45)
+  const [quantity, setQuantity] = useState(1)
   const router = useRouter()
 
   function submit(e: React.FormEvent<HTMLFormElement>) {
@@ -32,6 +34,8 @@ export default function ExtraHoursSection({ initialRequests, viewOnly = false }:
       if (result.error === 'unauthorized') return router.push('/login')
       if (result.error) return setError(result.error)
       form.reset()
+      setUnitMinutes(45)
+      setQuantity(1)
       setOpen(false)
       router.refresh()
     })
@@ -51,9 +55,20 @@ export default function ExtraHoursSection({ initialRequests, viewOnly = false }:
             <label className="text-xs font-semibold text-violet-700">תאריך הפעילות<input name="work_date" type="date" required className="mt-1 w-full px-3 py-2 bg-white border border-violet-200 rounded-xl text-sm" /></label>
             <label className="text-xs font-semibold text-violet-700">סוג הפעילות<select name="activity_type" required defaultValue="" className="mt-1 w-full px-3 py-2 bg-white border border-violet-200 rounded-xl text-sm"><option value="" disabled>בחירה...</option><option>ישיבת צוות</option><option>חזרה</option><option>אירוע</option><option>עבודה מנהלתית</option><option>אחר</option></select></label>
           </div>
-          <div className="grid grid-cols-2 gap-3">
-            <label className="text-xs font-semibold text-violet-700">שעות<input name="hours" type="number" min="0" max="24" defaultValue="0" required className="mt-1 w-full px-3 py-2 bg-white border border-violet-200 rounded-xl text-sm" /></label>
-            <label className="text-xs font-semibold text-violet-700">דקות<input name="minutes" type="number" min="0" max="59" step="1" defaultValue="0" required className="mt-1 w-full px-3 py-2 bg-white border border-violet-200 rounded-xl text-sm" /></label>
+          <div className="bg-white border border-violet-200 rounded-2xl p-3">
+            <p className="text-xs font-semibold text-violet-700 mb-2">אורך כל יחידה</p>
+            <div className="grid grid-cols-3 gap-2">
+              {[30, 45, 60].map(value => <button key={value} type="button" onClick={() => setUnitMinutes(value)} className={`py-2 rounded-xl text-sm font-bold border transition-colors ${unitMinutes === value ? 'bg-violet-600 border-violet-600 text-white' : 'bg-white border-violet-200 text-violet-700'}`}>{value === 60 ? 'שעה' : `${value} דקות`}</button>)}
+            </div>
+            <input type="hidden" name="unit_minutes" value={unitMinutes} />
+            <input type="hidden" name="quantity" value={quantity} />
+            <p className="text-xs font-semibold text-violet-700 mt-4 mb-2">כמה יחידות?</p>
+            <div className="flex items-center justify-center gap-5">
+              <button type="button" aria-label="הפחת יחידה" onClick={() => setQuantity(q => Math.max(1, q - 1))} className="w-10 h-10 rounded-full bg-violet-100 text-violet-700 text-xl font-bold">−</button>
+              <span className="text-2xl font-bold text-gray-900 min-w-8 text-center">{quantity}</span>
+              <button type="button" aria-label="הוסף יחידה" onClick={() => setQuantity(q => Math.min(32, q + 1))} className="w-10 h-10 rounded-full bg-violet-600 text-white text-xl font-bold">+</button>
+            </div>
+            <div className="mt-3 bg-violet-50 rounded-xl px-3 py-2 text-center"><p className="text-xs text-violet-600">{quantity} יחידות × {unitMinutes} דקות</p><p className="text-sm font-bold text-violet-800">סה״כ: {formatMinutes(quantity * unitMinutes)} שעות</p></div>
           </div>
           <label className="text-xs font-semibold text-violet-700">פירוט<textarea name="note" rows={2} placeholder="מה סוכם עם המנהל?" className="mt-1 w-full px-3 py-2 bg-white border border-violet-200 rounded-xl text-sm resize-none" /></label>
           {error && <p className="text-xs text-red-600">{error}</p>}

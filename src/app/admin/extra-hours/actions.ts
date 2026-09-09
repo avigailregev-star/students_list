@@ -26,13 +26,13 @@ export async function addExtraHours(formData: FormData): Promise<{ error?: strin
   const { user } = await requireAdmin()
   const teacherId = String(formData.get('teacher_id') ?? '')
   const workDate = String(formData.get('work_date') ?? '')
-  const hours = Number(formData.get('hours') ?? 0)
-  const minutePart = Number(formData.get('minutes') ?? 0)
-  const minutes = hours * 60 + minutePart
+  const unitMinutes = Number(formData.get('unit_minutes') ?? 0)
+  const quantity = Number(formData.get('quantity') ?? 0)
+  const minutes = unitMinutes * quantity
   const activityType = String(formData.get('activity_type') ?? '').trim()
   const note = String(formData.get('note') ?? '').trim() || null
   if (!teacherId || !/^\d{4}-\d{2}-\d{2}$/.test(workDate) || !activityType) return { error: 'נא למלא את כל שדות החובה' }
-  if (!Number.isInteger(hours) || !Number.isInteger(minutePart) || minutePart < 0 || minutePart > 59 || minutes <= 0 || minutes > 1440) return { error: 'משך הזמן אינו תקין' }
+  if (![30, 45, 60].includes(unitMinutes) || !Number.isInteger(quantity) || quantity < 1 || quantity > 32 || minutes > 1440) return { error: 'אורך היחידה או הכמות אינם תקינים' }
   const supabase = createAdminClient()
   const { error } = await supabase.from('extra_hours_requests').insert({ teacher_id: teacherId, work_date: workDate, minutes, activity_type: activityType, note, status: 'approved', source: 'admin', decided_by: user.id, decided_at: new Date().toISOString() })
   if (error) return { error: 'שגיאה בהוספת השעות: ' + error.message }

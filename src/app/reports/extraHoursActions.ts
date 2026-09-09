@@ -9,15 +9,15 @@ export async function submitExtraHoursRequest(formData: FormData): Promise<{ err
   if (!user) return { error: 'unauthorized' }
 
   const workDate = String(formData.get('work_date') ?? '')
-  const hours = Number(formData.get('hours') ?? 0)
-  const minutesPart = Number(formData.get('minutes') ?? 0)
+  const unitMinutes = Number(formData.get('unit_minutes') ?? 0)
+  const quantity = Number(formData.get('quantity') ?? 0)
   const activityType = String(formData.get('activity_type') ?? '').trim()
   const note = String(formData.get('note') ?? '').trim() || null
-  const totalMinutes = hours * 60 + minutesPart
+  const totalMinutes = unitMinutes * quantity
 
   if (!/^\d{4}-\d{2}-\d{2}$/.test(workDate)) return { error: 'נא לבחור תאריך' }
-  if (!Number.isInteger(hours) || !Number.isInteger(minutesPart) || minutesPart < 0 || minutesPart > 59 || totalMinutes <= 0 || totalMinutes > 1440) {
-    return { error: 'נא להזין משך תקין (עד 24 שעות)' }
+  if (![30, 45, 60].includes(unitMinutes) || !Number.isInteger(quantity) || quantity < 1 || quantity > 32 || totalMinutes > 1440) {
+    return { error: 'נא לבחור אורך יחידה וכמות תקינים (עד 24 שעות)' }
   }
   if (!activityType) return { error: 'נא לבחור סוג פעילות' }
 
