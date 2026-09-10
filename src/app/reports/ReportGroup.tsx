@@ -38,6 +38,11 @@ const STATUS_DOT: Record<string, string> = {
   teacher_canceled: 'bg-orange-400',
 }
 
+function cancellationLabel(reason?: string): string {
+  if (reason?.includes('ביטול מוצד')) return 'ביטול מוצדק של תלמיד'
+  return 'ביטול מורה'
+}
+
 function buildDateSummary(students: StudentWithStats[]) {
   const dateMap = new Map<string, {
     isSpecial: boolean
@@ -151,7 +156,7 @@ export default function ReportGroup({ group }: { group: GroupWithData }) {
                   <div key={i} className="flex items-center gap-2 bg-white rounded-xl px-3 py-2 shadow-[0_1px_3px_0_rgba(0,0,0,0.06)]">
                     <div className="w-2.5 h-2.5 rounded-full shrink-0 bg-orange-400" />
                     <span className="text-xs font-bold text-gray-700 flex-1">{formatDateHe(date)}</span>
-                    <span className="text-xs font-bold text-orange-500">ביטול מורה</span>
+                    <span className="text-xs font-bold text-orange-500">{cancellationLabel(d.cancelReason)}</span>
                   </div>
                 )
               }
@@ -252,7 +257,7 @@ export default function ReportGroup({ group }: { group: GroupWithData }) {
                              h.status === 'absent' ? 'חסר' :
                              h.status === 'late' ? 'איחר' :
                              h.status === 'excused' ? 'מוצדק' :
-                             h.status === 'teacher_canceled' ? 'ביטול מורה' : '—'}
+                             h.status === 'teacher_canceled' ? cancellationLabel(h.cancelReason) : '—'}
                           </span>
                         </div>
                       )
