@@ -14,6 +14,7 @@ function createFakeSupabase(tables: Record<string, Row[]>) {
     const builder: any = {
       select() { return builder },
       eq(col: string, val: any) { filters.push([col, val]); return builder },
+      order() { return builder },
       limit() { return builder },
       upsert(obj: Row, opts?: { onConflict?: string }) {
         pendingUpsert = obj
@@ -70,7 +71,7 @@ describe('getOrCreateLesson', () => {
   })
 
   test('updates the holiday status of an existing lesson that has no recorded attendance', async () => {
-    tables.lessons.push({ id: 'lesson-1', group_id: 'group-1', date: '2026-09-10', start_time: '10:00:00', is_holiday: false, holiday_name: null })
+    tables.lessons.push({ id: 'lesson-1', group_id: 'group-1', date: '2026-09-10', start_time: '10:00:00', is_makeup: false, is_holiday: false, holiday_name: null })
 
     const lesson = await getOrCreateLesson('group-1', '2026-09-10', '10:00:00', true, 'חג לא צפוי')
 
@@ -79,13 +80,24 @@ describe('getOrCreateLesson', () => {
   })
 
   test('keeps an existing lesson non-holiday when it already has recorded attendance, even if a holiday is added later', async () => {
-    tables.lessons.push({ id: 'lesson-1', group_id: 'group-1', date: '2026-09-10', start_time: '10:00:00', is_holiday: false, holiday_name: null })
+    tables.lessons.push({ id: 'lesson-1', group_id: 'group-1', date: '2026-09-10', start_time: '10:00:00', is_makeup: false, is_holiday: false, holiday_name: null })
     tables.attendance.push({ id: 'att-1', lesson_id: 'lesson-1', student_id: 'student-1', status: 'present' })
 
     const lesson = await getOrCreateLesson('group-1', '2026-09-10', '10:00:00', true, 'חג שנוסף בדיעבד')
 
     expect(lesson.is_holiday).toBe(false)
     expect(lesson.holiday_name).toBe(null)
+  })
+
+  test('reuses the same lesson and attendance when its scheduled hour changes on the same day', async () => {
+    tables.lessons.push({ id: 'lesson-1', group_id: 'group-1', date: '2026-09-10', start_time: '10:00:00', is_makeup: false, is_holiday: false })
+    tables.attendance.push({ id: 'att-1', lesson_id: 'lesson-1', student_id: 'student-1', status: 'present' })
+
+    const lesson = await getOrCreateLesson('group-1', '2026-09-10', '11:00:00', false)
+
+    expect(lesson.id).toBe('lesson-1')
+    expect(tables.lessons).toHaveLength(1)
+    expect(tables.attendance[0].status).toBe('present')
   })
 })
 

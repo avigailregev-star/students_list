@@ -18,11 +18,16 @@ interface Props {
   userId?: string
   viewOnly?: boolean
   viewOnlyTeacherId?: string
+  initialDate?: string
 }
 
-export default function DashboardClient({ groups, teacherName, events, isAdmin, makeupSlots, userId, viewOnly, viewOnlyTeacherId }: Props) {
+export default function DashboardClient({ groups, teacherName, events, isAdmin, makeupSlots, userId, viewOnly, viewOnlyTeacherId, initialDate }: Props) {
   const [view, setView] = useState<'day' | 'week' | 'month'>('day')
-  const [dayInitialDate, setDayInitialDate] = useState<Date | undefined>(undefined)
+  const [dayInitialDate, setDayInitialDate] = useState<Date | undefined>(() => {
+    if (!initialDate || !/^\d{4}-\d{2}-\d{2}$/.test(initialDate)) return undefined
+    const parsed = new Date(`${initialDate}T12:00:00`)
+    return Number.isNaN(parsed.getTime()) ? undefined : parsed
+  })
 
   const weekSlots: LessonSlot[] = useMemo(() => {
     const slots: LessonSlot[] = []

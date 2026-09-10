@@ -237,7 +237,7 @@ export default async function AttendancePage({ params, searchParams }: Props) {
 
             {students.length > 0 && (
               <Link
-                href="/"
+                href={`/?date=${dateStr}`}
                 className="mt-5 w-full flex items-center justify-center gap-2 bg-teal-500 hover:bg-teal-600 text-white py-3.5 rounded-2xl font-bold text-sm transition-colors shadow-sm shadow-teal-200"
               >
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">

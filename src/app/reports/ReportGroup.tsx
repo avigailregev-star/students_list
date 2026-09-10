@@ -127,6 +127,13 @@ export default function ReportGroup({ group }: { group: GroupWithData }) {
           <div className="flex flex-col gap-2">
             {dateSummary.map((d, i) => {
               const date = new Date(d.date + 'T12:00:00')
+              const summaryDot = d.absent > 0 && d.present === 0
+                ? 'bg-red-400'
+                : d.present > 0 && d.absent === 0
+                  ? 'bg-emerald-500'
+                  : d.present > 0 || d.absent > 0
+                    ? 'bg-amber-400'
+                    : 'bg-gray-200'
 
               if (d.specialStatus === 'school_event' && d.eventType) {
                 const cfg = EVENT_COLORS[d.eventType]
@@ -151,7 +158,7 @@ export default function ReportGroup({ group }: { group: GroupWithData }) {
 
               return (
                 <div key={i} className="flex items-center gap-2 bg-white rounded-xl px-3 py-2 shadow-[0_1px_3px_0_rgba(0,0,0,0.06)]">
-                  <div className="w-2.5 h-2.5 rounded-full shrink-0 bg-emerald-500" />
+                  <div className={`w-2.5 h-2.5 rounded-full shrink-0 ${summaryDot}`} />
                   <span className="text-xs font-bold text-gray-700 flex-1">{formatDateHe(date)}</span>
                   {d.late > 0 && (
                     <span className="text-[10px] bg-amber-50 text-amber-600 px-1.5 py-0.5 rounded-lg font-bold">{d.late} איחרו</span>

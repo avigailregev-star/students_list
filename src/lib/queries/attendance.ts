@@ -11,19 +11,28 @@ export async function getOrCreateLesson(
 ): Promise<Lesson> {
   const supabase = await createClient()
 
-  const { data: existing } = await supabase
+  // A regular lesson is a calendar occurrence, not a schedule snapshot. If an
+  // admin changes only the hour while keeping the same group and weekday, keep
+  // using the lesson that was already created for that date. Its attendance is
+  // attached to the lesson id and must not become unreachable because the new
+  // schedule now supplies a different start_time.
+  // Prefer the oldest occurrence as well: installations already affected by
+  // the old bug can contain a newer, empty duplicate at the updated hour.
+  const { data: reusableLesson } = await supabase
     .from('lessons')
     .select('*')
     .eq('group_id', groupId)
     .eq('date', date)
-    .eq('start_time', startTime)
+    .eq('is_makeup', false)
+    .order('created_at', { ascending: true })
+    .limit(1)
     .maybeSingle()
 
-  if (existing) {
+  if (reusableLesson) {
     const { data: attendanceRow } = await supabase
       .from('attendance')
       .select('id')
-      .eq('lesson_id', existing.id)
+      .eq('lesson_id', reusableLesson.id)
       .limit(1)
       .maybeSingle()
 
@@ -31,7 +40,7 @@ export async function getOrCreateLesson(
     // frozen — a holiday/vacation added afterwards must not silently hide it
     // or drop it out of payroll. Explicit cancellation is the only way to
     // change that once real attendance exists.
-    if (attendanceRow) return existing as Lesson
+    if (attendanceRow || reusableLesson.start_time !== startTime) return reusableLesson as Lesson
   }
 
   const { data, error } = await supabase

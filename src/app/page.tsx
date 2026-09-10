@@ -5,7 +5,8 @@ import { getEventsForTeacher } from '@/lib/queries/events'
 import { getMakeupLessons } from '@/lib/queries/attendance'
 import DashboardClient from '@/components/dashboard/DashboardClient'
 
-export default async function HomePage() {
+export default async function HomePage({ searchParams }: { searchParams: Promise<{ date?: string }> }) {
+  const { date } = await searchParams
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
@@ -33,6 +34,7 @@ export default async function HomePage() {
       isAdmin={isAdmin}
       makeupSlots={makeupSlots}
       userId={user.id}
+      initialDate={date}
     />
   )
 }

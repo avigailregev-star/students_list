@@ -45,9 +45,10 @@ export default function AttendanceToggle({
         body: JSON.stringify({
           lessonId,
           studentId,
-          status: newStatus ?? 'absent',
+          status: newStatus,
           broughtInstrument: newBrought,
         }),
+        keepalive: true,
       })
       if (res.ok) {
         lastSavedRef.current = { status: newStatus, brought: newBrought }
@@ -57,11 +58,13 @@ export default function AttendanceToggle({
         setSaveError(body.error ?? `שגיאה ${res.status}`)
         setStatus(lastSavedRef.current.status)
         setBrought(lastSavedRef.current.brought)
+        onStatusChange?.(lastSavedRef.current.status)
       }
     } catch {
       setSaveError('שגיאת רשת')
       setStatus(lastSavedRef.current.status)
       setBrought(lastSavedRef.current.brought)
+      onStatusChange?.(lastSavedRef.current.status)
     } finally {
       inFlightRef.current = false
       if (queuedRef.current) {
