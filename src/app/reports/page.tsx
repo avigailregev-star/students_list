@@ -118,17 +118,31 @@ export default async function ReportsPage() {
       attendanceRows = (att ?? []) as Attendance[]
     }
 
-    // A lesson only counts as held if at least one attendance row (any status) was recorded.
-    // Lessons with zero attendance rows are "phantom" — created just by opening the attendance
-    // page — and must not be shown or counted anywhere.
+    // Schedule-hour changes in older versions could create several regular
+    // lesson rows for one group/date. Treat those rows as one logical lesson;
+    // makeup lessons remain independent occurrences.
+    const occurrenceMap = new Map<string, Lesson[]>()
+    for (const lesson of lessonList) {
+      const key = lesson.is_makeup ? `makeup:${lesson.id}` : `regular:${lesson.date}`
+      const occurrence = occurrenceMap.get(key) ?? []
+      occurrence.push(lesson)
+      occurrenceMap.set(key, occurrence)
+    }
+    const occurrences = [...occurrenceMap.values()].map(items =>
+      items.sort((a, b) => a.created_at.localeCompare(b.created_at))
+    )
+
+    // A logical lesson only counts as held if one of its underlying rows has
+    // attendance. Empty rows created merely by opening the page stay hidden.
     const lessonIdsWithAttendance = new Set(attendanceRows.map(a => a.lesson_id))
-    const heldLessonList = lessonList.filter(l => lessonIdsWithAttendance.has(l.id))
+    const heldOccurrences = occurrences.filter(items => items.some(l => lessonIdsWithAttendance.has(l.id)))
 
     const studentsWithStats = studentList.map(student => {
       const studentAtt = attendanceRows.filter(a => a.student_id === student.id)
       const history = [
-        ...heldLessonList.map(lesson => {
-          const att = studentAtt.find(a => a.lesson_id === lesson.id)
+        ...heldOccurrences.map(items => {
+          const lesson = items[0]
+          const att = items.map(item => studentAtt.find(a => a.lesson_id === item.id)).find(Boolean)
           return { date: lesson.date, status: att?.status ?? 'no_data', brought: att?.brought_instrument ?? false, isMakeup: lesson.is_makeup }
         }),
         ...canceledList.map(lesson => ({ date: lesson.date, status: 'teacher_canceled', brought: false, cancelReason: lesson.teacher_absence_reason ?? undefined, cancelApprovalStatus: lesson.admin_approval_status })),
@@ -136,10 +150,10 @@ export default async function ReportsPage() {
 
       return {
         ...student,
-        total_lessons: heldLessonList.length,
-        lessons_attended: studentAtt.filter(a => a.status === 'present' || a.status === 'late').length,
-        lessons_absent: studentAtt.filter(a => a.status === 'absent').length,
-        brought_instrument: studentAtt.filter(a => a.brought_instrument).length,
+        total_lessons: heldOccurrences.length,
+        lessons_attended: history.filter(h => h.status === 'present' || h.status === 'late').length,
+        lessons_absent: history.filter(h => h.status === 'absent').length,
+        brought_instrument: history.filter(h => h.brought).length,
         history,
       }
     })
@@ -167,7 +181,7 @@ export default async function ReportsPage() {
       history: [...student.history, ...eventEntries].sort((a, b) => b.date.localeCompare(a.date)),
     }))
 
-    reportData.push({ ...group, students: studentsWithEventHistory, total_lessons: heldLessonList.length, canceled_lessons: canceledList.length })
+    reportData.push({ ...group, students: studentsWithEventHistory, total_lessons: heldOccurrences.length, canceled_lessons: canceledList.length })
   }
 
   reportData.sort((a, b) => {
