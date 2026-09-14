@@ -8,6 +8,7 @@ import MergeTeacherButton from './MergeTeacherButton'
 import { requireAdmin } from '@/lib/auth'
 import { createAdminClient } from '@/lib/supabase/admin'
 import type { GroupWithSchedulesAndStudents, TeacherAvailabilityRange } from '@/types/database'
+import { hideEmptyIndividualLessons } from '@/lib/queries/groups'
 
 interface Props { params: Promise<{ id: string }> }
 
@@ -61,10 +62,10 @@ export default async function TeacherDetailPage({ params }: Props) {
       .single(),
   ])
 
-  const groups = ((groupsRaw ?? []) as GroupWithSchedulesAndStudents[]).map(g => ({
+  const groups = hideEmptyIndividualLessons(((groupsRaw ?? []) as GroupWithSchedulesAndStudents[]).map(g => ({
     ...g,
     students: g.students.filter((s: { is_active?: boolean }) => s.is_active !== false),
-  })).sort((a, b) => {
+  }))).sort((a, b) => {
     const sa = a.group_schedules[0]
     const sb = b.group_schedules[0]
     if (!sa && !sb) return 0

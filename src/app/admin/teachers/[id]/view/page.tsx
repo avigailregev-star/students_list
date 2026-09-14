@@ -5,6 +5,7 @@ import DashboardClient from '@/components/dashboard/DashboardClient'
 import ViewOnlyBanner from './ViewOnlyBanner'
 import ViewNav from './ViewNav'
 import type { GroupWithSchedules, LessonSlot, SchoolEvent } from '@/types/database'
+import { hideEmptyIndividualLessons } from '@/lib/queries/groups'
 
 interface Props { params: Promise<{ id: string }> }
 
@@ -35,10 +36,10 @@ export default async function AdminTeacherViewDashboardPage({ params }: Props) {
     supabase.from('school_event_assignments').select('event_id').eq('teacher_id', id),
   ])
 
-  const groups = ((groupsRaw ?? []) as GroupWithSchedules[]).map(group => ({
+  const groups = hideEmptyIndividualLessons(((groupsRaw ?? []) as GroupWithSchedules[]).map(group => ({
     ...group,
     students: (group.students ?? []).filter(student => student.is_active),
-  }))
+  })))
 
   const assignedIds = (assignedRows ?? []).map((r: { event_id: string }) => r.event_id)
   let assignedEvents: SchoolEvent[] = []
