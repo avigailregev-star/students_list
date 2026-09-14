@@ -1,5 +1,6 @@
 'use client'
 
+import * as XLSX from 'xlsx'
 import type { MonthPayroll, DayCount } from './page'
 
 const DAY_ABBREV = ["א'", "ב'", "ג'", "ד'", "ה'", "ו'", "ש'"]
@@ -36,24 +37,119 @@ function formatHours(value: number) {
   return `${Math.floor(minutes / 60)}:${String(minutes % 60).padStart(2, '0')}`
 }
 
+function buildMonthWorksheet(month: MonthPayroll, teacherName: string) {
+  const headers = ['תאריך', 'יום', "פרטני 45 דק'", "פרטני 60 דק'", 'מנגינות', 'הרכבים/תזמורות', 'תיאוריה', 'דרכא לימן', 'השלמות/החלפות', 'שעות נוספות', 'סה"כ']
+  const rows: (string | number)[][] = [
+    ['קונסרבטוריון דימונה - מבית רשת המרכזים הקהילתיים'],
+    [`דו"ח עבודה לחודש: ${month.label}`, '', '', '', `שנה: ${month.year}`, '', 'ת.ז:', '', '', '', ''],
+    [`שם ומשפחה: ${teacherName}`, '', '', '', 'תפקיד: _______________', '', '', '', 'עיר מגורים: _______________', '', ''],
+    [],
+    ['', '', 'פעילות'],
+    headers,
+    ['', '', ...Array(8).fill("מס' שיעורים"), ''],
+  ]
+
+  const totals: DayCount = { individual_45: 0, individual_60: 0, melodies: 0, ensemble: 0, theory: 0, darcha: 0, makeup: 0, extra_hours: 0 }
+  let grandTotal = 0
+  let workDays = 0
+
+  for (let d = 1; d <= 31; d++) {
+    if (d > month.daysInMonth) {
+      rows.push([d, '', '', '', '', '', '', '', '', '', ''])
+      continue
+    }
+
+    const c = month.dayCounts[d]
+    const dayTotal = total(c)
+    const dayName = DAY_ABBREV[new Date(month.year, month.monthNum - 1, d).getDay()]
+    totals.individual_45 += c.individual_45
+    totals.individual_60 += c.individual_60
+    totals.melodies += c.melodies
+    totals.ensemble += c.ensemble
+    totals.theory += c.theory
+    totals.darcha += c.darcha
+    totals.makeup += c.makeup
+    totals.extra_hours += c.extra_hours
+    grandTotal += dayTotal
+    if (dayTotal > 0) workDays++
+
+    rows.push([
+      d,
+      month.sickDates.includes(d) ? `${dayName} ח` : dayName,
+      c.individual_45 || '',
+      c.individual_60 || '',
+      c.melodies || '',
+      c.ensemble || '',
+      c.theory || '',
+      c.darcha || '',
+      c.makeup ? `${c.makeup}${month.makeupTypes[d] ? ` (${formatMakeupTypes(month.makeupTypes[d])})` : ''}` : '',
+      c.extra_hours ? formatHours(c.extra_hours) : '',
+      dayTotal || '',
+    ])
+  }
+
+  rows.push([
+    'סה"כ', '', totals.individual_45 || '', totals.individual_60 || '', totals.melodies || '',
+    totals.ensemble || '', totals.theory || '', totals.darcha || '', totals.makeup || '',
+    totals.extra_hours ? formatHours(totals.extra_hours) : '', grandTotal || '',
+  ])
+  rows.push([])
+  rows.push([`סך ימי עבודה: ${workDays || '___'}`])
+  rows.push(['ימי בחירה/חופשה: ___'])
+  rows.push([`ימי מחלה: ${month.sickDays || '___'}`])
+  rows.push([])
+  rows.push(['חתימת המורה: _______________', '', '', '', '', 'חתימת מנהל: _______________'])
+
+  const worksheet = XLSX.utils.aoa_to_sheet(rows)
+  worksheet['!cols'] = [8, 8, 15, 15, 12, 20, 12, 14, 25, 14, 10].map(wch => ({ wch }))
+  worksheet['!views'] = [{ rightToLeft: true }]
+  worksheet['!merges'] = [
+    { s: { r: 0, c: 0 }, e: { r: 0, c: 10 } },
+    { s: { r: 4, c: 2 }, e: { r: 4, c: 9 } },
+  ]
+  return worksheet
+}
+
 export default function PayrollView({ months, teacherName }: { months: MonthPayroll[]; teacherName: string }) {
   if (!months.length) {
     return <div className="flex-1 flex items-center justify-center text-gray-400 text-sm py-20">אין נתוני שכר</div>
   }
 
+  function exportAllMonths() {
+    const workbook = XLSX.utils.book_new()
+    for (const month of months) {
+      XLSX.utils.book_append_sheet(workbook, buildMonthWorksheet(month, teacherName), month.label.slice(0, 31))
+    }
+    const safeTeacherName = teacherName.replace(/[\\/:*?"<>|]/g, '-').trim() || 'מורה'
+    XLSX.writeFile(workbook, `חשבות-שכר-${safeTeacherName}-כל-החודשים.xlsx`)
+  }
+
   return (
     <div className="px-3 pt-4">
-      <button
-        onClick={() => window.print()}
-        className="print:hidden mb-5 flex items-center gap-1.5 bg-white border border-gray-200 text-gray-600 text-xs font-bold px-3 py-2 rounded-xl hover:bg-gray-50 transition-colors shadow-sm"
-      >
-        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <polyline points="6 9 6 2 18 2 18 9"/>
-          <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/>
-          <rect x="6" y="14" width="12" height="8"/>
-        </svg>
-        הדפסת כל החודשים
-      </button>
+      <div className="print:hidden mb-5 flex flex-wrap gap-2">
+        <button
+          onClick={exportAllMonths}
+          className="flex items-center gap-1.5 bg-white border border-teal-200 text-teal-600 text-xs font-bold px-3 py-2 rounded-xl hover:bg-teal-50 transition-colors shadow-sm"
+        >
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+            <polyline points="7 10 12 15 17 10" />
+            <line x1="12" y1="15" x2="12" y2="3" />
+          </svg>
+          ייצוא שכר לאקסל
+        </button>
+        <button
+          onClick={() => window.print()}
+          className="flex items-center gap-1.5 bg-white border border-gray-200 text-gray-600 text-xs font-bold px-3 py-2 rounded-xl hover:bg-gray-50 transition-colors shadow-sm"
+        >
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <polyline points="6 9 6 2 18 2 18 9"/>
+            <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/>
+            <rect x="6" y="14" width="12" height="8"/>
+          </svg>
+          הדפסת כל החודשים
+        </button>
+      </div>
 
       {months.map((month, i) => (
         <div
