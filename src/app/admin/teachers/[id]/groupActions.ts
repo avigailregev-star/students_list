@@ -245,7 +245,9 @@ export async function removeStudentFromGroup(studentId: string, teacherId: strin
     await requireAdmin()
     const supabase = createAdminClient()
     const { data: student } = await supabase.from('students').select('name, group_id').eq('id', studentId).single()
-    const { error } = await supabase.from('students').delete().eq('id', studentId)
+    // Keep the student row so historical attendance continues to reference it.
+    // A hard delete can cascade into attendance rows and erase lessons from reports.
+    const { error } = await supabase.from('students').update({ is_active: false }).eq('id', studentId)
     if (error) {
       console.error('removeStudent error:', error)
       return { error: `שגיאה במחיקת תלמיד: ${error.message}` }
