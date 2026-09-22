@@ -55,7 +55,7 @@ export default function AdminGroupSheet({ teacherId, group, isOpen, onClose, def
     const allStudents = newStudentName.trim()
       ? [...pendingStudents, { id: Date.now(), name: newStudentName.trim(), instrument: newStudentInstrument.trim(), parentPhone: newStudentPhone.trim() }]
       : pendingStudents
-    const data = { name, lessonType, dayOfWeek, startTime, endTime: endTime || undefined, students: allStudents }
+    const data = { scheduleId: schedule?.id, name, lessonType, dayOfWeek, startTime, endTime: endTime || undefined, students: allStudents }
     startTransition(async () => {
       if (isEdit) {
         const res = await updateGroup(group.id, teacherId, { ...data, students: [] })

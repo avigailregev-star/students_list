@@ -52,7 +52,13 @@ export default function AttendanceToggle({
       })
       if (res.ok) {
         lastSavedRef.current = { status: newStatus, brought: newBrought }
-        setSaved(true)
+        if (!queuedRef.current) {
+          setStatus(newStatus)
+          setBrought(newBrought)
+          onStatusChange?.(newStatus)
+          setSaveError(null)
+          setSaved(true)
+        }
       } else {
         const body = await res.json().catch(() => ({}))
         setSaveError(body.error ?? `שגיאה ${res.status}`)

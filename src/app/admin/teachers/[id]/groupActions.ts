@@ -4,8 +4,7 @@ import { revalidatePath } from 'next/cache'
 import { requireAdmin } from '@/lib/auth'
 import { createAdminClient } from '@/lib/supabase/admin'
 import type { LessonType } from '@/types/database'
-import { DAYS_HE } from '@/lib/utils/hebrew'
-import { syncStudentAdded, syncStudentRemoved } from '@/lib/syncToRegistrations'
+import { syncStudentRemoved } from '@/lib/syncToRegistrations'
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
@@ -14,6 +13,7 @@ const VALID_TYPES: LessonType[] = [
 ]
 
 export interface GroupFormData {
+  scheduleId?: string
   name: string
   lessonType: LessonType
   dayOfWeek: number
@@ -33,77 +33,16 @@ export async function createGroupForTeacher(teacherId: string, data: GroupFormDa
     if (!data.name.trim()) return { error: 'שם קבוצה נדרש' }
     if (!VALID_TYPES.includes(data.lessonType)) return { error: 'סוג שיעור לא תקין' }
     if (data.dayOfWeek < 0 || data.dayOfWeek > 4) return { error: 'יום לא תקין' }
-    if (!data.startTime) return { error: 'שעת התחלה נדרשת' }
     if ((data.lessonType === 'orchestra' || data.lessonType === 'choir') && !data.endTime) return { error: 'שעת סיום נדרשת לתזמורת או מקהלה' }
 
-    await requireAdmin()
+    const { user } = await requireAdmin()
     const supabase = createAdminClient()
-
-    // Check for schedule conflict with existing groups for this teacher
-    const { data: teacherGroups } = await supabase.from('groups').select('id').eq('teacher_id', teacherId)
-    if (teacherGroups && teacherGroups.length > 0) {
-      const { data: existingSchedules } = await supabase
-        .from('group_schedules')
-        .select('day_of_week, start_time')
-        .in('group_id', teacherGroups.map(g => g.id))
-
-      const conflict = existingSchedules?.find(
-        s => s.day_of_week === data.dayOfWeek && s.start_time.startsWith(data.startTime)
-      )
-      if (conflict) {
-        const dayName = DAYS_HE[data.dayOfWeek]
-        return { error: `כבר קיים שיעור ביום ${dayName} בשעה ${data.startTime}. לא ניתן לשבץ שני שיעורים באותה שעה.` }
-      }
-    }
-
-    const { data: group, error: groupError } = await supabase
-      .from('groups')
-      .insert({
-        teacher_id: teacherId,
-        name: data.name.trim(),
-        lesson_type: data.lessonType,
-        is_mangan_school: false,
-      })
-      .select('id')
-      .single()
-
-    if (groupError || !group) {
-      console.error('createGroup error:', groupError)
-      return { error: `שגיאה ביצירת הקבוצה: ${groupError?.message ?? 'unknown'}` }
-    }
-
-    const { error: schedError } = await supabase
-      .from('group_schedules')
-      .insert({
-        group_id: group.id,
-        day_of_week: data.dayOfWeek,
-        start_time: data.startTime,
-        end_time: data.endTime ?? null,
-      })
-
-    if (schedError) {
-      console.error('createSchedule error:', schedError)
-      return { error: `שגיאה בשמירת המועד: ${schedError.message}` }
-    }
-
-    if (data.students.length > 0) {
-      const { error: studError } = await supabase
-        .from('students')
-        .insert(data.students.map(s => ({
-          group_id: group.id,
-          name: s.name.trim(),
-          instrument: s.instrument?.trim() || null,
-          parent_phone: s.parentPhone?.trim() || null,
-          is_active: true,
-        })))
-      if (studError) {
-        console.error('createStudents error:', studError)
-        return { error: `שגיאה בהוספת תלמידים: ${studError.message}` }
-      }
-      await Promise.all(data.students.map(s =>
-        syncStudentAdded({ groupId: group.id, studentName: s.name.trim(), instrument: s.instrument?.trim() || null, parentPhone: s.parentPhone?.trim() || null })
-      ))
-    }
+    const { error } = await supabase.rpc('create_group_atomic', {
+      p_actor_id: user.id, p_teacher_id: teacherId, p_name: data.name.trim(), p_lesson_type: data.lessonType,
+      p_schedules: [{ day_of_week: data.dayOfWeek, start_time: data.startTime, end_time: data.endTime || null }],
+      p_students: data.students.map(s => ({ name: s.name.trim(), instrument: s.instrument?.trim() || null, parent_phone: s.parentPhone?.trim() || null })),
+    })
+    if (error) return { error: 'שגיאה ביצירת הקבוצה: ' + error.message }
 
     revalidatePath(`/admin/teachers/${teacherId}`)
     return {}
@@ -122,51 +61,14 @@ export async function updateGroup(groupId: string, teacherId: string, data: Grou
     if (!VALID_TYPES.includes(data.lessonType)) return { error: 'סוג שיעור לא תקין' }
     if ((data.lessonType === 'orchestra' || data.lessonType === 'choir') && !data.endTime) return { error: 'שעת סיום נדרשת לתזמורת או מקהלה' }
 
-    await requireAdmin()
+    const { user } = await requireAdmin()
     const supabase = createAdminClient()
-
-    // Check for schedule conflict with OTHER groups for this teacher
-    const { data: teacherGroups } = await supabase.from('groups').select('id').eq('teacher_id', teacherId)
-    const otherGroupIds = (teacherGroups ?? []).map(g => g.id).filter(id => id !== groupId)
-    if (otherGroupIds.length > 0) {
-      const { data: existingSchedules } = await supabase
-        .from('group_schedules')
-        .select('day_of_week, start_time')
-        .in('group_id', otherGroupIds)
-
-      const conflict = existingSchedules?.find(
-        s => s.day_of_week === data.dayOfWeek && s.start_time.startsWith(data.startTime)
-      )
-      if (conflict) {
-        const dayName = DAYS_HE[data.dayOfWeek]
-        return { error: `כבר קיים שיעור ביום ${dayName} בשעה ${data.startTime}. לא ניתן לשבץ שני שיעורים באותה שעה.` }
-      }
-    }
-
-    const { error: groupError } = await supabase
-      .from('groups')
-      .update({ name: data.name.trim(), lesson_type: data.lessonType })
-      .eq('id', groupId)
-
-    if (groupError) {
-      console.error('updateGroup error:', groupError)
-      return { error: `שגיאה בעדכון הקבוצה: ${groupError.message}` }
-    }
-
-    await supabase.from('group_schedules').delete().eq('group_id', groupId)
-    const { error: schedError } = await supabase
-      .from('group_schedules')
-      .insert({
-        group_id: groupId,
-        day_of_week: data.dayOfWeek,
-        start_time: data.startTime,
-        end_time: data.endTime ?? null,
-      })
-
-    if (schedError) {
-      console.error('updateSchedule error:', schedError)
-      return { error: `שגיאה בעדכון המועד: ${schedError.message}` }
-    }
+    const { error } = await supabase.rpc('update_group_schedule_atomic', {
+      p_actor_id: user.id, p_group_id: groupId, p_teacher_id: teacherId,
+      p_schedule_id: data.scheduleId ?? null, p_name: data.name.trim(), p_lesson_type: data.lessonType,
+      p_day: data.dayOfWeek, p_start: data.startTime, p_end: data.endTime || null,
+    })
+    if (error) return { error: 'לא ניתן לשמור את הקבוצה: ' + error.message }
 
     revalidatePath(`/admin/teachers/${teacherId}`)
     return {}
@@ -215,20 +117,17 @@ export async function addStudentToGroup(groupId: string, teacherId: string, stud
   try {
     if (!UUID_RE.test(groupId)) return { error: 'מזהה קבוצה לא תקין' }
     if (!student.name.trim()) return { error: 'שם תלמיד נדרש' }
-    await requireAdmin()
+    const { user } = await requireAdmin()
     const supabase = createAdminClient()
-    const { error } = await supabase.from('students').insert({
-      group_id: groupId,
-      name: student.name.trim(),
-      instrument: student.instrument?.trim() || null,
-      parent_phone: student.parentPhone?.trim() || null,
-      is_active: true,
+    const { error } = await supabase.rpc('add_student_atomic', {
+      p_actor_id: user.id, p_group_id: groupId, p_name: student.name.trim(),
+      p_instrument: student.instrument?.trim() || null,
+      p_parent_phone: student.parentPhone?.trim() || null,
     })
     if (error) {
       console.error('addStudent error:', error)
       return { error: `שגיאה בהוספת תלמיד: ${error.message}` }
     }
-    await syncStudentAdded({ groupId, studentName: student.name.trim(), instrument: student.instrument?.trim() || null, parentPhone: student.parentPhone?.trim() || null })
     revalidatePath(`/admin/teachers/${teacherId}`)
     return {}
   } catch (err) {

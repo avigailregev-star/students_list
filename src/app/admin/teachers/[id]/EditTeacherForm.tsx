@@ -79,7 +79,7 @@ export default function EditTeacherForm({ teacherId, initialName, isPending, ema
           <p className="text-sm font-bold text-amber-800">מורה ממתינה לרישום</p>
         </div>
         <p className="text-xs text-amber-700">
-          הזיני את האימייל שלה ולחצי "שלח הזמנה" — המורה תקבל קישור להגדרת סיסמה.
+          הזיני את האימייל שלה ולחצי &quot;שלח הזמנה&quot; — המורה תקבל קישור להגדרת סיסמה.
         </p>
         <form
           onSubmit={e => {

@@ -35,12 +35,12 @@ if (typeof window !== 'undefined' && !(window as unknown as Record<string, unkno
       const url = typeof input === 'string' ? input
         : input instanceof URL ? input.href
         : (input as Request).url
-      const sameOrigin = url.startsWith('/') || url.startsWith(window.location.origin)
+      const sameOrigin = new URL(url, window.location.origin).origin === window.location.origin
       if (sameOrigin) {
         try {
           const session = sessionStorage.getItem('_sb_tab_session')
           if (session) {
-            const headers = new Headers(init?.headers)
+            const headers = new Headers(init?.headers ?? (input instanceof Request ? input.headers : undefined))
             headers.set('x-tab-session', session)
             init = { ...init, headers }
           }
@@ -62,14 +62,15 @@ export function createClient() {
   if (_client) return _client
   _client = createBrowserClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    { auth: { detectSessionInUrl: false } }
   )
   // Keep sessionStorage in sync when the token auto-refreshes so the
   // middleware always injects the latest valid session for this tab.
   if (typeof window !== 'undefined') {
     _client.auth.onAuthStateChange((event: AuthChangeEvent, session: Session | null) => {
       try {
-        if ((event === 'TOKEN_REFRESHED' || event === 'SIGNED_IN') && session) {
+        if ((event === 'TOKEN_REFRESHED' || event === 'SIGNED_IN' || event === 'USER_UPDATED') && session) {
           const json = JSON.stringify(session)
           const bytes = new TextEncoder().encode(json)
           let binary = ''

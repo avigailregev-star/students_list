@@ -17,8 +17,7 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
     .eq('id', user.id)
     .single()
 
-  const metaRole = (user.user_metadata as Record<string, string>)?.role
-  const isAdmin = metaRole === 'admin' || teacher?.role === 'admin'
+  const isAdmin = teacher?.role === 'admin'
 
   const [groups, events, makeupSlots] = await Promise.all([
     getGroupsWithSchedules(),

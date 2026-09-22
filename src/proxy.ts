@@ -92,6 +92,7 @@ export async function proxy(request: NextRequest) {
   const tabHasSession = !!request.headers.get('x-tab-session')
 
   if (!user && !isLoginPage && !isAuthRoute && !isResetPage && !isRedirectPage) {
+    if (pathname.startsWith('/api/')) return NextResponse.json({ error: 'יש להתחבר מחדש' }, { status: 401 })
     const url = request.nextUrl.clone()
     url.pathname = '/login'
     return NextResponse.redirect(url)

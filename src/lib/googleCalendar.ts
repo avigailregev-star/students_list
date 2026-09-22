@@ -25,11 +25,12 @@ export async function getAccessToken(
   userId: string
 ): Promise<{ accessToken: string; calendarId: string } | null> {
   const supabase = createAdminClient()
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from('google_tokens')
     .select('refresh_token, calendar_id')
     .eq('user_id', userId)
-    .single()
+    .maybeSingle()
+  if (error) throw new Error('Google Calendar connection is unavailable: ' + error.code)
   if (!data) return null
 
   const res = await fetch('https://oauth2.googleapis.com/token', {
@@ -95,7 +96,7 @@ export async function updateSchoolEvent(
       end: { date: nextDay(p.endDate) },
     }),
   })
-  if (!res || !res.ok) console.error('googleCalendar: updateSchoolEvent failed', await res?.text())
+  if (!res || !res.ok) throw new Error('Google Calendar event update failed')
 }
 
 export async function deleteGCalEvent(
@@ -103,8 +104,8 @@ export async function deleteGCalEvent(
   googleEventId: string
 ): Promise<void> {
   const res = await calendarFetch(userId, `/events/${googleEventId}`, { method: 'DELETE' })
-  if (res && !res.ok && res.status !== 410) {
-    console.error('googleCalendar: deleteGCalEvent failed', await res.text())
+  if (!res || (!res.ok && res.status !== 410 && res.status !== 404)) {
+    throw new Error('Google Calendar event deletion failed')
   }
 }
 

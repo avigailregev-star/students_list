@@ -22,7 +22,7 @@ export default async function AdminSickLeavePage() {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const group = (lesson.groups as any) as { name: string; teacher_id: string; teachers: { name: string } | null } | null
     const date = new Date(lesson.date + 'T12:00:00')
-    const docUrl = (lesson as any).sick_leave_document_url as string | null
+    const docUrl = lesson.sick_leave_document_url as string | null
     const isImage = docUrl && /\.(jpg|jpeg|png|gif|webp)$/i.test(docUrl)
     return (
       <div className="bg-white rounded-2xl shadow-sm px-4 py-3.5">

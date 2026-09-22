@@ -9,7 +9,7 @@ export default async function GoogleAlertsPage() {
   await requireAdmin()
   const admin = createAdminClient()
 
-  const { data: alerts } = await admin
+  const { data: alerts, error: alertsError } = await admin
     .from('google_sync_alerts')
     .select(`
       id, type, created_at, resolved,
@@ -36,7 +36,12 @@ export default async function GoogleAlertsPage() {
       </div>
 
       <div className="px-4 py-5 flex flex-col gap-3">
-        {(!alerts || alerts.length === 0) && (
+        {alertsError && (
+          <div role="alert" className="bg-amber-50 rounded-2xl px-4 py-6 text-sm text-amber-900">
+            לא ניתן לבדוק את הסנכרון עם יומן גוגל כרגע. החיבור דורש השלמת הגדרה או תיקון; אין בכך אישור שהיומן מעודכן.
+          </div>
+        )}
+        {!alertsError && (!alerts || alerts.length === 0) && (
           <div className="bg-white rounded-2xl shadow-sm px-4 py-6 text-center text-sm text-gray-400 font-semibold">
             אין התראות פתוחות ✓
           </div>

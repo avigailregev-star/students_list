@@ -2,8 +2,9 @@
 
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { createClient } from '@/lib/supabase/server'
-import { syncStudentAdded, syncStudentRemoved } from '@/lib/syncToRegistrations'
+import { syncStudentRemoved } from '@/lib/syncToRegistrations'
 
 export async function saveStudent(formData: FormData) {
   const supabase = await createClient()
@@ -25,10 +26,11 @@ export async function saveStudent(formData: FormData) {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     if (!existing || (existing.groups as any).teacher_id !== user.id) throw new Error('תלמיד לא נמצא')
 
-    const { error } = await supabase.from('students').update({
-      name, instrument: instrument || null, parent_phone: parentPhone || null,
-    }).eq('id', studentId)
-    if (error) throw new Error('שגיאה בעדכון התלמיד')
+    const { error } = await createAdminClient().rpc('update_student_profile_atomic', {
+      p_actor_id: user.id, p_student_id: studentId, p_name: name,
+      p_instrument: instrument || null, p_parent_phone: parentPhone || null,
+    })
+    if (error) throw new Error('שגיאה בעדכון התלמיד: ' + error.message)
   } else {
     const { data: group } = await supabase
       .from('groups')
@@ -38,11 +40,11 @@ export async function saveStudent(formData: FormData) {
       .single()
     if (!group) throw new Error('קבוצה לא נמצאה')
 
-    const { error } = await supabase.from('students').insert({
-      group_id: groupId, name, instrument: instrument || null, parent_phone: parentPhone || null, is_active: true,
+    const { error } = await createAdminClient().rpc('add_student_atomic', {
+      p_actor_id: user.id, p_group_id: groupId, p_name: name,
+      p_instrument: instrument || null, p_parent_phone: parentPhone || null,
     })
-    if (error) throw new Error('שגיאה בהוספת התלמיד')
-    await syncStudentAdded({ groupId, studentName: name, instrument: instrument || null, parentPhone: parentPhone || null })
+    if (error) throw new Error('שגיאה בהוספת התלמיד: ' + error.message)
   }
 
   revalidatePath(`/groups/${groupId}`)

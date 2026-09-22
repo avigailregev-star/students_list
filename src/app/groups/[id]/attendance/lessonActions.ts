@@ -114,11 +114,12 @@ export async function cancelLesson(formData: FormData) {
 
       // Push makeup lesson to GCal
       if (makeupLessonId && lesson?.groups && hasMakeup) {
-        const schedule = (lesson.groups as any).group_schedules?.[0] ?? { start_time: '00:00:00', end_time: null }
+        const group = lesson.groups as unknown as { name: string; group_schedules: { start_time: string; end_time: string | null }[] }
+        const schedule = group.group_schedules?.[0] ?? { start_time: '00:00:00', end_time: null }
         const makeupEndTime = computeMakeupEndTime(makeupStartTime, schedule)
         const gcalEventId = await pushLesson(user.id, {
           id: makeupLessonId,
-          groupName: `השלמה: ${(lesson.groups as any).name}`,
+          groupName: `השלמה: ${group.name}`,
           date: notes,
           startTime: makeupStartTime + ':00',
           endTime: makeupEndTime,
@@ -212,11 +213,13 @@ export async function restoreLesson(lessonId: string) {
   let shouldDeleteMakeup = false
   let makeupGoogleEventId: string | null = null
   if (makeupLessonId) {
-    const { data: makeupAttendance } = await admin
+    const { data: makeupAttendance, error: attendanceError } = await admin
       .from('attendance')
       .select('id')
       .eq('lesson_id', makeupLessonId)
-      .single()
+      .limit(1)
+      .maybeSingle()
+    if (attendanceError) throw new Error('שגיאה בבדיקת נוכחות בהשלמה')
     shouldDeleteMakeup = !makeupAttendance
 
     if (shouldDeleteMakeup) {

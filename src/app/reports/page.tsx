@@ -11,8 +11,13 @@ import VacationSection from './VacationSection'
 import type { VacationRequest } from '@/types/database'
 import type { ExtraHoursRequest } from '@/types/database'
 import ExtraHoursSection from './ExtraHoursSection'
+import { getLessonUnits } from '@/lib/payroll/lessonUnits'
+import { occurrenceKey } from '@/lib/payroll/occurrences'
 
 type HistoryEntry = {
+  lessonId?: string
+  startTime?: string
+  units?: number
   date: string
   status: string
   brought: boolean
@@ -24,6 +29,7 @@ type HistoryEntry = {
 }
 
 type GroupWithData = Group & {
+  payrollLessons?: HistoryEntry[]
   students: (Student & {
     lessons_attended: number
     lessons_absent: number
@@ -100,11 +106,12 @@ export default async function ReportsPage() {
   for (const group of groups as Group[]) {
     const [{ data: lessons }, { data: canceled }] = await Promise.all([
       supabase.from('lessons').select('*').eq('group_id', group.id).eq('is_holiday', false).neq('status', 'teacher_canceled').lte('date', todayStr).order('date', { ascending: false }),
-      supabase.from('lessons').select('id, date, teacher_absence_reason, admin_approval_status').eq('group_id', group.id).eq('status', 'teacher_canceled').lte('date', todayStr).order('date', { ascending: false }),
+      supabase.from('lessons').select('id, date, start_time, teacher_absence_reason, admin_approval_status').eq('group_id', group.id).eq('status', 'teacher_canceled').lte('date', todayStr).order('date', { ascending: false }),
     ])
 
     const lessonList = (lessons ?? []) as Lesson[]
-    const canceledList = (canceled ?? []) as { id: string; date: string; teacher_absence_reason: string | null; admin_approval_status: AdminApprovalStatus | null }[]
+    const canceledList = (canceled ?? []) as { id: string; date: string; start_time: string; teacher_absence_reason: string | null; admin_approval_status: AdminApprovalStatus | null }[]
+    const schedules = (group as Group & { group_schedules: GroupSchedule[] }).group_schedules ?? []
     const lessonIds = lessonList.map(l => l.id)
 
     const { data: students } = await supabase
@@ -123,7 +130,7 @@ export default async function ReportsPage() {
     // makeup lessons remain independent occurrences.
     const occurrenceMap = new Map<string, Lesson[]>()
     for (const lesson of lessonList) {
-      const key = lesson.is_makeup ? `makeup:${lesson.id}` : `regular:${lesson.date}`
+      const key = occurrenceKey(lesson, schedules)
       const occurrence = occurrenceMap.get(key) ?? []
       occurrence.push(lesson)
       occurrenceMap.set(key, occurrence)
@@ -143,9 +150,9 @@ export default async function ReportsPage() {
         ...heldOccurrences.map(items => {
           const lesson = items[0]
           const att = items.map(item => studentAtt.find(a => a.lesson_id === item.id)).find(Boolean)
-          return { date: lesson.date, status: att?.status ?? 'no_data', brought: att?.brought_instrument ?? false, isMakeup: lesson.is_makeup }
+          return { lessonId: lesson.id, startTime: lesson.start_time, units: getLessonUnits(group.lesson_type, lesson.start_time, schedules), date: lesson.date, status: att?.status ?? 'no_data', brought: att?.brought_instrument ?? false, isMakeup: lesson.is_makeup }
         }),
-        ...canceledList.map(lesson => ({ date: lesson.date, status: 'teacher_canceled', brought: false, cancelReason: lesson.teacher_absence_reason ?? undefined, cancelApprovalStatus: lesson.admin_approval_status })),
+        ...canceledList.map(lesson => ({ lessonId: lesson.id, startTime: lesson.start_time, units: getLessonUnits(group.lesson_type, lesson.start_time, schedules), date: lesson.date, status: 'teacher_canceled', brought: false, cancelReason: lesson.teacher_absence_reason ?? undefined, cancelApprovalStatus: lesson.admin_approval_status })),
       ].sort((a, b) => b.date.localeCompare(a.date))
 
       return {
@@ -181,7 +188,18 @@ export default async function ReportsPage() {
       history: [...student.history, ...eventEntries].sort((a, b) => b.date.localeCompare(a.date)),
     }))
 
-    reportData.push({ ...group, students: studentsWithEventHistory, total_lessons: heldOccurrences.length, canceled_lessons: canceledList.length })
+    const payrollLessons: HistoryEntry[] = [
+      ...heldOccurrences.map(items => {
+        const lesson = items[0]
+        return { lessonId: lesson.id, date: lesson.date, startTime: lesson.start_time,
+          units: getLessonUnits(group.lesson_type, lesson.start_time, schedules), status: 'present', brought: false,
+          isMakeup: lesson.is_makeup, cancelReason: lesson.teacher_absence_reason ?? undefined }
+      }),
+      ...canceledList.map(lesson => ({ lessonId: lesson.id, date: lesson.date, startTime: lesson.start_time,
+        units: getLessonUnits(group.lesson_type, lesson.start_time, schedules), status: 'teacher_canceled', brought: false,
+        cancelReason: lesson.teacher_absence_reason ?? undefined, cancelApprovalStatus: lesson.admin_approval_status })),
+    ]
+    reportData.push({ ...group, payrollLessons, students: studentsWithEventHistory, total_lessons: heldOccurrences.length, canceled_lessons: canceledList.length })
   }
 
   reportData.sort((a, b) => {

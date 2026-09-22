@@ -39,7 +39,11 @@ function timeRangesOverlap(
 ): boolean {
   // An assignment with no specific time is treated as covering the whole day.
   if (!aStart || !aEnd || !bStart || !bEnd) return true
-  return aStart < bEnd && bStart < aEnd
+  const seconds = (time: string) => {
+    const [hours, minutes, seconds = 0] = time.split(':').map(Number)
+    return hours * 3600 + minutes * 60 + seconds
+  }
+  return seconds(aStart) < seconds(bEnd) && seconds(bStart) < seconds(aEnd)
 }
 
 export async function assignRoom(
@@ -51,10 +55,18 @@ export async function assignRoom(
   assignmentId?: string,
 ): Promise<{ error?: string }> {
   const supabase = await requireAdmin()
-  if (dayOfWeek < 0 || dayOfWeek > 6) return { error: 'יום בשבוע לא תקין' }
+  if (!Number.isInteger(dayOfWeek) || dayOfWeek < 0 || dayOfWeek > 6) return { error: 'יום בשבוע לא תקין' }
 
   const newStart = startTime || null
   const newEnd = endTime || null
+  const validTime = /^(?:[01]\d|2[0-3]):[0-5]\d(?::[0-5]\d)?$/
+  if ((newStart === null) !== (newEnd === null) ||
+      (newStart && !validTime.test(newStart)) || (newEnd && !validTime.test(newEnd))) {
+    return { error: 'יש להזין שעת התחלה ושעת סיום תקינות, או להשאיר את שתיהן ריקות' }
+  }
+  if (newStart && newEnd && newStart.padEnd(8, ':00') >= newEnd.padEnd(8, ':00')) {
+    return { error: 'שעת הסיום צריכה להיות אחרי שעת ההתחלה' }
+  }
 
   const [{ data: sameRoomDay, error: roomFetchError }, { data: sameTeacherDay, error: teacherFetchError }] = await Promise.all([
     supabase.from('teacher_room_assignments').select('id, start_time, end_time').eq('room_id', roomId).eq('day_of_week', dayOfWeek),

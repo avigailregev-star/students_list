@@ -1,5 +1,6 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 import type { Room, TeacherRoomAssignment, Teacher } from '@/types/database'
 import RoomBoardReadOnly from './RoomBoardReadOnly'
 import BottomNav from '@/components/layout/BottomNav'
@@ -15,7 +16,8 @@ export default async function RoomsPage() {
   const [{ data: roomsRaw }, { data: assignmentsRaw }, { data: teachersRaw }] = await Promise.all([
     supabase.from('rooms').select('*').order('name'),
     supabase.from('teacher_room_assignments').select('*'),
-    supabase.from('teachers').select('id, name').eq('role', 'teacher').eq('is_pending', false).order('name'),
+    // Authenticated room board exposes names only, never other teacher details.
+    createAdminClient().from('teachers').select('id, name').eq('role', 'teacher').eq('is_pending', false).order('name'),
   ])
 
   const rooms = (roomsRaw ?? []) as Room[]

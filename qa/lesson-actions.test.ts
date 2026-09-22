@@ -31,12 +31,16 @@ function createFakeSupabase(tables: Record<string, Row[]>) {
       async single() {
         if (pendingInsert) return { data: pendingInsert, error: null }
         const matched = applyFilters(rows)
-        if (matched.length === 0) return { data: null, error: { message: 'not found' } }
+        if (matched.length !== 1) return { data: null, error: { message: 'not found' } }
         return { data: matched[0], error: null }
       },
-      then(resolve: (v: { error: null }) => void) {
+      then(resolve: (v: { error: null | { message: string } }) => void) {
         if (pendingUpdate) {
           for (const r of applyFilters(rows)) Object.assign(r, pendingUpdate)
+        }
+        if (isDelete && table === 'lessons' && applyFilters(rows).some(row => (tables.attendance ?? []).some(att => att.lesson_id === row.id))) {
+          resolve({ error: { message: 'foreign key attendance_lesson_id_fkey' } })
+          return
         }
         if (isDelete) {
           for (const r of applyFilters(rows)) {
@@ -67,7 +71,7 @@ vi.mock('@/lib/googleCalendar', () => ({
   pushLesson: vi.fn(async () => null),
 }))
 
-import { restoreLesson } from './lessonActions'
+import { restoreLesson } from '@/app/groups/[id]/attendance/lessonActions'
 
 beforeEach(() => {
   for (const key of Object.keys(tables)) delete tables[key]
@@ -105,4 +109,14 @@ describe('restoreLesson', () => {
     const original = tables.lessons.find((l) => l.id === 'original-1')
     expect(original?.status).toBe('scheduled')
   })
+})
+
+// Real PostgREST single() rejects multiple rows. The original mock accepts them.
+test('QA: restoring a lesson with two recorded students must not attempt to delete its makeup', async () => {
+  tables.attendance.push(
+    { id: 'att-1', lesson_id: 'makeup-1', student_id: 'student-1' },
+    { id: 'att-2', lesson_id: 'makeup-1', student_id: 'student-2' },
+  )
+  await expect(restoreLesson('original-1')).resolves.toBeUndefined()
+  expect(tables.lessons.find(l => l.id === 'makeup-1')).toBeDefined()
 })

@@ -40,6 +40,7 @@ function createFakeFrom(tables: Record<string, Row[]>) {
 }
 
 const tables: Record<string, Row[]> = {}
+const mergeRpc = vi.fn(async () => ({ error: null as null | { message: string } }))
 const generateLink = vi.fn()
 const listUsers = vi.fn()
 const createUser = vi.fn()
@@ -47,6 +48,7 @@ const createUser = vi.fn()
 vi.mock('@/lib/supabase/admin', () => ({
   createAdminClient: () => ({
     from: createFakeFrom(tables),
+    rpc: mergeRpc,
     auth: { admin: { generateLink, listUsers, createUser } },
   }),
 }))
@@ -68,6 +70,7 @@ beforeEach(() => {
   for (const key of Object.keys(tables)) delete tables[key]
   tables.teachers = [{ id: 'pending-1', name: 'רות', role: 'teacher', is_pending: true }]
   vi.clearAllMocks()
+  mergeRpc.mockResolvedValue({ error: null })
 })
 
 describe('inviteTeacher', () => {
@@ -135,3 +138,20 @@ describe('resendTeacherInvite', () => {
     expect(result.link).toBeUndefined()
   })
 })
+
+ test('does not email or report success when the atomic transfer fails', async () => {
+   generateLink.mockResolvedValueOnce({ data: { user: { id: 'new-1' }, properties: { action_link: 'https://app.test/invite' } }, error: null })
+   mergeRpc.mockResolvedValueOnce({ error: { message: 'transfer failed' } })
+   const result = await inviteTeacher('pending-1', 'rut@example.com', 'רות')
+   expect(result.error).toContain('transfer failed')
+   expect(result.link).toBeUndefined()
+   expect(sendTeacherInviteEmail).not.toHaveBeenCalled()
+   expect(tables.teachers[0].id).toBe('pending-1')
+ })
+ test('resend fallback transfers all associations through the atomic operation', async () => {
+   generateLink.mockResolvedValueOnce({ data: null, error: { message: 'no user' } })
+     .mockResolvedValueOnce({ data: { user: { id: 'new-1' }, properties: { action_link: 'https://app.test/invite' } }, error: null })
+   const result = await resendTeacherInvite('pending-1', 'rut@example.com', 'רות')
+   expect(result.error).toBeUndefined()
+   expect(mergeRpc).toHaveBeenCalledWith('merge_teacher_records', expect.objectContaining({ p_source_id: 'pending-1', p_target_id: 'new-1', p_actor_id: 'admin-1', p_pending_only: false }))
+ })

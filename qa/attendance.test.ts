@@ -15,6 +15,7 @@ function createFakeSupabase(tables: Record<string, Row[]>) {
     const builder: any = {
       select() { return builder },
       in(col: string, values: unknown[]) { inclusionFilters.push([col, values]); return builder },
+      then(resolve: (value: unknown) => void) { resolve({ data: applyFilters(rows), error: null }) },
       eq(col: string, val: any) { filters.push([col, val]); return builder },
       order() { return builder },
       limit() { return builder },
@@ -56,7 +57,7 @@ vi.mock('@/lib/supabase/server', () => ({
   createClient: async () => createFakeSupabase(tables),
 }))
 
-import { getOrCreateLesson, shouldDisplayAsHoliday } from './attendance'
+import { getOrCreateLesson, shouldDisplayAsHoliday } from '@/lib/queries/attendance'
 
 beforeEach(() => {
   for (const key of Object.keys(tables)) delete tables[key]
@@ -116,3 +117,24 @@ describe('shouldDisplayAsHoliday', () => {
     expect(shouldDisplayAsHoliday(true, 1)).toBe(false)
   })
 })
+
+test('QA: regular lesson must not shadow a separate makeup later on the same date', async () => {
+  tables.lessons.push(
+    { id: 'regular-1', group_id: 'group-1', date: '2026-09-10', start_time: '10:00:00', is_makeup: false },
+    { id: 'makeup-1', group_id: 'group-1', date: '2026-09-10', start_time: '16:00:00', is_makeup: true },
+  )
+  const lesson = await getOrCreateLesson('group-1', '2026-09-10', '16:00:00', false)
+  expect(lesson.id).toBe('makeup-1')
+})
+
+test('QA: two regular schedules on the same weekday must retain separate attendance', async () => {
+  tables.group_schedules = [{ group_id: 'group-1', day_of_week: 4, start_time: '10:00:00' }, { group_id: 'group-1', day_of_week: 4, start_time: '16:00:00' }]
+  tables.lessons.push({ id: 'regular-1', group_id: 'group-1', date: '2026-09-10', start_time: '10:00:00', is_makeup: false })
+  const lesson = await getOrCreateLesson('group-1', '2026-09-10', '16:00:00', false)
+  expect(lesson.id).not.toBe('regular-1')
+})
+
+ test('QA: a makeup stored as HH:MM is found from a HH:MM:SS link', async () => {
+   tables.lessons.push({ id: 'makeup-short', group_id: 'group-1', date: '2026-09-10', start_time: '16:00', is_makeup: true })
+   expect((await getOrCreateLesson('group-1', '2026-09-10', '16:00:00', false)).id).toBe('makeup-short')
+ })

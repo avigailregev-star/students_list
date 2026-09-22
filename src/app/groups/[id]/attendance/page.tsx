@@ -19,6 +19,8 @@ interface Props {
 export default async function AttendancePage({ params, searchParams }: Props) {
   const { id } = await params
   const { date: dateParam, time: timeParam } = await searchParams
+  if (timeParam && !/^(?:[01]\d|2[0-3]):[0-5]\d(?::00)?$/.test(timeParam)) notFound()
+  if (dateParam && (!/^\d{4}-\d{2}-\d{2}$/.test(dateParam) || Number.isNaN(Date.parse(dateParam)))) notFound()
   const supabase = await createClient()
 
   const { data: { user } } = await supabase.auth.getUser()
@@ -76,12 +78,12 @@ export default async function AttendancePage({ params, searchParams }: Props) {
   const holidayCheck = isHolidayDate(lessonDate, holidayEvents)
 
   const matchingSchedule = typedGroup.group_schedules.find(
-    s => s.day_of_week === lessonDate.getDay()
+    s => s.day_of_week === lessonDate.getDay() && (!timeParam || s.start_time.slice(0, 5) === timeParam.slice(0, 5))
   ) ?? typedGroup.group_schedules[0]
 
   const dateStr = `${lessonDate.getFullYear()}-${String(lessonDate.getMonth() + 1).padStart(2, '0')}-${String(lessonDate.getDate()).padStart(2, '0')}`
   const startTime = timeParam
-    ? timeParam + ':00'
+    ? timeParam.slice(0, 5) + ':00'
     : (matchingSchedule?.start_time ?? '00:00:00')
 
   const lesson = await getOrCreateLesson(id, dateStr, startTime, holidayCheck.isHoliday, holidayCheck.name) as Lesson

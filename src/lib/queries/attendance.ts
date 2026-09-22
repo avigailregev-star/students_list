@@ -1,5 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
-import type { Attendance, AttendanceStatus, Lesson } from '@/types/database'
+import type { Attendance, AttendanceStatus, Lesson, Group } from '@/types/database'
 import type { SupabaseClient } from '@supabase/supabase-js'
 
 export async function getOrCreateLesson(
@@ -11,38 +11,31 @@ export async function getOrCreateLesson(
 ): Promise<Lesson> {
   const supabase = await createClient()
 
-  // A regular lesson is a calendar occurrence, not a schedule snapshot. If an
-  // admin changes only the hour while keeping the same group and weekday, keep
-  // using the lesson that was already created for that date. Its attendance is
-  // attached to the lesson id and must not become unreachable because the new
-  // schedule now supplies a different start_time.
-  // Prefer the oldest occurrence as well: installations already affected by
-  // the old bug can contain a newer, empty duplicate at the updated hour.
-  const { data: reusableLesson } = await supabase
-    .from('lessons')
-    .select('*')
-    .eq('group_id', groupId)
-    .eq('date', date)
-    .eq('is_makeup', false)
-    .order('created_at', { ascending: true })
-    .limit(1)
-    .maybeSingle()
+  // Resolve the requested occurrence first. A makeup is never substituted by
+  // a regular lesson that happens to share its date.
+  const { data: exact, error: exactError } = await supabase.from('lessons').select('*')
+    .eq('group_id', groupId).eq('date', date).in('start_time', [startTime.slice(0, 5), startTime.slice(0, 5) + ':00'])
+    .order('created_at', { ascending: true }).limit(1).maybeSingle()
+  if (exactError) throw exactError
+  if (exact?.is_makeup) return exact as Lesson
+
+  const weekday = new Date(date + 'T12:00:00').getDay()
+  const { data: schedules, error: scheduleError } = await supabase.from('group_schedules')
+    .select('start_time').eq('group_id', groupId).eq('day_of_week', weekday)
+  if (scheduleError) throw scheduleError
+  const multipleSlots = (schedules ?? []).length > 1
+  const { data: oldLesson, error: oldError } = await supabase.from('lessons').select('*')
+    .eq('group_id', groupId).eq('date', date).eq('is_makeup', false)
+    .order('created_at', { ascending: true }).limit(1).maybeSingle()
+  if (oldError) throw oldError
+  const reusableLesson = multipleSlots ? exact : (oldLesson ?? exact)
 
   if (reusableLesson) {
-    const { data: attendanceRow } = await supabase
-      .from('attendance')
-      .select('id')
-      .eq('lesson_id', reusableLesson.id)
-      .limit(1)
-      .maybeSingle()
-
-    // A lesson that already has recorded attendance keeps its holiday status
-    // frozen — a holiday/vacation added afterwards must not silently hide it
-    // or drop it out of payroll. Explicit cancellation is the only way to
-    // change that once real attendance exists.
+    const { data: attendanceRow, error: attendanceError } = await supabase.from('attendance')
+      .select('id').eq('lesson_id', reusableLesson.id).limit(1).maybeSingle()
+    if (attendanceError) throw attendanceError
     if (attendanceRow || reusableLesson.start_time !== startTime) return reusableLesson as Lesson
   }
-
   const { data, error } = await supabase
     .from('lessons')
     .upsert({
@@ -89,15 +82,16 @@ export async function getMakeupLessons(): Promise<import('@/types/database').Les
 
   if (error || !data) return []
 
-  return data.map((row: any) => {
+  return data.map(row => {
+    const group = row.groups as unknown as Group
     const d = new Date(row.date + 'T12:00:00')
     return {
       groupId: row.group_id,
-      groupName: row.groups.name,
-      lessonType: row.groups.lesson_type,
-      isMangan: row.groups.is_mangan_school,
-      schoolName: row.groups.school_name,
-      grade: row.groups.grade,
+      groupName: group.name,
+      lessonType: group.lesson_type,
+      isMangan: group.is_mangan_school,
+      schoolName: group.school_name,
+      grade: group.grade,
       date: d,
       startTime: row.start_time.slice(0, 5),
       dayOfWeek: d.getDay(),

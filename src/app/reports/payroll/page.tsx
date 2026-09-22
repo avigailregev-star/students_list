@@ -5,6 +5,7 @@ import { getLessonIdsWithAttendance } from '@/lib/queries/attendance'
 import { categorizeSickDates } from '@/lib/payroll/sickLeaveTiers'
 import { isLegacyPayableCancellation } from '@/lib/payroll/legacyPayslipReason'
 import { getLessonUnits } from '@/lib/payroll/lessonUnits'
+import { uniqueOccurrences } from '@/lib/payroll/occurrences'
 import PayrollView from './PayrollView'
 import BottomNav from '@/components/layout/BottomNav'
 
@@ -58,7 +59,7 @@ export default async function PayrollPage() {
 
   const [{ data: teacherData }, { data: groups }, { data: extraHours }] = await Promise.all([
     supabase.from('teachers').select('name').eq('id', user.id).single(),
-    supabase.from('groups').select('id, lesson_type, group_schedules(start_time, end_time)').eq('teacher_id', user.id),
+    supabase.from('groups').select('id, lesson_type, group_schedules(day_of_week, start_time, end_time)').eq('teacher_id', user.id),
     supabase.from('extra_hours_requests').select('work_date, minutes, activity_type').eq('teacher_id', user.id).eq('status', 'approved').lte('work_date', todayStr),
   ])
 
@@ -98,10 +99,10 @@ export default async function PayrollPage() {
   // recorded — otherwise it's a phantom row created just by opening the attendance page.
   // Exception: canceled lessons with the legacy "תלוש נוכחי" reason must still be counted.
   const lessonIdsWithAttendance = await getLessonIdsWithAttendance(supabase, (lessons ?? []).map(l => l.id))
-  const heldLessons = (lessons ?? []).filter(l =>
+  const heldLessons = uniqueOccurrences((lessons ?? []).filter(l =>
     lessonIdsWithAttendance.has(l.id) ||
     (l.status === 'teacher_canceled' && isLegacyPayableCancellation(l.teacher_absence_reason))
-  )
+  ), groupSchedules)
 
   const monthsMap = new Map<string, MonthPayroll>()
 

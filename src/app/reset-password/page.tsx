@@ -1,14 +1,15 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
-import type { AuthChangeEvent, Session } from '@supabase/supabase-js'
+import { verifyPasswordResetSession, validateNewPassword, passwordErrorMessage, RESET_LINK_ERROR } from '@/lib/passwordReset'
 
 export default function ResetPasswordPage() {
   const router = useRouter()
   const supabase = createClient()
   const [ready, setReady] = useState(false)
+  const [verifyFailed, setVerifyFailed] = useState(false)
   const [password, setPassword] = useState('')
   const [confirm, setConfirm] = useState('')
   const [loading, setLoading] = useState(false)
@@ -16,53 +17,62 @@ export default function ResetPasswordPage() {
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirm, setShowConfirm] = useState(false)
 
+  const verificationRef = useRef<Promise<void> | null>(null)
+
   useEffect(() => {
-    // Handle PKCE flow: code in query params
-    const params = new URLSearchParams(window.location.search)
-    const code = params.get('code')
-    if (code) {
-      supabase.auth.exchangeCodeForSession(code).then(({ error }: { error: Error | null }) => {
-        if (!error) setReady(true)
-        else router.push('/login')
-      })
-      return
-    }
-
-    // Handle implicit flow: token in URL fragment (#access_token=...)
-    // onAuthStateChange picks up the fragment automatically
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event: AuthChangeEvent) => {
-      if (event === 'PASSWORD_RECOVERY' || event === 'SIGNED_IN') {
-        setReady(true)
+    let active = true
+    const timeout = setTimeout(() => { if (active) setVerifyFailed(true) }, 15000)
+    verificationRef.current ??= verifyPasswordResetSession(supabase.auth, window.location.href)
+    verificationRef.current.then(async () => {
+      const { data: { session } } = await supabase.auth.getSession()
+      if (session) {
+        try {
+          const bytes = new TextEncoder().encode(JSON.stringify(session))
+          sessionStorage.setItem('_sb_tab_session', btoa(Array.from(bytes, b => String.fromCharCode(b)).join('')))
+        } catch { /* Cookie-based session remains valid. */ }
       }
-    })
-
-    // Also check if already have a valid session (e.g. navigated back)
-    supabase.auth.getSession().then(({ data }: { data: { session: Session | null } }) => {
-      if (data.session) setReady(true)
-    })
-
-    return () => subscription.unsubscribe()
-  }, [])
+      if (active) {
+        setReady(true)
+        setVerifyFailed(false)
+        window.history.replaceState(null, '', '/reset-password')
+      }
+    }).catch(() => { if (active) setVerifyFailed(true) }).finally(() => clearTimeout(timeout))
+    return () => { active = false; clearTimeout(timeout) }
+  }, [supabase.auth])
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
-    if (password !== confirm) {
-      setError('הסיסמאות אינן תואמות')
-      return
-    }
+    const validation = validateNewPassword(password, confirm)
+    if (validation) { setError(validation); return }
+    if (!ready || loading) return
     setLoading(true)
     setError(null)
-    const { error } = await supabase.auth.updateUser({ password })
-    if (error) {
-      setError(error.message)
+    try {
+      const { error } = await supabase.auth.updateUser({ password })
+      if (error) { setError(passwordErrorMessage(error.message)); return }
+      window.location.href = '/redirect'
+    } catch {
+      setError('שגיאת רשת. הסיסמה לא אושרה כשמורה. בדקי את החיבור ונסי שוב.')
+    } finally {
       setLoading(false)
-      return
     }
-    router.push('/')
-    router.refresh()
   }
-
   if (!ready) {
+    if (verifyFailed) {
+      return (
+        <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center gap-4 px-6 text-center">
+          <p className="text-gray-600 text-sm">
+            {RESET_LINK_ERROR}
+          </p>
+          <button
+            onClick={() => router.push('/login')}
+            className="text-teal-600 font-semibold text-sm underline underline-offset-2"
+          >
+            חזרה למסך ההתחברות
+          </button>
+        </div>
+      )
+    }
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <p className="text-gray-400 text-sm">מאמת זהות...</p>
@@ -96,7 +106,7 @@ export default function ResetPasswordPage() {
                 <button
                   type="button"
                   onClick={() => setShowPassword(v => !v)}
-                  tabIndex={-1}
+
                   aria-label={showPassword ? 'הסתר סיסמה' : 'הצג סיסמה'}
                   className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
                 >
@@ -130,7 +140,7 @@ export default function ResetPasswordPage() {
                 <button
                   type="button"
                   onClick={() => setShowConfirm(v => !v)}
-                  tabIndex={-1}
+
                   aria-label={showConfirm ? 'הסתר סיסמה' : 'הצג סיסמה'}
                   className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
                 >

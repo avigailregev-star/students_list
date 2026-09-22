@@ -5,8 +5,12 @@ import * as XLSX from 'xlsx'
 import { categorizeSickDates } from '@/lib/payroll/sickLeaveTiers'
 import { isLegacyPayableCancellation } from '@/lib/payroll/legacyPayslipReason'
 import type { AdminApprovalStatus } from '@/types/database'
+import { getLessonUnits } from '@/lib/payroll/lessonUnits'
 
 interface HistoryEntry {
+  lessonId?: string
+  startTime?: string
+  units?: number
   date: string
   status: string
   brought: boolean
@@ -25,6 +29,8 @@ interface StudentRow {
 }
 
 interface GroupRow {
+  group_schedules?: { start_time: string; end_time: string | null }[]
+  payrollLessons?: HistoryEntry[]
   name: string
   lesson_type: string
   total_lessons: number
@@ -96,7 +102,6 @@ export default function ExportButtons({ reportData, month, teacherName, extraHou
     const monthNum = parseInt(parts[1])
     const daysInMonth = new Date(year, monthNum, 0).getDate()
 
-    const hebrewDays = ['ראשון', 'שני', 'שלישי', 'רביעי', 'חמישי', 'שישי', 'שבת']
     const hebrewMonths = ['ינואר', 'פברואר', 'מרץ', 'אפריל', 'מאי', 'יוני', 'יולי', 'אוגוסט', 'ספטמבר', 'אוקטובר', 'נובמבר', 'דצמבר']
     const monthDisplay = hebrewMonths[monthNum - 1]
 
@@ -121,14 +126,14 @@ export default function ExportButtons({ reportData, month, teacherName, extraHou
 
     for (const group of reportData) {
       const seenDates = new Map<string, HistoryEntry>()
-      for (const s of group.students) {
-        for (const h of s.history) {
-          if (!seenDates.has(h.date)) seenDates.set(h.date, h)
-          else if (h.status === 'teacher_canceled') seenDates.set(h.date, h)
-        }
+      for (const h of group.payrollLessons ?? group.students.flatMap(s => s.history)) {
+        if (h.status === 'school_event' || h.status === 'no_data') continue
+        const key = h.lessonId ?? `${h.date}:${h.isMakeup ? 'makeup' : 'regular'}:${h.startTime ?? ''}`
+        seenDates.set(key, h)
       }
 
-      for (const [dateStr, h] of seenDates) {
+      for (const h of seenDates.values()) {
+        const dateStr = h.date
         if (!dateStr.startsWith(month)) continue
         if (h.status === 'school_event' || h.status === 'no_data') continue
         if (h.status === 'teacher_canceled') {
@@ -140,11 +145,12 @@ export default function ExportButtons({ reportData, month, teacherName, extraHou
         const dayNum = parseInt(dateStr.split('-')[2])
         const counts = dayCounts.get(dayNum)
         if (!counts) continue
+        const units = h.units ?? getLessonUnits(group.lesson_type, h.startTime ?? '', group.group_schedules ?? [])
         if (h.isMakeup) {
-          counts.makeup++
+          if (!isLegacyPayableCancellation(h.cancelReason)) counts.makeup += units
         } else {
           const col = mapType(group.lesson_type)
-          if (col) counts[col]++
+          if (col) counts[col] += units
         }
       }
     }

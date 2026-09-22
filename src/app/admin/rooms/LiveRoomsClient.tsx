@@ -130,7 +130,7 @@ export default function LiveRoomsClient({ rooms, assignments, teachers }: Props)
   }, [rooms, assignments, teachers])
 
   useEffect(() => {
-    fetchLiveData()
+    const initialFetch = setTimeout(() => { void fetchLiveData() }, 0)
     const supabase = createClient()
     const today = todayStr()
     const channel = supabase
@@ -148,6 +148,7 @@ export default function LiveRoomsClient({ rooms, assignments, teachers }: Props)
 
     return () => {
       supabase.removeChannel(channel)
+      clearTimeout(initialFetch)
       clearInterval(timer)
     }
   }, [fetchLiveData])

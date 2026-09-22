@@ -1,7 +1,9 @@
 import AdminNav from '@/components/layout/AdminNav'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { requireAdmin } from '@/lib/auth'
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
+  await requireAdmin()
   const supabase = createAdminClient()
 
   const [

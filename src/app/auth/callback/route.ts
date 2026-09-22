@@ -6,8 +6,10 @@ import type { NextRequest } from 'next/server'
 export async function GET(request: NextRequest) {
   const { searchParams, origin } = new URL(request.url)
   const code = searchParams.get('code')
-  const next = searchParams.get('next') ?? '/'
+  const requestedNext = searchParams.get('next') ?? '/login?verified=1'
+  const next = requestedNext.startsWith('/') && !requestedNext.startsWith('//') && !requestedNext.includes('\\') ? requestedNext : '/redirect'
 
+  if (!code || searchParams.has('error')) return NextResponse.redirect(`${origin}/login?error=auth`)
   if (code) {
     const cookieStore = await cookies()
     const supabase = createServerClient(

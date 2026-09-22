@@ -21,7 +21,7 @@ export default function LessonCard({ slot, isNext, hideTime, viewOnly, viewOnlyH
   const dateStr = `${slot.date.getFullYear()}-${String(slot.date.getMonth() + 1).padStart(2, '0')}-${String(slot.date.getDate()).padStart(2, '0')}`
   const href = isMakeup
     ? `/groups/${slot.groupId}/attendance?date=${dateStr}&time=${slot.startTime}`
-    : `/groups/${slot.groupId}/attendance?date=${dateStr}`
+    : `/groups/${slot.groupId}/attendance?date=${dateStr}&time=${slot.startTime}`
 
   const avatarBg = isMakeup
     ? 'bg-purple-500'

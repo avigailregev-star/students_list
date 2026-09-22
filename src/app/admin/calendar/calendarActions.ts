@@ -1,5 +1,7 @@
 'use server'
 
+import { after } from 'next/server'
+import { reconcileCalendarRecipients } from '@/lib/calendarRecipients'
 import { revalidatePath } from 'next/cache'
 import { requireAdmin as _requireAdmin } from '@/lib/auth'
 import type { SchoolEventType } from '@/types/database'
@@ -100,7 +102,7 @@ export async function createEvent(formData: FormData) {
   revalidatePath('/')
 
   // Push to admin's Google Calendar (fire-and-forget)
-  void (async () => {
+  after(async () => {
     try {
       const gcalId = await pushSchoolEvent(userId, {
         id: event.id, name: name!, startDate: startDate!, endDate: endDate!,
@@ -129,7 +131,7 @@ export async function createEvent(formData: FormData) {
     } catch (e) {
       console.error('createEvent: google push failed', e)
     }
-  })()
+  })
 }
 
 export async function updateEvent(formData: FormData) {
@@ -172,17 +174,36 @@ export async function updateEvent(formData: FormData) {
   revalidatePath('/admin/calendar')
   revalidatePath('/')
 
-  void (async () => {
+  after(async () => {
     try {
       const payload = { id: id!, name: name!, startDate: startDate!, endDate: endDate! }
       if (existing?.google_event_id) await updateSchoolEvent(userId, existing.google_event_id, payload)
-      const { data: assignments } = await supabase
+      const { data: assignments, error: readError } = await supabase
         .from('google_event_assignments').select('teacher_id, google_event_id').eq('school_event_id', id)
-      for (const a of assignments ?? []) await updateSchoolEvent(a.teacher_id, a.google_event_id, payload)
+      if (readError) throw readError
+      let desired = teacherIds
+      if (AUTO_SYNC_TYPES.includes(eventType as SchoolEventType)) {
+        const { data: teachers, error: teachersError } = await supabase.from('teachers').select('id').eq('role', 'teacher')
+        if (teachersError) throw teachersError
+        desired = (teachers ?? []).map(t => t.id)
+      }
+      const changes = reconcileCalendarRecipients(desired, assignments ?? [])
+      for (const a of changes.remove) {
+        await deleteGCalEvent(a.teacher_id, a.google_event_id)
+        const { error: removeError } = await supabase.from('google_event_assignments').delete().eq('school_event_id', id).eq('teacher_id', a.teacher_id)
+        if (removeError) throw removeError
+      }
+      for (const a of changes.update) await updateSchoolEvent(a.teacher_id, a.google_event_id, payload)
+      for (const teacherId of changes.add) {
+        const googleId = await pushSchoolEvent(teacherId, payload)
+        if (!googleId) continue
+        const { error: addError } = await supabase.from('google_event_assignments').insert({ school_event_id: id, teacher_id: teacherId, google_event_id: googleId })
+        if (addError) throw addError
+      }
     } catch (e) {
       console.error('updateEvent: google update failed', e)
     }
-  })()
+  })
 }
 
 export async function deleteEvent(eventId: string) {
@@ -203,7 +224,7 @@ export async function deleteEvent(eventId: string) {
   revalidatePath('/')
 
   // Delete from Google Calendars (fire-and-forget)
-  void (async () => {
+  after(async () => {
     try {
       if (ev?.google_event_id) await deleteGCalEvent(userId, ev.google_event_id)
       for (const a of assignments ?? []) {
@@ -212,5 +233,5 @@ export async function deleteEvent(eventId: string) {
     } catch (e) {
       console.error('deleteEvent: google delete failed', e)
     }
-  })()
+  })
 }

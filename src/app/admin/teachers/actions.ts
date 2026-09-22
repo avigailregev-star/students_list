@@ -58,7 +58,7 @@ export type InviteResult = {
 }
 
 export async function inviteTeacher(pendingId: string, email: string, name: string): Promise<InviteResult> {
-  await _requireAdmin('/admin')
+  const { user: actor } = await _requireAdmin('/admin')
   const supabase = createAdminClient()
 
   let newUserId: string
@@ -88,30 +88,17 @@ export async function inviteTeacher(pendingId: string, email: string, name: stri
     if (recoveryError) return { error: `שגיאה ביצירת קישור: ${recoveryError.message}` }
     inviteLink = recoveryData.properties.action_link
 
-    const { data: { users } } = await supabase.auth.admin.listUsers({ page: 1, perPage: 1000 })
-    const existingUser = users?.find(u => u.email === email)
-    if (!existingUser) return { error: 'שגיאה: המשתמש קיים אך לא נמצא' }
-    newUserId = existingUser.id
+    newUserId = recoveryData.user.id
   } else {
     newUserId = linkData.user.id
     inviteLink = linkData.properties.action_link
   }
 
-  // Insert the new teacher record FIRST so FK refs can be updated
-  const { error: dbError } = await supabase
-    .from('teachers')
-    .insert({ id: newUserId, name, email, role: 'teacher', is_pending: false })
-  if (dbError) return { error: `שגיאה בשמירה: ${dbError.message}` }
-
-  // Migrate all associations before deleting the old record
-  if (newUserId !== pendingId) {
-    await supabase.from('groups').update({ teacher_id: newUserId }).eq('teacher_id', pendingId)
-    await supabase.from('teacher_availability_ranges').update({ teacher_id: newUserId }).eq('teacher_id', pendingId)
-    await supabase.from('messages').update({ teacher_id: newUserId }).eq('teacher_id', pendingId)
-    await supabase.from('vacation_requests').update({ teacher_id: newUserId }).eq('teacher_id', pendingId)
-  }
-
-  await supabase.from('teachers').delete().eq('id', pendingId)
+  const { error: dbError } = await supabase.rpc('merge_teacher_records', {
+    p_actor_id: actor.id, p_source_id: pendingId, p_target_id: newUserId,
+    p_name: name, p_email: email, p_pending_only: true,
+  })
+  if (dbError) return { error: 'שגיאה בשמירה: ' + dbError.message }
   revalidatePath('/admin/teachers')
 
   // Best-effort email send — the link is always returned to the caller so the
@@ -142,7 +129,7 @@ export async function resetTeacherToPending(teacherId: string): Promise<string |
 }
 
 export async function resendTeacherInvite(teacherId: string, email: string, name: string): Promise<InviteResult> {
-  await _requireAdmin('/admin')
+  const { user: actor } = await _requireAdmin('/admin')
   const supabase = createAdminClient()
 
   const resetCallbackUrl = await getResetCallbackUrl()
@@ -193,17 +180,11 @@ export async function resendTeacherInvite(teacherId: string, email: string, name
       newInviteLink = newRecovery.properties.action_link
     }
 
-    // Register the new auth user id in teachers table
-    if (newUserId !== teacherId) {
-      await supabase.from('teacher_availability_ranges').update({ teacher_id: newUserId }).eq('teacher_id', teacherId)
-      await supabase.from('messages').update({ teacher_id: newUserId }).eq('teacher_id', teacherId)
-      await supabase.from('vacation_requests').update({ teacher_id: newUserId }).eq('teacher_id', teacherId)
-      await supabase.from('groups').update({ teacher_id: newUserId }).eq('teacher_id', teacherId)
-      await supabase.from('teachers').insert({ id: newUserId, name, email, role: 'teacher', is_pending: false })
-      await supabase.from('teachers').delete().eq('id', teacherId)
-    } else {
-      await supabase.from('teachers').update({ email, is_pending: false }).eq('id', teacherId)
-    }
+    const { error: mergeError } = await supabase.rpc('merge_teacher_records', {
+      p_actor_id: actor.id, p_source_id: teacherId, p_target_id: newUserId,
+      p_name: name, p_email: email, p_pending_only: false,
+    })
+    if (mergeError) return { error: 'שגיאה בשמירת המורה: ' + mergeError.message }
 
     inviteLink = newInviteLink!
   } else {
@@ -220,7 +201,7 @@ export async function resendTeacherInvite(teacherId: string, email: string, name
 }
 
 export async function mergeTeachers(pendingId: string, registeredId: string): Promise<string | void> {
-  await _requireAdmin('/admin')
+  const { user: actor } = await _requireAdmin('/admin')
   const supabase = createAdminClient()
 
   const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
@@ -236,13 +217,10 @@ export async function mergeTeachers(pendingId: string, registeredId: string): Pr
   if (!pending) return 'המורה הממתינה לא נמצאה'
   if (!pending.is_pending) return 'ניתן למזג רק מורה ממתינה'
 
-  await supabase.from('groups').update({ teacher_id: registeredId }).eq('teacher_id', pendingId)
-  await supabase.from('teacher_availability_ranges').update({ teacher_id: registeredId }).eq('teacher_id', pendingId)
-  await supabase.from('messages').update({ teacher_id: registeredId }).eq('teacher_id', pendingId)
-  await supabase.from('vacation_requests').update({ teacher_id: registeredId }).eq('teacher_id', pendingId)
-
-  const { error } = await supabase.from('teachers').delete().eq('id', pendingId)
-  if (error) return `שגיאה במחיקת המורה הממתינה: ${error.message}`
+  const { error } = await supabase.rpc('merge_teacher_records', {
+    p_actor_id: actor.id, p_source_id: pendingId, p_target_id: registeredId, p_pending_only: true,
+  })
+  if (error) return 'שגיאה במיזוג המורה: ' + error.message
 
   revalidatePath('/admin/teachers')
   redirect(`/admin/teachers/${registeredId}`)
