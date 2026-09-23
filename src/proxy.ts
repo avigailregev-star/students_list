@@ -98,7 +98,10 @@ export async function proxy(request: NextRequest) {
     return NextResponse.redirect(url)
   }
 
-  if (user && isLoginPage && tabHasSession) {
+  // Server Actions POST to /login after authentication to finish the profile.
+  // Redirect only page reads; redirecting a POST interrupts the action response.
+  const isPageRead = request.method === 'GET' || request.method === 'HEAD'
+  if (user && isLoginPage && tabHasSession && isPageRead) {
     const url = request.nextUrl.clone()
     url.pathname = '/redirect'
     return NextResponse.redirect(url)
