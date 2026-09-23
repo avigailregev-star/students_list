@@ -114,13 +114,15 @@ export default function MessagesInboxClient({ initialMessages, initialVacationRe
     setTimeout(() => setComposeSuccess(''), 4000)
   }
 
-  // Exclude admin-initiated messages from inbox counts and lists
+  // Teacher-initiated messages are the office inbox. Admin-initiated messages
+  // are kept separately so they remain visible while awaiting a teacher reply.
   const inboxMessages = messages.filter(m => !m.from_admin)
   const pendingMessages = inboxMessages.filter(m => m.status === 'pending').length
   const pendingVacations = vacations.filter(v => v.status === 'pending').length
   const newBugs = bugs.filter(b => b.status === 'new').length
   const pending = inboxMessages.filter(m => m.status === 'pending')
   const replied = inboxMessages.filter(m => m.status === 'replied')
+  const adminSentPending = messages.filter(m => m.from_admin && m.status === 'pending')
   const adminSentReplied = messages.filter(m => m.from_admin && m.status === 'replied')
   const pendingVac = vacations.filter(v => v.status === 'pending')
   const decidedVac = vacations.filter(v => v.status !== 'pending')
@@ -218,8 +220,31 @@ export default function MessagesInboxClient({ initialMessages, initialVacationRe
             </div>
           )}
 
-          {inboxMessages.length === 0 && (
+          {messages.length === 0 && (
             <p className="text-sm text-gray-400 text-center py-8">אין הודעות עדיין</p>
+          )}
+          {adminSentPending.length > 0 && (
+            <div className="flex flex-col gap-3">
+              <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">
+                נשלחו — ממתינות לתגובה ({adminSentPending.length})
+              </p>
+              {adminSentPending.map(msg => (
+                <div key={msg.id} className="bg-blue-50 rounded-2xl p-4 border border-blue-100">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-sm font-bold text-gray-800">
+                      {msg.teachers?.name ?? 'מורה לא ידועה'}
+                    </span>
+                    <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-700">
+                      ממתינה לתגובה
+                    </span>
+                  </div>
+                  <p className="text-sm text-blue-900">{msg.content}</p>
+                  <p className="text-[10px] text-gray-400 mt-2">
+                    נשלחה {new Date(msg.created_at).toLocaleDateString('he-IL')}
+                  </p>
+                </div>
+              ))}
+            </div>
           )}
           {pending.length > 0 && (
             <div className="flex flex-col gap-3">
