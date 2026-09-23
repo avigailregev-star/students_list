@@ -30,6 +30,16 @@ function timeAgo(dateStr: string): string {
   return `לפני ${Math.floor(hours / 24)} ימים`
 }
 
+function messageDate(dateStr: string): string {
+  return new Intl.DateTimeFormat('he-IL', {
+    day: '2-digit',
+    month: '2-digit',
+    year: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+  }).format(new Date(dateStr))
+}
+
 interface Props {
   initialMessages: MessageWithTeacher[]
   initialVacationRequests: VacationRequestWithTeacher[]
@@ -39,6 +49,7 @@ interface Props {
 
 export default function MessagesInboxClient({ initialMessages, initialVacationRequests, initialBugReports, teachers }: Props) {
   const [tab, setTab] = useState<'messages' | 'vacations' | 'bugs'>('messages')
+  const [mailboxTab, setMailboxTab] = useState<'received' | 'sent'>('received')
   const [messages, setMessages] = useState<MessageWithTeacher[]>(initialMessages)
   const [vacations, setVacations] = useState<VacationRequestWithTeacher[]>(initialVacationRequests)
   const [bugs, setBugs] = useState<BugReport[]>(initialBugReports)
@@ -116,14 +127,13 @@ export default function MessagesInboxClient({ initialMessages, initialVacationRe
 
   // Teacher-initiated messages are the office inbox. Admin-initiated messages
   // are kept separately so they remain visible while awaiting a teacher reply.
-  const inboxMessages = messages.filter(m => !m.from_admin)
+  const newestFirst = (a: MessageWithTeacher, b: MessageWithTeacher) =>
+    new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+  const inboxMessages = messages.filter(m => !m.from_admin).sort(newestFirst)
+  const sentMessages = messages.filter(m => m.from_admin).sort(newestFirst)
   const pendingMessages = inboxMessages.filter(m => m.status === 'pending').length
   const pendingVacations = vacations.filter(v => v.status === 'pending').length
   const newBugs = bugs.filter(b => b.status === 'new').length
-  const pending = inboxMessages.filter(m => m.status === 'pending')
-  const replied = inboxMessages.filter(m => m.status === 'replied')
-  const adminSentPending = messages.filter(m => m.from_admin && m.status === 'pending')
-  const adminSentReplied = messages.filter(m => m.from_admin && m.status === 'replied')
   const pendingVac = vacations.filter(v => v.status === 'pending')
   const decidedVac = vacations.filter(v => v.status !== 'pending')
 
@@ -220,101 +230,114 @@ export default function MessagesInboxClient({ initialMessages, initialVacationRe
             </div>
           )}
 
-          {messages.length === 0 && (
-            <p className="text-sm text-gray-400 text-center py-8">אין הודעות עדיין</p>
-          )}
-          {adminSentPending.length > 0 && (
-            <div className="flex flex-col gap-3">
-              <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">
-                נשלחו — ממתינות לתגובה ({adminSentPending.length})
-              </p>
-              {adminSentPending.map(msg => (
-                <div key={msg.id} className="bg-blue-50 rounded-2xl p-4 border border-blue-100">
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-sm font-bold text-gray-800">
-                      {msg.teachers?.name ?? 'מורה לא ידועה'}
-                    </span>
-                    <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-700">
-                      ממתינה לתגובה
-                    </span>
-                  </div>
-                  <p className="text-sm text-blue-900">{msg.content}</p>
-                  <p className="text-[10px] text-gray-400 mt-2">
-                    נשלחה {new Date(msg.created_at).toLocaleDateString('he-IL')}
-                  </p>
-                </div>
-              ))}
-            </div>
-          )}
-          {pending.length > 0 && (
-            <div className="flex flex-col gap-3">
-              <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">
-                ממתינות לתשובה ({pending.length})
-              </p>
-              {pending.map(msg => (
-                <div key={msg.id} className="bg-white rounded-2xl shadow-sm p-4 border border-amber-100">
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-sm font-bold text-gray-800">
-                      {msg.teachers?.name ?? 'מורה לא ידועה'}
-                    </span>
-                    <span className="text-[10px] text-gray-400">
-                      {new Date(msg.created_at).toLocaleDateString('he-IL')}
-                    </span>
-                  </div>
-                  <p className="text-sm text-gray-700 mb-3">{msg.content}</p>
-                  <textarea
-                    value={replyTexts[msg.id] ?? ''}
-                    onChange={e => setReplyTexts(prev => ({ ...prev, [msg.id]: e.target.value }))}
-                    placeholder="כתבי תשובה..."
-                    rows={2}
-                    className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm resize-none focus:outline-none focus:border-teal-400"
-                    dir="rtl"
-                  />
-                  {errors[msg.id] && (
-                    <p className="text-xs text-red-500 mt-1">{errors[msg.id]}</p>
-                  )}
-                  <button
-                    onClick={() => handleReply(msg.id)}
-                    disabled={pendingIds.has(msg.id) || !(replyTexts[msg.id] ?? '').trim()}
-                    className="mt-2 px-4 py-1.5 bg-teal-500 text-white text-sm font-bold rounded-xl hover:bg-teal-600 disabled:opacity-40 transition-colors"
-                  >
-                    {pendingIds.has(msg.id) ? 'שולח...' : 'ענה'}
-                  </button>
-                </div>
-              ))}
-            </div>
-          )}
-          {(replied.length > 0 || adminSentReplied.length > 0) && (
+          <div className="bg-gray-100 rounded-2xl p-1 grid grid-cols-2 gap-1">
+            <button
+              onClick={() => setMailboxTab('received')}
+              className={`py-2.5 rounded-xl text-sm font-bold transition-all ${
+                mailboxTab === 'received' ? 'bg-white text-teal-700 shadow-sm' : 'text-gray-500'
+              }`}
+            >
+              📥 התקבלו <span className="text-xs">({inboxMessages.length})</span>
+            </button>
+            <button
+              onClick={() => setMailboxTab('sent')}
+              className={`py-2.5 rounded-xl text-sm font-bold transition-all ${
+                mailboxTab === 'sent' ? 'bg-white text-blue-700 shadow-sm' : 'text-gray-500'
+              }`}
+            >
+              📤 נשלחו <span className="text-xs">({sentMessages.length})</span>
+            </button>
+          </div>
+
+          {mailboxTab === 'received' && (
             <div className="flex flex-col gap-2">
-              <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">
-                נענו ({replied.length + adminSentReplied.length})
-              </p>
-              {replied.map(msg => (
-                <div key={msg.id} className="bg-gray-50 rounded-2xl p-4 border border-gray-100">
-                  <div className="flex items-center justify-between mb-1">
-                    <span className="text-sm font-semibold text-gray-700">
-                      {msg.teachers?.name ?? 'מורה לא ידועה'}
-                    </span>
-                    <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700">
-                      נענה
+              {inboxMessages.length === 0 && (
+                <p className="text-sm text-gray-400 text-center py-8">אין הודעות שהתקבלו</p>
+              )}
+              {inboxMessages.map(msg => (
+                <div
+                  key={msg.id}
+                  className={`rounded-2xl border p-4 ${
+                    msg.status === 'pending'
+                      ? 'bg-white border-amber-200 shadow-sm'
+                      : 'bg-gray-50 border-gray-100'
+                  }`}
+                >
+                  <div className="flex items-start justify-between gap-3 mb-2">
+                    <div className="min-w-0">
+                      <p className="text-sm font-bold text-gray-900 truncate">
+                        {msg.teachers?.name ?? 'מורה לא ידועה'}
+                      </p>
+                      <p className="text-[10px] text-gray-400 mt-0.5">{messageDate(msg.created_at)}</p>
+                    </div>
+                    <span className={`shrink-0 text-[10px] font-bold px-2 py-1 rounded-full ${
+                      msg.status === 'pending'
+                        ? 'bg-amber-100 text-amber-700'
+                        : 'bg-emerald-100 text-emerald-700'
+                    }`}>
+                      {msg.status === 'pending' ? 'ממתינה למענה' : 'נענתה'}
                     </span>
                   </div>
-                  <p className="text-xs text-gray-500 mb-2">{msg.content}</p>
-                  <p className="text-sm text-emerald-700 font-medium">{msg.reply}</p>
+                  <p className="text-sm text-gray-700 whitespace-pre-wrap">{msg.content}</p>
+                  {msg.status === 'pending' ? (
+                    <div className="mt-3 pt-3 border-t border-gray-100">
+                      <textarea
+                        value={replyTexts[msg.id] ?? ''}
+                        onChange={e => setReplyTexts(prev => ({ ...prev, [msg.id]: e.target.value }))}
+                        placeholder="כתבי תשובה..."
+                        rows={2}
+                        className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm resize-none focus:outline-none focus:border-teal-400 bg-white"
+                        dir="rtl"
+                      />
+                      {errors[msg.id] && <p className="text-xs text-red-500 mt-1">{errors[msg.id]}</p>}
+                      <button
+                        onClick={() => handleReply(msg.id)}
+                        disabled={pendingIds.has(msg.id) || !(replyTexts[msg.id] ?? '').trim()}
+                        className="mt-2 px-5 py-2 bg-teal-500 text-white text-sm font-bold rounded-xl hover:bg-teal-600 disabled:opacity-40 transition-colors"
+                      >
+                        {pendingIds.has(msg.id) ? 'שולח...' : 'שליחת תשובה'}
+                      </button>
+                    </div>
+                  ) : msg.reply ? (
+                    <div className="mt-3 pt-3 border-t border-gray-200">
+                      <p className="text-[10px] font-bold text-gray-400 mb-1">התשובה מהמשרד</p>
+                      <p className="text-sm text-emerald-700 font-medium whitespace-pre-wrap">{msg.reply}</p>
+                    </div>
+                  ) : null}
                 </div>
               ))}
-              {adminSentReplied.map(msg => (
-                <div key={msg.id} className="bg-blue-50 rounded-2xl p-4 border border-blue-100">
-                  <div className="flex items-center justify-between mb-1">
-                    <span className="text-sm font-semibold text-gray-700">
-                      {msg.teachers?.name ?? 'מורה לא ידועה'}
-                    </span>
-                    <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-blue-100 text-blue-700">
-                      ענתה להודעתך
+            </div>
+          )}
+
+          {mailboxTab === 'sent' && (
+            <div className="flex flex-col gap-2">
+              {sentMessages.length === 0 && (
+                <p className="text-sm text-gray-400 text-center py-8">אין הודעות שנשלחו</p>
+              )}
+              {sentMessages.map(msg => (
+                <div key={msg.id} className="bg-white rounded-2xl border border-blue-100 p-4 shadow-sm">
+                  <div className="flex items-start justify-between gap-3 mb-2">
+                    <div className="min-w-0">
+                      <p className="text-sm font-bold text-gray-900 truncate">
+                        אל: {msg.teachers?.name ?? 'מורה לא ידועה'}
+                      </p>
+                      <p className="text-[10px] text-gray-400 mt-0.5">{messageDate(msg.created_at)}</p>
+                    </div>
+                    <span className={`shrink-0 text-[10px] font-bold px-2 py-1 rounded-full ${
+                      msg.status === 'replied'
+                        ? 'bg-blue-100 text-blue-700'
+                        : 'bg-amber-100 text-amber-700'
+                    }`}>
+                      {msg.status === 'replied' ? 'התקבלה תגובה' : 'ממתינה לתגובה'}
                     </span>
                   </div>
-                  <p className="text-xs text-gray-400 mb-1">שלחת: {msg.content}</p>
-                  <p className="text-sm text-blue-800 font-medium">{msg.reply}</p>
+                  <p className="text-sm text-gray-700 whitespace-pre-wrap">{msg.content}</p>
+                  {msg.reply && (
+                    <div className="mt-3 pt-3 border-t border-blue-100 bg-blue-50 -mx-4 -mb-4 px-4 py-3 rounded-b-2xl">
+                      <p className="text-[10px] font-bold text-blue-500 mb-1">תשובת המורה</p>
+                      <p className="text-sm text-blue-900 font-medium whitespace-pre-wrap">{msg.reply}</p>
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
