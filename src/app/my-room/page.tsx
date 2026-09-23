@@ -1,6 +1,6 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
-import type { Message, TeacherRoomAssignment } from '@/types/database'
+import type { TeacherRoomAssignment } from '@/types/database'
 import MyRoomClient from './MyRoomClient'
 import BottomNav from '@/components/layout/BottomNav'
 
@@ -20,25 +20,16 @@ export default async function MyRoomPage() {
 
   const dow = new Date().getDay() // 0=Sun … 6=Sat
 
-  const [{ data: assignmentRaw }, { data: messagesRaw }] = await Promise.all([
-    supabase
-      .from('teacher_room_assignments')
-      .select('*, rooms(name)')
-      .eq('teacher_id', user.id)
-      .eq('day_of_week', dow)
-      .maybeSingle(),
-    supabase
-      .from('messages')
-      .select('*')
-      .eq('teacher_id', user.id)
-      .order('created_at', { ascending: false })
-      .limit(10),
-  ])
+  const { data: assignmentRaw } = await supabase
+    .from('teacher_room_assignments')
+    .select('*, rooms(name)')
+    .eq('teacher_id', user.id)
+    .eq('day_of_week', dow)
+    .maybeSingle()
 
   const roomName =
     (assignmentRaw as (TeacherRoomAssignment & { rooms: { name: string } | null }) | null)
       ?.rooms?.name ?? null
-  const messages = (messagesRaw ?? []) as Message[]
 
   return (
     <div className="flex flex-col min-h-screen pb-24">
@@ -46,7 +37,7 @@ export default async function MyRoomPage() {
         <p className="text-xs font-semibold text-teal-100 uppercase tracking-widest">קונסרבטוריון דימונה</p>
         <h1 className="text-xl font-bold">החדר שלי</h1>
       </div>
-      <MyRoomClient roomName={roomName} initialMessages={messages} userId={user.id} />
+      <MyRoomClient roomName={roomName} />
       <BottomNav isAdmin={isAdmin} userId={user.id} />
     </div>
   )

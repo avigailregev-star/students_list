@@ -19,7 +19,7 @@ export async function replyToAdminMessage(msgId: string, reply: string): Promise
 
   if (error) return { error: 'שגיאה בשליחת התשובה: ' + error.message }
 
-  revalidatePath('/my-room')
+  revalidatePath('/messages')
   return {}
 }
 
@@ -37,6 +37,6 @@ export async function sendMessage(content: string): Promise<{ error?: string }> 
   })
   if (error) return { error: 'שגיאה בשליחת ההודעה: ' + error.message }
 
-  revalidatePath('/my-room')
+  revalidatePath('/messages')
   return {}
 }

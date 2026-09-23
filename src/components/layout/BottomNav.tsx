@@ -50,6 +50,15 @@ const items = [
       </svg>
     ),
   },
+  {
+    href: '/messages',
+    label: 'הודעות',
+    icon: (active: boolean) => (
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={active ? '#14b8a6' : '#9ca3af'} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M21 15a4 4 0 0 1-4 4H8l-5 3V7a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4z"/>
+      </svg>
+    ),
+  },
 ]
 
 export default function BottomNav({ isAdmin, userId }: { isAdmin?: boolean; userId?: string }) {
@@ -66,6 +75,7 @@ export default function BottomNav({ isAdmin, userId }: { isAdmin?: boolean; user
         .select('id', { count: 'exact', head: true })
         .eq('teacher_id', userId)
         .eq('from_admin', true)
+        .eq('status', 'pending')
       setHasAdminMessages((count ?? 0) > 0)
     }
     checkAdminMessages()
@@ -89,12 +99,12 @@ export default function BottomNav({ isAdmin, userId }: { isAdmin?: boolean; user
     <nav className="fixed bottom-0 right-0 left-0 bg-white border-t border-gray-100 flex justify-around px-2 py-2 pb-safe z-50">
       {items.map(item => {
         const active = pathname === item.href
-        const showDot = item.href === '/my-room' && hasAdminMessages && pathname !== '/my-room'
+        const showDot = item.href === '/messages' && hasAdminMessages && pathname !== '/messages'
         return (
           <Link
             key={item.href}
             href={item.href}
-            className={`flex flex-col items-center gap-0.5 px-5 py-1.5 rounded-2xl transition-colors ${active ? 'bg-teal-50' : ''}`}
+            className={`flex flex-col items-center gap-0.5 px-3 sm:px-5 py-1.5 rounded-2xl transition-colors ${active ? 'bg-teal-50' : ''}`}
           >
             <div className="relative">
               {item.icon(active)}
@@ -110,7 +120,7 @@ export default function BottomNav({ isAdmin, userId }: { isAdmin?: boolean; user
       {isAdmin && (
         <Link
           href="/admin"
-          className="flex flex-col items-center gap-0.5 px-5 py-1.5 rounded-2xl transition-colors hover:bg-teal-50"
+          className="flex flex-col items-center gap-0.5 px-3 sm:px-5 py-1.5 rounded-2xl transition-colors hover:bg-teal-50"
         >
           <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
             <rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/>
@@ -122,7 +132,7 @@ export default function BottomNav({ isAdmin, userId }: { isAdmin?: boolean; user
 
       <button
         onClick={handleLogout}
-        className="flex flex-col items-center gap-0.5 px-5 py-1.5 rounded-2xl transition-colors hover:bg-red-50"
+        className="flex flex-col items-center gap-0.5 px-3 sm:px-5 py-1.5 rounded-2xl transition-colors hover:bg-red-50"
       >
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
           <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
