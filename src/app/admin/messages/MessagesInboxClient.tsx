@@ -125,13 +125,18 @@ export default function MessagesInboxClient({ initialMessages, initialVacationRe
     setTimeout(() => setComposeSuccess(''), 4000)
   }
 
-  // Teacher-initiated messages are the office inbox. Admin-initiated messages
-  // are kept separately so they remain visible while awaiting a teacher reply.
   const newestFirst = (a: MessageWithTeacher, b: MessageWithTeacher) =>
     new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-  const inboxMessages = messages.filter(m => !m.from_admin).sort(newestFirst)
+  const newestReceivedFirst = (a: MessageWithTeacher, b: MessageWithTeacher) =>
+    new Date(b.from_admin ? b.replied_at ?? b.created_at : b.created_at).getTime()
+    - new Date(a.from_admin ? a.replied_at ?? a.created_at : a.created_at).getTime()
+  // A teacher's reply to an office message belongs in Received as well as the
+  // original conversation remaining available in Sent, just like an email thread.
+  const receivedMessages = messages
+    .filter(m => !m.from_admin || (m.status === 'replied' && Boolean(m.reply)))
+    .sort(newestReceivedFirst)
   const sentMessages = messages.filter(m => m.from_admin).sort(newestFirst)
-  const pendingMessages = inboxMessages.filter(m => m.status === 'pending').length
+  const pendingMessages = messages.filter(m => !m.from_admin && m.status === 'pending').length
   const pendingVacations = vacations.filter(v => v.status === 'pending').length
   const newBugs = bugs.filter(b => b.status === 'new').length
   const pendingVac = vacations.filter(v => v.status === 'pending')
@@ -237,7 +242,7 @@ export default function MessagesInboxClient({ initialMessages, initialVacationRe
                 mailboxTab === 'received' ? 'bg-white text-teal-700 shadow-sm' : 'text-gray-500'
               }`}
             >
-              📥 התקבלו <span className="text-xs">({inboxMessages.length})</span>
+              📥 התקבלו <span className="text-xs">({receivedMessages.length})</span>
             </button>
             <button
               onClick={() => setMailboxTab('sent')}
@@ -251,16 +256,18 @@ export default function MessagesInboxClient({ initialMessages, initialVacationRe
 
           {mailboxTab === 'received' && (
             <div className="flex flex-col gap-2">
-              {inboxMessages.length === 0 && (
+              {receivedMessages.length === 0 && (
                 <p className="text-sm text-gray-400 text-center py-8">אין הודעות שהתקבלו</p>
               )}
-              {inboxMessages.map(msg => (
+              {receivedMessages.map(msg => (
                 <div
                   key={msg.id}
                   className={`rounded-2xl border p-4 ${
-                    msg.status === 'pending'
+                    !msg.from_admin && msg.status === 'pending'
                       ? 'bg-white border-amber-200 shadow-sm'
-                      : 'bg-gray-50 border-gray-100'
+                      : msg.from_admin
+                        ? 'bg-blue-50 border-blue-100 shadow-sm'
+                        : 'bg-gray-50 border-gray-100'
                   }`}
                 >
                   <div className="flex items-start justify-between gap-3 mb-2">
@@ -268,18 +275,32 @@ export default function MessagesInboxClient({ initialMessages, initialVacationRe
                       <p className="text-sm font-bold text-gray-900 truncate">
                         {msg.teachers?.name ?? 'מורה לא ידועה'}
                       </p>
-                      <p className="text-[10px] text-gray-400 mt-0.5">{messageDate(msg.created_at)}</p>
+                      <p className="text-[10px] text-gray-400 mt-0.5">
+                        {messageDate(msg.from_admin ? msg.replied_at ?? msg.created_at : msg.created_at)}
+                      </p>
                     </div>
                     <span className={`shrink-0 text-[10px] font-bold px-2 py-1 rounded-full ${
-                      msg.status === 'pending'
+                      msg.from_admin
+                        ? 'bg-blue-100 text-blue-700'
+                        : msg.status === 'pending'
                         ? 'bg-amber-100 text-amber-700'
                         : 'bg-emerald-100 text-emerald-700'
                     }`}>
-                      {msg.status === 'pending' ? 'ממתינה למענה' : 'נענתה'}
+                      {msg.from_admin ? 'תגובה חדשה' : msg.status === 'pending' ? 'ממתינה למענה' : 'נענתה'}
                     </span>
                   </div>
-                  <p className="text-sm text-gray-700 whitespace-pre-wrap">{msg.content}</p>
-                  {msg.status === 'pending' ? (
+                  {msg.from_admin ? (
+                    <>
+                      <p className="text-sm text-blue-900 font-medium whitespace-pre-wrap">{msg.reply}</p>
+                      <div className="mt-3 pt-3 border-t border-blue-100">
+                        <p className="text-[10px] font-bold text-gray-400 mb-1">בתגובה להודעה ששלחת</p>
+                        <p className="text-xs text-gray-500 whitespace-pre-wrap">{msg.content}</p>
+                      </div>
+                    </>
+                  ) : (
+                    <p className="text-sm text-gray-700 whitespace-pre-wrap">{msg.content}</p>
+                  )}
+                  {!msg.from_admin && msg.status === 'pending' ? (
                     <div className="mt-3 pt-3 border-t border-gray-100">
                       <textarea
                         value={replyTexts[msg.id] ?? ''}
@@ -298,7 +319,7 @@ export default function MessagesInboxClient({ initialMessages, initialVacationRe
                         {pendingIds.has(msg.id) ? 'שולח...' : 'שליחת תשובה'}
                       </button>
                     </div>
-                  ) : msg.reply ? (
+                  ) : !msg.from_admin && msg.reply ? (
                     <div className="mt-3 pt-3 border-t border-gray-200">
                       <p className="text-[10px] font-bold text-gray-400 mb-1">התשובה מהמשרד</p>
                       <p className="text-sm text-emerald-700 font-medium whitespace-pre-wrap">{msg.reply}</p>
