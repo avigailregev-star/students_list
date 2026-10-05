@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import type { Room, TeacherRoomAssignment, Teacher } from '@/types/database'
+import { sortRooms } from '@/lib/utils/rooms'
 import RoomBoardReadOnly from './RoomBoardReadOnly'
 import BottomNav from '@/components/layout/BottomNav'
 
@@ -14,13 +15,13 @@ export default async function RoomsPage() {
   const isAdmin = teacher?.role === 'admin'
 
   const [{ data: roomsRaw }, { data: assignmentsRaw }, { data: teachersRaw }] = await Promise.all([
-    supabase.from('rooms').select('*').order('name'),
+    supabase.from('rooms').select('*'),
     supabase.from('teacher_room_assignments').select('*'),
     // Authenticated room board exposes names only, never other teacher details.
     createAdminClient().from('teachers').select('id, name').eq('role', 'teacher').eq('is_pending', false).order('name'),
   ])
 
-  const rooms = (roomsRaw ?? []) as Room[]
+  const rooms = sortRooms((roomsRaw ?? []) as Room[])
   const assignments = (assignmentsRaw ?? []) as TeacherRoomAssignment[]
   const teachers = (teachersRaw ?? []) as Pick<Teacher, 'id' | 'name'>[]
 
@@ -29,7 +30,7 @@ export default async function RoomsPage() {
       <div className="bg-gradient-to-bl from-teal-400 to-teal-600 text-white rounded-b-[36px] shadow-lg shadow-teal-200 px-5 pt-10 pb-7">
         <div>
           <p className="text-xs font-semibold text-teal-100 uppercase tracking-widest">קונסרבטוריון דימונה</p>
-          <h1 className="text-xl font-bold">לוח חדרים</h1>
+          <h1 className="text-xl font-bold">לוח שבועי</h1>
         </div>
       </div>
       <RoomBoardReadOnly

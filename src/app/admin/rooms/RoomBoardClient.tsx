@@ -163,61 +163,31 @@ export default function RoomBoardClient({ rooms, assignments, teachers }: Props)
       {mode === 'live' && <LiveRoomsClient rooms={rooms} assignments={assignments} teachers={teachers} />}
 
       {mode === 'weekly' && (
-        <>
-          {/* Room management */}
-          <div className="bg-white rounded-2xl shadow-sm p-4 flex flex-col gap-3">
-            <p className="text-sm font-bold text-gray-700">ניהול חדרים</p>
-            <div className="flex gap-2">
-              <input
-                value={newRoomName}
-                onChange={e => setNewRoomName(e.target.value)}
-                onKeyDown={e => e.key === 'Enter' && handleAddRoom()}
-                placeholder="שם החדר..."
-                className="flex-1 border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-teal-400"
-                dir="rtl"
-              />
-              <button
-                onClick={handleAddRoom}
-                disabled={isPending || !newRoomName.trim()}
-                className="px-4 py-2 bg-teal-500 text-white text-sm font-bold rounded-xl hover:bg-teal-600 disabled:opacity-40 transition-colors"
-              >
-                הוסף
-              </button>
-            </div>
-            {roomError && <p className="text-xs text-red-500">{roomError}</p>}
-            <div className="flex flex-col gap-1.5">
-              {rooms.map(room => {
-                const roomAssignments = assignments.filter(a => a.room_id === room.id)
-                return (
-                  <div key={room.id} className="flex items-center justify-between px-3 py-2 bg-gray-50 rounded-xl text-sm">
-                    <span className="font-semibold text-gray-800">{room.name}</span>
-                    <div className="flex items-center gap-3">
-                      <span className="text-xs text-gray-400">
-                        {roomAssignments.length > 0 ? `${roomAssignments.length} שיבוצים` : 'פנוי'}
-                      </span>
-                      <button
-                        onClick={() => handleDeleteRoom(room.id)}
-                        disabled={isPending}
-                        className="text-xs text-red-400 hover:text-red-600 disabled:opacity-40 transition-colors"
-                      >
-                        מחק
-                      </button>
-                    </div>
-                  </div>
-                )
-              })}
-              {rooms.length === 0 && (
-                <p className="text-xs text-gray-400 text-center py-2">אין חדרים עדיין</p>
-              )}
-            </div>
-          </div>
-
-          {/* Weekly board */}
-          {rooms.length > 0 && (
-            <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
-              <div className="px-4 py-3 border-b border-gray-50">
-                <p className="text-sm font-bold text-gray-700">לוח שבועי</p>
+        <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
+              <div className="px-4 py-3 border-b border-gray-100 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <p className="text-sm font-bold text-gray-700 shrink-0">לוח שבועי</p>
+                <div className="flex gap-2 w-full sm:max-w-sm">
+                  <input
+                    value={newRoomName}
+                    onChange={e => setNewRoomName(e.target.value)}
+                    onKeyDown={e => e.key === 'Enter' && handleAddRoom()}
+                    placeholder="שם או מספר חדר"
+                    aria-label="שם או מספר חדר חדש"
+                    className="min-w-0 flex-1 border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-teal-400"
+                    dir="rtl"
+                  />
+                  <button
+                    onClick={handleAddRoom}
+                    disabled={isPending || !newRoomName.trim()}
+                    className="px-4 py-2 bg-teal-500 text-white text-sm font-bold rounded-xl hover:bg-teal-600 disabled:opacity-40 transition-colors shrink-0"
+                  >
+                    + הוסף חדר
+                  </button>
+                </div>
               </div>
+              {roomError && (
+                <p className="px-4 py-2 text-xs text-red-500 border-b border-gray-100">{roomError}</p>
+              )}
               <div className="overflow-x-auto">
                 <table className="w-full border-collapse min-w-[420px]">
                   <thead>
@@ -231,7 +201,19 @@ export default function RoomBoardClient({ rooms, assignments, teachers }: Props)
                   <tbody>
                     {rooms.map(room => (
                       <tr key={room.id} className="border-b border-gray-50 last:border-0">
-                        <td className="p-2 text-xs font-bold text-gray-700 text-right align-top pt-3">{room.name}</td>
+                        <td className="p-2 text-right align-top">
+                          <div className="flex flex-col items-start gap-1">
+                            <span className="text-xs font-bold text-gray-700">{room.name}</span>
+                            <button
+                              onClick={() => handleDeleteRoom(room.id)}
+                              disabled={isPending}
+                              className="text-[10px] text-red-400 hover:text-red-600 disabled:opacity-40 transition-colors"
+                              aria-label={`מחיקת חדר ${room.name}`}
+                            >
+                              מחק חדר
+                            </button>
+                          </div>
+                        </td>
                         {DAYS.map(d => {
                           const key = `${room.id}-${d.dow}`
                           const cellAssignments = assignmentMap.get(key) ?? []
@@ -348,13 +330,18 @@ export default function RoomBoardClient({ rooms, assignments, teachers }: Props)
                         })}
                       </tr>
                     ))}
+                    {rooms.length === 0 && (
+                      <tr>
+                        <td colSpan={DAYS.length + 1} className="px-4 py-10 text-center text-xs text-gray-400">
+                          אין חדרים עדיין — אפשר להוסיף חדר מעל הלוח
+                        </td>
+                      </tr>
+                    )}
                   </tbody>
                 </table>
               </div>
               <p className="text-[10px] text-gray-400 text-center py-2">לחצי על שיבוץ לעריכה · + שבץ להוספת משבצת נוספת באותו יום</p>
-            </div>
-          )}
-        </>
+        </div>
       )}
 
       {/* Close popover on outside click */}

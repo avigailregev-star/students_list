@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import { requireAdmin } from '@/lib/auth'
 import type { Room, TeacherRoomAssignment, Teacher } from '@/types/database'
+import { sortRooms } from '@/lib/utils/rooms'
 import RoomBoardClient from './RoomBoardClient'
 
 export default async function AdminRoomsPage() {
@@ -11,7 +12,7 @@ export default async function AdminRoomsPage() {
     { data: assignmentsRaw },
     { data: teachersRaw },
   ] = await Promise.all([
-    supabase.from('rooms').select('*').order('name'),
+    supabase.from('rooms').select('*'),
     supabase.from('teacher_room_assignments').select('*'),
     supabase.from('teachers')
       .select('id, name')
@@ -20,7 +21,7 @@ export default async function AdminRoomsPage() {
       .order('name'),
   ])
 
-  const rooms = (roomsRaw ?? []) as Room[]
+  const rooms = sortRooms((roomsRaw ?? []) as Room[])
   const assignments = (assignmentsRaw ?? []) as TeacherRoomAssignment[]
   const teachers = (teachersRaw ?? []) as Pick<Teacher, 'id' | 'name'>[]
 
