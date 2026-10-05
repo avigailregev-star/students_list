@@ -198,6 +198,17 @@ export default function CalendarClient({ events, teachers, assignments }: Props)
     })
   }
 
+  function handleDeleteEvent(eventId: string) {
+    startTransition(async () => {
+      try {
+        await deleteEvent(eventId)
+        alert('האירוע נמחק')
+      } catch (err) {
+        alert(err instanceof Error ? err.message : 'שגיאה במחיקת האירוע')
+      }
+    })
+  }
+
   const isAutoSync = eventType === 'holiday' || eventType === 'vacation'
   const allSelected = teachers.length > 0 && selectedTeacherIds.length === teachers.length
 
@@ -257,10 +268,7 @@ export default function CalendarClient({ events, teachers, assignments }: Props)
                     </svg>
                   </a>
                   <button
-                    onClick={() => startTransition(async () => {
-                      try { await deleteEvent(ev.id) }
-                      catch (err) { alert(err instanceof Error ? err.message : 'שגיאה במחיקת האירוע') }
-                    })}
+                    onClick={() => handleDeleteEvent(ev.id)}
                     disabled={isPending}
                     className="w-7 h-7 rounded-lg bg-white/50 hover:bg-white/80 flex items-center justify-center transition-colors disabled:opacity-40 shrink-0"
                   >
@@ -506,10 +514,7 @@ export default function CalendarClient({ events, teachers, assignments }: Props)
                         <span className={`flex-1 text-sm font-semibold ${cfg.text}`}>{ev.name}</span>
                         <button
                           type="button"
-                          onClick={() => startTransition(async () => {
-                            try { await deleteEvent(ev.id) }
-                            catch (err) { alert(err instanceof Error ? err.message : 'שגיאה במחיקת האירוע') }
-                          })}
+                          onClick={() => handleDeleteEvent(ev.id)}
                           disabled={isPending}
                           className="w-6 h-6 rounded-md bg-white/60 hover:bg-white flex items-center justify-center shrink-0"
                         >
