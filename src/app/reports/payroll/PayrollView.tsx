@@ -112,7 +112,7 @@ function buildMonthWorksheet(month: MonthPayroll, teacherName: string) {
 
 export default function PayrollView({ months, teacherName }: { months: MonthPayroll[]; teacherName: string }) {
   if (!months.length) {
-    return <div className="flex-1 flex items-center justify-center text-gray-400 text-sm py-20">אין נתוני שכר</div>
+    return <div className="flex-1 flex items-center justify-center text-gray-400 text-sm py-20">אין נתוני שעות</div>
   }
 
   function exportAllMonths() {
@@ -121,7 +121,7 @@ export default function PayrollView({ months, teacherName }: { months: MonthPayr
       XLSX.utils.book_append_sheet(workbook, buildMonthWorksheet(month, teacherName), month.label.slice(0, 31))
     }
     const safeTeacherName = teacherName.replace(/[\\/:*?"<>|]/g, '-').trim() || 'מורה'
-    XLSX.writeFile(workbook, `חשבות-שכר-${safeTeacherName}-כל-החודשים.xlsx`)
+    XLSX.writeFile(workbook, `דוח-שעות-${safeTeacherName}-כל-החודשים.xlsx`)
   }
 
   return (
@@ -136,7 +136,7 @@ export default function PayrollView({ months, teacherName }: { months: MonthPayr
             <polyline points="7 10 12 15 17 10" />
             <line x1="12" y1="15" x2="12" y2="3" />
           </svg>
-          ייצוא שכר לאקסל
+          ייצוא דוח שעות לאקסל
         </button>
         <button
           onClick={() => window.print()}

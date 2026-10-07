@@ -178,7 +178,7 @@ export default async function AdminTeacherReportsPage({ params }: Props) {
             </svg>
           </Link>
           <div>
-            <p className="text-xs font-semibold text-violet-100 uppercase tracking-widest">חשבות שכר</p>
+            <p className="text-xs font-semibold text-violet-100 uppercase tracking-widest">דוח שעות</p>
             <h1 className="text-2xl font-bold">{teacher.name}</h1>
           </div>
         </div>

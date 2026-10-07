@@ -252,7 +252,7 @@ export default function ExportButtons({ reportData, month, teacherName, extraHou
 
     downloadXlsx(
       finalRows,
-      `חשבות-שכר-${month}.xlsx`,
+      `דוח-שעות-${month}.xlsx`,
       [10, 12, 18, 12, 12, 18, 12, 13, 13, 6, 8],
       merges,
     )
@@ -282,7 +282,7 @@ export default function ExportButtons({ reportData, month, teacherName, extraHou
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
           <rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/>
         </svg>
-        חשבות שכר
+        דוח שעות
       </button>
       <Link
         href="/reports/payroll"

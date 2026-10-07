@@ -210,7 +210,7 @@ export default async function PayrollPage() {
           </Link>
           <div>
             <p className="text-xs font-semibold text-violet-100 uppercase tracking-widest">ייצוא</p>
-            <h1 className="text-2xl font-bold">חשבות שכר</h1>
+            <h1 className="text-2xl font-bold">דוח שעות</h1>
           </div>
         </div>
         <p className="text-sm text-violet-100 mt-1 mr-12">{teacherName} · {months.length} חודשים</p>
