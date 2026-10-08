@@ -167,7 +167,7 @@ export default async function AttendancePage({ params, searchParams }: Props) {
             </p>
           </div>
           <Link
-            href="/"
+            href={`/?date=${dateStr}`}
             className="w-9 h-9 rounded-2xl bg-white/20 flex items-center justify-center shrink-0"
           >
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">

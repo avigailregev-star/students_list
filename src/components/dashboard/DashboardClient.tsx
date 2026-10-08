@@ -23,10 +23,10 @@ interface Props {
 
 export default function DashboardClient({ groups, teacherName, events, isAdmin, makeupSlots, userId, viewOnly, viewOnlyTeacherId, initialDate }: Props) {
   const [view, setView] = useState<'day' | 'week' | 'month'>('day')
-  const [dayInitialDate, setDayInitialDate] = useState<Date | undefined>(() => {
-    if (!initialDate || !/^\d{4}-\d{2}-\d{2}$/.test(initialDate)) return undefined
+  const [selectedDate, setSelectedDate] = useState<Date>(() => {
+    if (!initialDate || !/^\d{4}-\d{2}-\d{2}$/.test(initialDate)) return new Date()
     const parsed = new Date(`${initialDate}T12:00:00`)
-    return Number.isNaN(parsed.getTime()) ? undefined : parsed
+    return Number.isNaN(parsed.getTime()) ? new Date() : parsed
   })
 
   const weekSlots: LessonSlot[] = useMemo(() => {
@@ -48,8 +48,19 @@ export default function DashboardClient({ groups, teacherName, events, isAdmin, 
     return [...deduped, ...makeupSlots]
   }, [groups, makeupSlots])
 
+  function handleDateChange(date: Date) {
+    setSelectedDate(date)
+
+    // Keep the date in the URL so returning from attendance (including via
+    // browser back or the home icon) restores the same day.
+    if (!viewOnly) {
+      const dateStr = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
+      window.history.replaceState(null, '', `/?date=${dateStr}`)
+    }
+  }
+
   function handleMonthDayClick(date: Date) {
-    setDayInitialDate(date)
+    handleDateChange(date)
     setView('day')
   }
 
@@ -89,7 +100,7 @@ export default function DashboardClient({ groups, teacherName, events, isAdmin, 
 
       {/* Content */}
       <div className="flex-1 px-4 py-5 pb-28 overflow-y-auto">
-        {view === 'day' && <DayView allSlots={weekSlots} initialDate={dayInitialDate} events={events} viewOnly={viewOnly} viewOnlyTeacherId={viewOnlyTeacherId} />}
+        {view === 'day' && <DayView allSlots={weekSlots} selectedDate={selectedDate} onDateChange={handleDateChange} events={events} viewOnly={viewOnly} viewOnlyTeacherId={viewOnlyTeacherId} />}
         {view === 'week' && <WeekView allSlots={weekSlots} events={events} viewOnly={viewOnly} viewOnlyTeacherId={viewOnlyTeacherId} />}
         {view === 'month' && (
           <MonthView

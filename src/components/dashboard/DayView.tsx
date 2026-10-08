@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useMemo } from 'react'
+import { useMemo } from 'react'
 import LessonCard from './LessonCard'
 import { formatDateHe } from '@/lib/utils/hebrew'
 import { EVENT_COLORS, getActiveEvents, cancelsLessons } from '@/lib/utils/eventColors'
@@ -8,20 +8,14 @@ import type { LessonSlot, SchoolEvent } from '@/types/database'
 
 interface Props {
   allSlots: LessonSlot[]
-  /** Only read at mount. Safe because the component is conditionally rendered and remounts on each tab switch. */
-  initialDate?: Date
+  selectedDate: Date
+  onDateChange: (date: Date) => void
   events: SchoolEvent[]
   viewOnly?: boolean
   viewOnlyTeacherId?: string
 }
 
-export default function DayView({ allSlots, initialDate, events, viewOnly, viewOnlyTeacherId }: Props) {
-  const [selectedDate, setSelectedDate] = useState(() => {
-    const d = initialDate ? new Date(initialDate) : new Date()
-    d.setHours(0, 0, 0, 0)
-    return d
-  })
-
+export default function DayView({ allSlots, selectedDate, onDateChange, events, viewOnly, viewOnlyTeacherId }: Props) {
   const daySlots = useMemo(() => {
     return allSlots
       .filter(s => s.date.toDateString() === selectedDate.toDateString())
@@ -44,7 +38,7 @@ export default function DayView({ allSlots, initialDate, events, viewOnly, viewO
   function changeDay(delta: number) {
     const d = new Date(selectedDate)
     d.setDate(d.getDate() + delta)
-    setSelectedDate(d)
+    onDateChange(d)
   }
 
   return (
