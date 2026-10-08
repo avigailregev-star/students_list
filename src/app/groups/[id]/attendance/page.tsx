@@ -153,7 +153,7 @@ export default async function AttendancePage({ params, searchParams }: Props) {
       <div className={`bg-gradient-to-bl ${headerGradient} text-white rounded-b-[36px] shadow-lg px-5 pt-8 pb-6`}>
         <div className="flex items-start gap-3 mb-1">
           <Link
-            href={`/groups/${id}`}
+            href={`/groups/${id}?date=${dateStr}`}
             className="w-9 h-9 rounded-2xl bg-white/20 flex items-center justify-center shrink-0"
           >
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">

@@ -10,10 +10,19 @@ import { formatLessonTimeRange } from '@/lib/utils/lessonTimes'
 
 interface Props {
   params: Promise<{ id: string }>
+  searchParams: Promise<{ date?: string }>
 }
 
-export default async function GroupDetailPage({ params }: Props) {
+export default async function GroupDetailPage({ params, searchParams }: Props) {
   const { id } = await params
+  const { date } = await searchParams
+  const selectedDate = date && /^\d{4}-\d{2}-\d{2}$/.test(date) && !Number.isNaN(Date.parse(date))
+    ? date
+    : undefined
+  const dashboardHref = selectedDate ? `/?date=${selectedDate}` : '/'
+  const attendanceHref = selectedDate
+    ? `/groups/${id}/attendance?date=${selectedDate}`
+    : `/groups/${id}/attendance`
   const supabase = await createClient()
 
   const { data: { user } } = await supabase.auth.getUser()
@@ -44,7 +53,7 @@ export default async function GroupDetailPage({ params }: Props) {
       <div className={`bg-gradient-to-bl ${headerColor} text-white rounded-b-[36px] shadow-lg px-5 pt-8 pb-6`}>
         <div className="flex items-start gap-3 mb-4">
           <Link
-            href="/"
+            href={dashboardHref}
             className="w-9 h-9 rounded-2xl bg-white/20 flex items-center justify-center shrink-0"
           >
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
@@ -85,7 +94,7 @@ export default async function GroupDetailPage({ params }: Props) {
             <p className="text-xs text-gray-400 mt-0.5 font-medium">תלמידים</p>
           </div>
           <Link
-            href={`/groups/${id}/attendance`}
+            href={attendanceHref}
             className="flex-1 bg-teal-500 text-white rounded-2xl shadow-sm shadow-teal-200 py-3.5 text-center font-bold text-sm hover:bg-teal-600 transition-colors flex flex-col items-center justify-center gap-1"
           >
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
