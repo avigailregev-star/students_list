@@ -35,6 +35,13 @@ export async function getOrCreateLesson(
       .select('id').eq('lesson_id', reusableLesson.id).limit(1).maybeSingle()
     if (attendanceError) throw attendanceError
     if (attendanceRow || reusableLesson.start_time !== startTime) return reusableLesson as Lesson
+    // Update only holiday metadata; an upsert would try to replace the immutable
+    // payroll snapshot with the group's current schedule after a schedule edit.
+    const { data, error } = await supabase.from('lessons')
+      .update({ is_holiday: isHoliday, holiday_name: holidayName ?? null })
+      .eq('id', reusableLesson.id).select().single()
+    if (error) throw error
+    return data as Lesson
   }
   const { data, error } = await supabase
     .from('lessons')

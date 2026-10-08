@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import { revalidatePayroll } from '@/lib/payroll/revalidate'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import type { AttendanceStatus } from '@/types/database'
@@ -48,6 +49,7 @@ export async function POST(request: Request) {
       console.error('[attendance] upsert error:', error)
       return NextResponse.json({ error: error.message }, { status: 500 })
     }
+    revalidatePayroll(user.id)
     return NextResponse.json({ ok: true })
   } catch {
     return NextResponse.json({ error: 'Invalid request' }, { status: 400 })

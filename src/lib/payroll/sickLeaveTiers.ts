@@ -11,14 +11,14 @@ const SICK_LEAVE_REASON = 'מחלת מורה'
 /**
  * Groups a teacher's sick-leave cancellations into consecutive-day illness
  * incidents and tiers each day (day 1 unpaid, days 2-3 half, day 4+ full).
- * A claim an admin rejected does not count toward any tier.
+ * Only claims explicitly approved by an admin count toward a tier.
  */
 export function categorizeSickDates(
   cancellations: SickLeaveCancellation[]
 ): Map<string, SickLeaveTier> {
   const sickDatesSet = new Set<string>()
   for (const c of cancellations) {
-    if (c.teacher_absence_reason === SICK_LEAVE_REASON && c.admin_approval_status !== 'rejected') {
+    if (c.teacher_absence_reason === SICK_LEAVE_REASON && c.admin_approval_status === 'approved') {
       sickDatesSet.add(c.date)
     }
   }

@@ -13,6 +13,8 @@ import type { ExtraHoursRequest } from '@/types/database'
 import ExtraHoursSection from './ExtraHoursSection'
 import { getLessonUnits } from '@/lib/payroll/lessonUnits'
 import { occurrenceKey } from '@/lib/payroll/occurrences'
+import { loadPayroll } from '@/lib/payroll/load'
+import { israelToday } from '@/lib/payroll/calculate'
 
 type HistoryEntry = {
   lessonId?: string
@@ -45,6 +47,12 @@ export default async function ReportsPage() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
+
+  const payrollMonths = await loadPayroll(supabase, user.id)
+  const { data: teacherData, error: teacherError } = await supabase.from('teachers').select('name').eq('id', user.id).single()
+  if (teacherError) throw teacherError
+  const teacherName = teacherData?.name ?? ''
+  const monthKey = israelToday().slice(0, 7)
 
   const { data: vacationsRaw } = await supabase
     .from('vacation_requests')
@@ -88,20 +96,17 @@ export default async function ReportsPage() {
           </svg>
           <p className="text-sm">אין קבוצות עדיין</p>
         </div>
+        <ExportButtons reportData={[]} month={monthKey} teacherName={teacherName} payrollMonths={payrollMonths} />
         <VacationSection initialRequests={vacationRequests} />
         <ExtraHoursSection initialRequests={extraHoursRequests} />
       </div>
     )
   }
 
-  const { data: teacherData } = await supabase.from('teachers').select('name').eq('id', user.id).single()
-  const teacherName = teacherData?.name ?? ''
-
   const events = await getEventsForTeacher()
 
   const reportData: GroupWithData[] = []
-  const todayDate = new Date()
-  const todayStr = `${todayDate.getFullYear()}-${String(todayDate.getMonth() + 1).padStart(2, '0')}-${String(todayDate.getDate()).padStart(2, '0')}`
+  const todayStr = israelToday()
 
   for (const group of groups as Group[]) {
     const [{ data: lessons }, { data: canceled }] = await Promise.all([
@@ -188,18 +193,7 @@ export default async function ReportsPage() {
       history: [...student.history, ...eventEntries].sort((a, b) => b.date.localeCompare(a.date)),
     }))
 
-    const payrollLessons: HistoryEntry[] = [
-      ...heldOccurrences.map(items => {
-        const lesson = items[0]
-        return { lessonId: lesson.id, date: lesson.date, startTime: lesson.start_time,
-          units: getLessonUnits(group.lesson_type, lesson.start_time, schedules), status: 'present', brought: false,
-          isMakeup: lesson.is_makeup, cancelReason: lesson.teacher_absence_reason ?? undefined }
-      }),
-      ...canceledList.map(lesson => ({ lessonId: lesson.id, date: lesson.date, startTime: lesson.start_time,
-        units: getLessonUnits(group.lesson_type, lesson.start_time, schedules), status: 'teacher_canceled', brought: false,
-        cancelReason: lesson.teacher_absence_reason ?? undefined, cancelApprovalStatus: lesson.admin_approval_status })),
-    ]
-    reportData.push({ ...group, payrollLessons, students: studentsWithEventHistory, total_lessons: heldOccurrences.length, canceled_lessons: canceledList.length })
+    reportData.push({ ...group, students: studentsWithEventHistory, total_lessons: heldOccurrences.length, canceled_lessons: canceledList.length })
   }
 
   reportData.sort((a, b) => {
@@ -209,7 +203,6 @@ export default async function ReportsPage() {
   })
 
   const now = new Date()
-  const monthKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
   const monthLabel = now.toLocaleDateString('he-IL', { month: 'long', year: 'numeric' })
 
   return (
@@ -230,7 +223,7 @@ export default async function ReportsPage() {
           reportData={reportData}
           month={monthKey}
           teacherName={teacherName}
-          extraHours={extraHoursRequests.filter(r => r.status === 'approved').map(r => ({ work_date: r.work_date, minutes: r.minutes }))}
+          payrollMonths={payrollMonths}
         />
       </div>
 

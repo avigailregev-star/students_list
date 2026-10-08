@@ -1,11 +1,10 @@
 'use client'
 
 import Link from 'next/link'
+import { emptyMonth, type MonthPayroll } from '@/lib/payroll/calculate'
+import { buildMonthWorksheet } from '@/lib/payroll/worksheet'
 import * as XLSX from 'xlsx'
-import { categorizeSickDates } from '@/lib/payroll/sickLeaveTiers'
-import { isLegacyPayableCancellation } from '@/lib/payroll/legacyPayslipReason'
 import type { AdminApprovalStatus } from '@/types/database'
-import { getLessonUnits } from '@/lib/payroll/lessonUnits'
 
 interface HistoryEntry {
   lessonId?: string
@@ -41,7 +40,7 @@ interface Props {
   reportData: GroupRow[]
   month: string
   teacherName: string
-  extraHours: { work_date: string; minutes: number }[]
+  payrollMonths: MonthPayroll[]
 }
 
 function formatDateStr(dateStr: string): string {
@@ -64,7 +63,7 @@ function downloadXlsx(
   XLSX.writeFile(wb, filename)
 }
 
-export default function ExportButtons({ reportData, month, teacherName, extraHours }: Props) {
+export default function ExportButtons({ reportData, month, teacherName, payrollMonths }: Props) {
   function exportAttendance() {
     const header = ['תאריך', 'שם שיעור', 'שם תלמיד', 'נוכחות', 'איחור', 'הביא כלי']
 
@@ -97,165 +96,10 @@ export default function ExportButtons({ reportData, month, teacherName, extraHou
   }
 
   function exportPayroll() {
-    const parts = month.split('-')
-    const year = parseInt(parts[0])
-    const monthNum = parseInt(parts[1])
-    const daysInMonth = new Date(year, monthNum, 0).getDate()
-
-    const hebrewMonths = ['ינואר', 'פברואר', 'מרץ', 'אפריל', 'מאי', 'יוני', 'יולי', 'אוגוסט', 'ספטמבר', 'אוקטובר', 'נובמבר', 'דצמבר']
-    const monthDisplay = hebrewMonths[monthNum - 1]
-
-    type ColKey = 'individual_45' | 'individual_60' | 'melodies' | 'ensemble' | 'theory' | 'darcha' | 'makeup' | 'extra_hours'
-    const mkEmpty = (): Record<ColKey, number> => ({
-      individual_45: 0, individual_60: 0, melodies: 0, ensemble: 0, theory: 0, darcha: 0, makeup: 0, extra_hours: 0,
-    })
-
-    function mapType(t: string): ColKey | null {
-      if (t === 'individual_45') return 'individual_45'
-      if (t === 'individual_60') return 'individual_60'
-      if (t === 'melodies_individual' || t === 'melodies_group' || t === 'group') return 'melodies'
-      if (t === 'orchestra' || t === 'choir') return 'ensemble'
-      if (t === 'theory') return 'theory'
-      if (t === 'darcha') return 'darcha'
-      return null
-    }
-
-    const dayCounts = new Map<number, Record<ColKey, number>>()
-    for (let d = 1; d <= 31; d++) dayCounts.set(d, mkEmpty())
-    const sickCancellations: { date: string; teacher_absence_reason: string | null; admin_approval_status?: AdminApprovalStatus | null }[] = []
-
-    for (const group of reportData) {
-      const seenDates = new Map<string, HistoryEntry>()
-      for (const h of group.payrollLessons ?? group.students.flatMap(s => s.history)) {
-        if (h.status === 'school_event' || h.status === 'no_data') continue
-        const key = h.lessonId ?? `${h.date}:${h.isMakeup ? 'makeup' : 'regular'}:${h.startTime ?? ''}`
-        seenDates.set(key, h)
-      }
-
-      for (const h of seenDates.values()) {
-        const dateStr = h.date
-        if (!dateStr.startsWith(month)) continue
-        if (h.status === 'school_event' || h.status === 'no_data') continue
-        if (h.status === 'teacher_canceled') {
-          sickCancellations.push({ date: dateStr, teacher_absence_reason: h.cancelReason ?? null, admin_approval_status: h.cancelApprovalStatus })
-          // Legacy-reason cancellations were still paid — count them like a held lesson.
-          // Every other cancellation reason (including illness) earns no lesson pay.
-          if (!isLegacyPayableCancellation(h.cancelReason)) continue
-        }
-        const dayNum = parseInt(dateStr.split('-')[2])
-        const counts = dayCounts.get(dayNum)
-        if (!counts) continue
-        const units = h.units ?? getLessonUnits(group.lesson_type, h.startTime ?? '', group.group_schedules ?? [])
-        if (h.isMakeup) {
-          if (!isLegacyPayableCancellation(h.cancelReason)) counts.makeup += units
-        } else {
-          const col = mapType(group.lesson_type)
-          if (col) counts[col] += units
-        }
-      }
-    }
-
-    for (const item of extraHours) {
-      if (!item.work_date.startsWith(month)) continue
-      const counts = dayCounts.get(Number(item.work_date.split('-')[2]))
-      if (counts) counts.extra_hours += item.minutes / 60
-    }
-
-    const sickDates = categorizeSickDates(sickCancellations)
-
-    const dayAbbrev = ["א'", "ב'", "ג'", "ד'", "ה'", "ו'", "ש'"]
-    const COLS = 11
-    const blank = (): (string | number)[] => new Array(COLS).fill('')
-
-    const rows: (string | number)[][] = []
-    // Row 0: כותרת ראשית
-    rows.push(['קונסרבטוריון דימונה - מבית רשת המרכזים הקהילתיים', '', '', '', '', '', '', '', '', '', ''])
-    // Row 1: חודש + שנה + ת.ז
-    rows.push([`דו"ח עבודה לחודש: ${monthDisplay}`, '', '', `שנה: ${year}`, '', 'ת.ז:', '', '', '', '', ''])
-    // Row 2: פרטי עובד
-    rows.push([`שם ומשפחה: ${teacherName}`, '', '', '', 'תפקיד:', '', 'עיר מגורים:', '', '', '', ''])
-    // Row 3: ריק
-    rows.push(blank())
-    // Row 4: "פעילות" מעל עמודות השיעורים
-    rows.push(['', '', 'פעילות', '', '', '', '', '', '', '', ''])
-    // Row 5: כותרות עמודות
-    rows.push(['תאריך', 'יום', "פרטני 45 דק'", "פרטני 60 דק'", 'מנגינות', 'הרכבים/תזמורות', 'תיאוריה', 'דרכא לימן', 'השלמות/החלפות', 'שעות נוספות', 'סה"כ'])
-    // Row 6: "מס' שיעורים" תחת כל עמודת שיעור
-    rows.push(['', '', "מס' שיעורים", "מס' שיעורים", "מס' שיעורים", "מס' שיעורים", "מס' שיעורים", "מס' שיעורים", "מס' שיעורים", 'שעות', ''])
-    // Row 7: ריק
-    rows.push(blank())
-
-    const totals = mkEmpty()
-    let grandTotal = 0
-    let workDays = 0
-
-    for (let d = 1; d <= 31; d++) {
-      if (d > daysInMonth) {
-        rows.push([d, '', '', '', '', '', '', '', '', '', ''])
-        continue
-      }
-      const dayName = dayAbbrev[new Date(year, monthNum - 1, d).getDay()]
-      const c = dayCounts.get(d)!
-      const rowTotal = c.individual_45 + c.individual_60 + c.melodies + c.ensemble + c.theory + c.darcha + c.makeup
-      totals.individual_45 += c.individual_45
-      totals.individual_60 += c.individual_60
-      totals.melodies += c.melodies
-      totals.ensemble += c.ensemble
-      totals.theory += c.theory
-      totals.darcha += c.darcha
-      totals.makeup += c.makeup
-      totals.extra_hours += c.extra_hours
-      grandTotal += rowTotal
-      if (rowTotal > 0) workDays++
-      rows.push([
-        d,
-        dayName,
-        c.individual_45 || '',
-        c.individual_60 || '',
-        c.melodies || '',
-        c.ensemble || '',
-        c.theory || '',
-        c.darcha || '',
-        c.makeup || '',
-        c.extra_hours || '',
-        rowTotal || '',
-      ])
-    }
-
-    rows.push([
-      'סה"כ', '',
-      totals.individual_45 || '',
-      totals.individual_60 || '',
-      totals.melodies || '',
-      totals.ensemble || '',
-      totals.theory || '',
-      totals.darcha || '',
-      totals.makeup || '',
-      totals.extra_hours || '',
-      grandTotal || '',
-    ])
-    rows.push(blank())
-    rows.push(['סך ימי עבודה:', workDays || '', '', '', '', '', '', '', '', '', ''])
-    rows.push(['ימי בחירה/חופשה:', '', '', '', '', '', '', '', '', '', ''])
-    rows.push(['ימי מחלה:', sickDates.size || '', '', '', '', '', '', '', '', '', ''])
-    rows.push(blank())
-    rows.push(['חתימת המורה: _______________', '', '', '', '', 'חתימת מנהל: _______________', '', '', '', '', ''])
-
-    // הופכים את סדר העמודות כדי שהטבלה תיראה RTL גם בגוגל שיטס ללא הגדרה ידנית
-    const finalRows = rows.map(row => [...row].reverse())
-
-    // מיזוגים במיקומים ההפוכים: עמודה c → עמודה (COLS-1-c)
-    const merges: XLSX.Range[] = [
-      { s: { r: 0, c: 0 }, e: { r: 0, c: COLS - 1 } },       // כותרת ראשית — שורה שלמה
-      { s: { r: 4, c: 0 }, e: { r: 4, c: COLS - 3 } },        // "פעילות" — עמודות 0–6
-    ]
-
-    downloadXlsx(
-      finalRows,
-      `דוח-שעות-${month}.xlsx`,
-      [10, 12, 18, 12, 12, 18, 12, 13, 13, 6, 8],
-      merges,
-    )
+    const payroll = payrollMonths.find(item => item.key === month) ?? emptyMonth(month)
+    const workbook = XLSX.utils.book_new()
+    XLSX.utils.book_append_sheet(workbook, buildMonthWorksheet(payroll, teacherName), 'דוח')
+    XLSX.writeFile(workbook, `דוח-שעות-${month}.xlsx`)
   }
 
   function printReport() {

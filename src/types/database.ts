@@ -72,6 +72,12 @@ export type Lesson = {
   is_makeup: boolean
   makeup_lesson_id: string | null
   makeup_start_time: string | null
+  payroll_lesson_type?: string
+  payroll_units?: number
+  payroll_occurrence_key?: string
+  payroll_source_lesson_id?: string | null
+  payroll_snapshot_origin?: 'captured' | 'legacy_baseline'
+  payroll_captured_at?: string
 }
 
 export type AttendanceStatus = 'present' | 'absent' | 'late' | 'excused'

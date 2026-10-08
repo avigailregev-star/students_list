@@ -10,12 +10,12 @@ describe('categorizeSickDates', () => {
     expect(result.has('2026-03-10')).toBe(false)
   })
 
-  test('includes a sick-leave claim that is still pending approval', () => {
+  test('excludes a sick-leave claim that is still pending approval', () => {
     const result = categorizeSickDates([
       { date: '2026-03-10', teacher_absence_reason: 'מחלת מורה', admin_approval_status: 'pending' },
     ])
 
-    expect(result.get('2026-03-10')).toBe('unpaid')
+    expect(result.has('2026-03-10')).toBe(false)
   })
 
   test('includes an approved sick-leave claim', () => {

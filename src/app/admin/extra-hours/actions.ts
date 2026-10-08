@@ -1,14 +1,13 @@
 'use server'
 
 import { revalidatePath } from 'next/cache'
+import { revalidatePayroll } from '@/lib/payroll/revalidate'
 import { requireAdmin } from '@/lib/auth'
 import { createAdminClient } from '@/lib/supabase/admin'
 
 function refreshReports(teacherId?: string) {
   revalidatePath('/admin/extra-hours')
-  revalidatePath('/reports')
-  revalidatePath('/reports/payroll')
-  if (teacherId) revalidatePath(`/admin/teachers/${teacherId}/reports`)
+  revalidatePayroll(teacherId)
 }
 
 export async function decideExtraHours(id: string, status: 'approved' | 'rejected', minutes: number, adminNote?: string): Promise<{ error?: string }> {

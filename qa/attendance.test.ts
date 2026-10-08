@@ -8,6 +8,7 @@ function createFakeSupabase(tables: Record<string, Row[]>) {
     const filters: [string, any][] = []
     const inclusionFilters: [string, unknown[]][] = []
     let pendingUpsert: Row | null = null
+    let pendingUpdate: Row | null = null
     let upsertConflictKeys: string[] | null = null
 
     const applyFilters = (list: Row[]) => list.filter((r) => filters.every(([k, v]) => r[k] === v) && inclusionFilters.every(([k, values]) => values.includes(r[k])))
@@ -19,6 +20,7 @@ function createFakeSupabase(tables: Record<string, Row[]>) {
       eq(col: string, val: any) { filters.push([col, val]); return builder },
       order() { return builder },
       limit() { return builder },
+      update(obj: Row) { pendingUpdate = obj; return builder },
       upsert(obj: Row, opts?: { onConflict?: string }) {
         pendingUpsert = obj
         upsertConflictKeys = opts?.onConflict ? opts.onConflict.split(',') : null
@@ -29,6 +31,11 @@ function createFakeSupabase(tables: Record<string, Row[]>) {
         return { data: matched[0] ?? null, error: null }
       },
       async single() {
+        if (pendingUpdate) {
+          const matched = applyFilters(rows)
+          for (const row of matched) Object.assign(row, pendingUpdate)
+          return { data: matched[0] ?? null, error: null }
+        }
         if (pendingUpsert) {
           if (upsertConflictKeys) {
             const existing = rows.find((r) => upsertConflictKeys!.every((k) => r[k] === pendingUpsert![k]))

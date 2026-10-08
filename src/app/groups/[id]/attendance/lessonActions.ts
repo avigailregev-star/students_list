@@ -1,6 +1,7 @@
 'use server'
 
 import { revalidatePath } from 'next/cache'
+import { revalidatePayroll } from '@/lib/payroll/revalidate'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { redirect } from 'next/navigation'
@@ -67,6 +68,7 @@ export async function cancelLesson(formData: FormData) {
           start_time: makeupStartTime + ':00',
           status: 'scheduled',
           is_makeup: true,
+          payroll_source_lesson_id: lessonId,
           teacher_absence_reason: isAdvanceNotice ? 'השלמת ביטול מוצדק' : reason,
         })
         .select('id')
@@ -94,6 +96,7 @@ export async function cancelLesson(formData: FormData) {
   if (error) throw new Error('שגיאה בביטול השיעור')
 
   revalidatePath('/')
+  revalidatePayroll(user.id)
   revalidatePath('/groups/[id]/attendance', 'page')
 
   // Google Calendar operations (fire-and-forget)
@@ -179,6 +182,7 @@ export async function deleteMakeupLesson(makeupLessonId: string): Promise<{ ok: 
   if (deleteErr) return { ok: false, error: 'שגיאה במחיקת השיעור: ' + deleteErr.message }
 
   revalidatePath('/')
+  revalidatePayroll(user.id)
   return { ok: true }
 }
 
@@ -254,6 +258,7 @@ export async function restoreLesson(lessonId: string) {
   }
 
   revalidatePath('/')
+  revalidatePayroll(user.id)
   revalidatePath('/groups/[id]/attendance', 'page')
 
   // Delete the makeup lesson's GCal event (fire-and-forget, best-effort)

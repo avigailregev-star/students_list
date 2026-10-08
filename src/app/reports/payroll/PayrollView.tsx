@@ -1,114 +1,11 @@
 'use client'
 
 import * as XLSX from 'xlsx'
+import { Fragment } from 'react'
 import type { MonthPayroll, DayCount } from './page'
 
-const DAY_ABBREV = ["א'", "ב'", "ג'", "ד'", "ה'", "ו'", "ש'"]
-
-const TYPE_SHORT: Record<string, string> = {
-  individual_45: "פ45'",
-  individual_60: "פ60'",
-  melodies_individual: 'מנ',
-  melodies_group: 'מנ',
-  group: 'מנ',
-  orchestra: 'הר',
-  choir: 'הר',
-  theory: 'תא',
-  darcha: 'ד',
-}
-
-function formatMakeupTypes(types: Record<string, number>): string {
-  const merged: Record<string, number> = {}
-  for (const [type, count] of Object.entries(types)) {
-    const short = TYPE_SHORT[type] ?? type
-    merged[short] = (merged[short] ?? 0) + count
-  }
-  return Object.entries(merged)
-    .map(([label, count]) => count > 1 ? `${label}×${count}` : label)
-    .join(' · ')
-}
-
-function total(c: DayCount) {
-  return c.individual_45 + c.individual_60 + c.melodies + c.ensemble + c.theory + c.darcha + c.makeup
-}
-
-function formatHours(value: number) {
-  const minutes = Math.round(value * 60)
-  return `${Math.floor(minutes / 60)}:${String(minutes % 60).padStart(2, '0')}`
-}
-
-function buildMonthWorksheet(month: MonthPayroll, teacherName: string) {
-  const headers = ['תאריך', 'יום', "פרטני 45 דק'", "פרטני 60 דק'", 'מנגינות', 'הרכבים/תזמורות', 'תיאוריה', 'דרכא לימן', 'השלמות/החלפות', 'שעות נוספות', 'סה"כ']
-  const rows: (string | number)[][] = [
-    ['קונסרבטוריון דימונה - מבית רשת המרכזים הקהילתיים'],
-    [`דו"ח עבודה לחודש: ${month.label}`, '', '', '', `שנה: ${month.year}`, '', 'ת.ז:', '', '', '', ''],
-    [`שם ומשפחה: ${teacherName}`, '', '', '', 'תפקיד: _______________', '', '', '', 'עיר מגורים: _______________', '', ''],
-    [],
-    ['', '', 'פעילות'],
-    headers,
-    ['', '', ...Array(8).fill("מס' שיעורים"), ''],
-  ]
-
-  const totals: DayCount = { individual_45: 0, individual_60: 0, melodies: 0, ensemble: 0, theory: 0, darcha: 0, makeup: 0, extra_hours: 0 }
-  let grandTotal = 0
-  let workDays = 0
-
-  for (let d = 1; d <= 31; d++) {
-    if (d > month.daysInMonth) {
-      rows.push([d, '', '', '', '', '', '', '', '', '', ''])
-      continue
-    }
-
-    const c = month.dayCounts[d]
-    const dayTotal = total(c)
-    const dayName = DAY_ABBREV[new Date(month.year, month.monthNum - 1, d).getDay()]
-    totals.individual_45 += c.individual_45
-    totals.individual_60 += c.individual_60
-    totals.melodies += c.melodies
-    totals.ensemble += c.ensemble
-    totals.theory += c.theory
-    totals.darcha += c.darcha
-    totals.makeup += c.makeup
-    totals.extra_hours += c.extra_hours
-    grandTotal += dayTotal
-    if (dayTotal > 0) workDays++
-
-    rows.push([
-      d,
-      month.sickDates.includes(d) ? `${dayName} ח` : dayName,
-      c.individual_45 || '',
-      c.individual_60 || '',
-      c.melodies || '',
-      c.ensemble || '',
-      c.theory || '',
-      c.darcha || '',
-      c.makeup ? `${c.makeup}${month.makeupTypes[d] ? ` (${formatMakeupTypes(month.makeupTypes[d])})` : ''}` : '',
-      c.extra_hours ? formatHours(c.extra_hours) : '',
-      dayTotal || '',
-    ])
-  }
-
-  rows.push([
-    'סה"כ', '', totals.individual_45 || '', totals.individual_60 || '', totals.melodies || '',
-    totals.ensemble || '', totals.theory || '', totals.darcha || '', totals.makeup || '',
-    totals.extra_hours ? formatHours(totals.extra_hours) : '', grandTotal || '',
-  ])
-  rows.push([])
-  rows.push([`סך ימי עבודה: ${workDays || '___'}`])
-  rows.push(['ימי בחירה/חופשה: ___'])
-  rows.push([`ימי מחלה: ${month.sickDays || '___'}`])
-  rows.push([])
-  rows.push(['חתימת המורה: _______________', '', '', '', '', 'חתימת מנהל: _______________'])
-
-  const worksheet = XLSX.utils.aoa_to_sheet(rows)
-  worksheet['!cols'] = [8, 8, 15, 15, 12, 20, 12, 14, 25, 14, 10].map(wch => ({ wch }))
-  worksheet['!views'] = [{ rightToLeft: true }]
-  worksheet['!merges'] = [
-    { s: { r: 0, c: 0 }, e: { r: 0, c: 10 } },
-    { s: { r: 4, c: 2 }, e: { r: 4, c: 9 } },
-  ]
-  return worksheet
-}
+import { DAY_ABBREV, formatMakeupTypes, formatHours, formatSickLeaveDetails, buildMonthWorksheet } from '@/lib/payroll/worksheet'
+import { totalLessonUnits, isWorkDay } from '@/lib/payroll/calculate'
 
 export default function PayrollView({ months, teacherName }: { months: MonthPayroll[]; teacherName: string }) {
   if (!months.length) {
@@ -183,9 +80,9 @@ function MonthTable({ month, teacherName }: { month: MonthPayroll; teacherName: 
     for (const [type, count] of Object.entries(types)) {
       totalMakeupTypes[type] = (totalMakeupTypes[type] ?? 0) + count
     }
-    const dayTotal = total(c)
+    const dayTotal = totalLessonUnits(c)
     grandTotal += dayTotal
-    if (dayTotal > 0) workDays++
+    if (isWorkDay(c)) workDays++
   }
 
   const th = 'border border-gray-400 px-1 py-1 text-center text-[10px] font-bold bg-gray-100'
@@ -194,6 +91,9 @@ function MonthTable({ month, teacherName }: { month: MonthPayroll; teacherName: 
 
   return (
     <div dir="rtl" className="overflow-x-auto">
+      {month.unverifiedLessons > 0 && <p className="mb-3 rounded-lg bg-amber-50 border border-amber-200 p-3 text-sm text-amber-900">
+        נתוני עבר — טרם אומתו: {month.unverifiedLessons} שיעורים נשמרו לפי החישוב שהוצג בעת העדכון. שינוי מערכת השעות לא ישנה את הנתונים האלה.
+      </p>}
       <table className="w-full border-collapse min-w-[640px]" style={{ direction: 'rtl' }}>
         <thead>
           <tr>
@@ -218,7 +118,7 @@ function MonthTable({ month, teacherName }: { month: MonthPayroll; teacherName: 
             <th className={`${th} bg-gray-50`}></th>
           </tr>
           <tr>
-            {['תאריך','יום',"פרטני 45 דק'",'פרטני 60 דק\'','מנגינות','הרכבים/תזמורות','תיאוריה','דרכא לימן','השלמות/החלפות','שעות נוספות','סה"כ'].map(h => (
+            {['תאריך','יום',"פרטני 45 דק'",'פרטני 60 דק\'','מנגינות','הרכבים/תזמורות','תיאוריה','דרכא לימן','השלמות/החלפות','שעות נוספות','סה"כ שיעורים'].map(h => (
               <th key={h} className={th}>{h}</th>
             ))}
           </tr>
@@ -226,7 +126,7 @@ function MonthTable({ month, teacherName }: { month: MonthPayroll; teacherName: 
             <th colSpan={2} className="border border-gray-300 bg-gray-50"></th>
             {[...Array(8)].map((_, i) => (
               <th key={i} className="border border-gray-300 px-1 py-0.5 text-center text-[9px] font-normal text-gray-400 bg-gray-50">
-                מס&apos; שיעורים
+                {i === 7 ? 'שעות' : 'מספר שיעורים'}
               </th>
             ))}
             <th className="border border-gray-300 bg-gray-50"></th>
@@ -240,16 +140,18 @@ function MonthTable({ month, teacherName }: { month: MonthPayroll; teacherName: 
             const isSickDay = !isOver && month.sickDates.includes(d)
             const isMakeupDay = !isOver && month.makeupDates.includes(d)
             const c = month.dayCounts[d]
-            const rowTotal = isOver ? 0 : total(c)
-            const rowBg = isOver ? 'bg-gray-50' : isSickDay ? 'bg-red-50' : isWeekend ? 'bg-gray-100' : ''
+            const rowTotal = isOver ? 0 : totalLessonUnits(c)
+            const sickDetails = isOver ? [] : month.sickLeaveDetails[d] ?? []
+            const rowBg = isOver ? 'bg-gray-50' : isSickDay && !isWorkDay(c) ? 'bg-red-50' : isWeekend ? 'bg-gray-100' : ''
             return (
-              <tr key={d} className={rowBg}>
+              <Fragment key={d}>
+              <tr className={rowBg}>
                 <td className={`${td} ${isOver ? 'text-gray-300' : ''}`}>{d}</td>
                 <td className={td}>
                   {isOver ? '' : (
-                    <span className="flex items-center justify-center gap-0.5">
+                    <span className="flex flex-wrap items-center justify-center gap-1">
                       {DAY_ABBREV[dow]}
-                      {isSickDay && <span className="text-red-600 font-bold text-[8px] leading-none">ח</span>}
+                      {isSickDay && <span className="text-red-600 font-bold text-[10px]">מחלה</span>}
                     </span>
                   )}
                 </td>
@@ -282,6 +184,16 @@ function MonthTable({ month, teacherName }: { month: MonthPayroll; teacherName: 
                   </>
                 )}
               </tr>
+              {sickDetails.length > 0 && (
+                <tr className="bg-red-50 text-red-700">
+                  <td colSpan={2} className={td}></td>
+                  <td colSpan={9} className="border border-gray-300 px-2 py-1 text-right text-[10px]">
+                    <span className="font-bold">פירוט מחלה מאושרת: </span>
+                    {formatSickLeaveDetails(sickDetails)}
+                  </td>
+                </tr>
+              )}
+              </Fragment>
             )
           })}
         </tbody>
