@@ -86,6 +86,10 @@ export type CalendarLessonRow = {
   }
 }
 
+function historicalStudentName(name: string): string {
+  return name.replace(/\s*\(היסטורי [^)]+\)\s*$/, '').trim()
+}
+
 export function calendarLessonRowsToSlots(rows: CalendarLessonRow[]): LessonSlot[] {
   return rows.map(row => {
     const group = row.groups
@@ -93,7 +97,12 @@ export function calendarLessonRowsToSlots(rows: CalendarLessonRow[]): LessonSlot
     return {
       groupId: row.group_id,
       groupName: group.name,
-      studentNames: group.students?.filter(student => student.is_active).map(student => student.name),
+      // Recorded lessons may belong to a retired group/student after a
+      // reassignment. Keep the historical name visible, while collapsing the
+      // inactive archival copy that is created during student moves.
+      studentNames: group.students
+        ? [...new Set(group.students.map(student => historicalStudentName(student.name)).filter(Boolean))]
+        : undefined,
       lessonType: group.lesson_type,
       isMangan: group.is_mangan_school,
       schoolName: group.school_name,

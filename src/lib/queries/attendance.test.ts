@@ -63,7 +63,7 @@ vi.mock('@/lib/supabase/server', () => ({
   createClient: async () => createFakeSupabase(tables),
 }))
 
-import { getOrCreateLesson, shouldDisplayAsHoliday } from './attendance'
+import { calendarLessonRowsToSlots, getOrCreateLesson, shouldDisplayAsHoliday } from './attendance'
 
 beforeEach(() => {
   for (const key of Object.keys(tables)) delete tables[key]
@@ -121,5 +121,48 @@ describe('shouldDisplayAsHoliday', () => {
 
   test('stops being treated as a holiday once real attendance was recorded', () => {
     expect(shouldDisplayAsHoliday(true, 1)).toBe(false)
+  })
+})
+
+describe('calendarLessonRowsToSlots', () => {
+  test('keeps the historical student name without showing an archival duplicate', () => {
+    const [slot] = calendarLessonRowsToSlots([{
+      group_id: 'group-1',
+      date: '2026-09-07',
+      start_time: '16:30:00',
+      is_makeup: false,
+      groups: {
+        name: 'פרטני 45 דקות - נעמה אברהם',
+        lesson_type: 'individual_45',
+        is_mangan_school: false,
+        school_name: null,
+        grade: null,
+        students: [
+          { name: 'נעמה אברהם', is_active: true },
+          { name: 'נעמה אברהם (היסטורי b314)', is_active: false },
+        ],
+      },
+    }])
+
+    expect(slot.studentNames).toEqual(['נעמה אברהם'])
+  })
+
+  test('shows an inactive student name on an old recorded lesson', () => {
+    const [slot] = calendarLessonRowsToSlots([{
+      group_id: 'old-group',
+      date: '2026-09-10',
+      start_time: '14:45:00',
+      is_makeup: false,
+      groups: {
+        name: 'פרטני 45 דקות',
+        lesson_type: 'individual_45',
+        is_mangan_school: false,
+        school_name: null,
+        grade: null,
+        students: [{ name: 'ישי אברהם יפרח', is_active: false }],
+      },
+    }])
+
+    expect(slot.studentNames).toEqual(['ישי אברהם יפרח'])
   })
 })
