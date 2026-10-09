@@ -8,7 +8,9 @@ where id in (
   '95ca1e1d-c419-4cdd-9aff-28798d8ce0a0'::uuid,
   'e06b2324-38b5-4b01-91ab-5582b49035bb'::uuid,
   '61ac25c9-e53b-4a63-bf68-ac3f2aa08b12'::uuid,
-  '27876315-f0f7-4497-8f6b-2eaa81422b7e'::uuid
+  '27876315-f0f7-4497-8f6b-2eaa81422b7e'::uuid,
+  'd29bf8bb-ffa0-4a71-8d98-d147a098f1c2'::uuid,
+  'c9801757-6af7-44ac-b47a-3dfe287fa671'::uuid
 )
 and is_makeup = false;
 
@@ -63,6 +65,16 @@ begin
     and not exists (
       select 1 from public.lessons existing
       where existing.group_id=p_group_id and existing.date=d::date
+        and existing.is_makeup=false and existing.is_holiday=false
+    )
+    and not exists (
+      select 1
+      from public.lessons existing
+      join public.groups existing_group on existing_group.id=existing.group_id
+      where existing_group.teacher_id=p_teacher_id
+        and existing.group_id<>p_group_id
+        and existing.date=d::date
+        and existing.start_time::time=v_old.start_time::time
         and existing.is_makeup=false and existing.is_holiday=false
     )
     and not exists (

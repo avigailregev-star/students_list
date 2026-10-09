@@ -84,4 +84,28 @@ describe('schedule history migration', () => {
     `)
     expect(rows[0].count).toBe('0')
   })
+
+  test('does not recreate an old slot that overlaps another lesson for the teacher', async () => {
+    const sourceGroup = '00000000-0000-0000-0000-000000000021'
+    const sourceSchedule = '00000000-0000-0000-0000-000000000022'
+    const occupiedGroup = '00000000-0000-0000-0000-000000000023'
+    await db.exec(`
+      insert into public.groups values ('${sourceGroup}','${actor}','תלמיד חדש','individual_45');
+      insert into public.groups values ('${occupiedGroup}','${actor}','תלמיד אחר','individual_45');
+      insert into public.group_schedules values ('${sourceSchedule}','${sourceGroup}',2,'18:30','19:15');
+      insert into public.students values ('00000000-0000-0000-0000-000000000024','${sourceGroup}','תלמיד חדש');
+      insert into public.students values ('00000000-0000-0000-0000-000000000025','${occupiedGroup}','תלמיד אחר');
+      insert into public.lessons(group_id,date,start_time) values ('${occupiedGroup}','2026-09-01','18:30');
+    `)
+
+    await db.exec(`select public.update_group_schedule_atomic(
+      '${actor}','${sourceGroup}','${actor}','${sourceSchedule}','תלמיד חדש','individual_45',3,'19:15','20:00'
+    )`)
+
+    const { rows } = await db.query<{ count: string }>(`
+      select count(*)::text as count from public.lessons
+      where group_id='${sourceGroup}' and date='2026-09-01'
+    `)
+    expect(rows[0].count).toBe('0')
+  })
 })
