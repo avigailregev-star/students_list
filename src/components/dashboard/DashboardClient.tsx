@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useMemo } from 'react'
+import { useEffect, useState, useMemo } from 'react'
 import DayView from './DayView'
 import WeekView from './WeekView'
 import MonthView from './MonthView'
@@ -8,6 +8,18 @@ import BottomNav from '@/components/layout/BottomNav'
 import { getLessonSlotsForWeek, getWeekStart, mergeScheduledAndRecordedSlots, SCHOOL_YEAR_END, SCHOOL_YEAR_START } from '@/lib/utils/schedule'
 import type { GroupWithSchedules, LessonSlot, SchoolEvent } from '@/types/database'
 import logo from '@/app/icon.png'
+
+const SELECTED_DATE_KEY = 'dashboard-selected-date'
+
+function parseSelectedDate(value?: string | null): Date | null {
+  if (!value || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return null
+  const parsed = new Date(`${value}T12:00:00`)
+  return Number.isNaN(parsed.getTime()) ? null : parsed
+}
+
+function dateParam(date: Date): string {
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
+}
 
 interface Props {
   groups: GroupWithSchedules[]
@@ -24,10 +36,23 @@ interface Props {
 export default function DashboardClient({ groups, teacherName, events, isAdmin, recordedSlots, userId, viewOnly, viewOnlyTeacherId, initialDate }: Props) {
   const [view, setView] = useState<'day' | 'week' | 'month'>('day')
   const [selectedDate, setSelectedDate] = useState<Date>(() => {
-    if (!initialDate || !/^\d{4}-\d{2}-\d{2}$/.test(initialDate)) return new Date()
-    const parsed = new Date(`${initialDate}T12:00:00`)
-    return Number.isNaN(parsed.getTime()) ? new Date() : parsed
+    return parseSelectedDate(initialDate) ?? new Date()
   })
+
+  useEffect(() => {
+    if (viewOnly) return
+    const requestedDate = parseSelectedDate(initialDate)
+    if (requestedDate) {
+      sessionStorage.setItem(SELECTED_DATE_KEY, dateParam(requestedDate))
+      return
+    }
+
+    const savedDate = parseSelectedDate(sessionStorage.getItem(SELECTED_DATE_KEY))
+    if (!savedDate) return
+    window.history.replaceState(null, '', `/?date=${dateParam(savedDate)}`)
+    const frame = window.requestAnimationFrame(() => setSelectedDate(savedDate))
+    return () => window.cancelAnimationFrame(frame)
+  }, [initialDate, viewOnly])
 
   const calendarSlots: LessonSlot[] = useMemo(() => {
     const slots: LessonSlot[] = []
@@ -36,7 +61,7 @@ export default function DashboardClient({ groups, teacherName, events, isAdmin, 
     for (let weekStart = new Date(firstWeek); weekStart <= lastWeek; weekStart.setDate(weekStart.getDate() + 7)) {
       slots.push(...getLessonSlotsForWeek(groups, weekStart))
     }
-    return mergeScheduledAndRecordedSlots(slots, recordedSlots, groups)
+    return mergeScheduledAndRecordedSlots(slots, recordedSlots)
   }, [groups, recordedSlots])
 
   function handleDateChange(date: Date) {
@@ -45,7 +70,8 @@ export default function DashboardClient({ groups, teacherName, events, isAdmin, 
     // Keep the date in the URL so returning from attendance (including via
     // browser back or the home icon) restores the same day.
     if (!viewOnly) {
-      const dateStr = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
+      const dateStr = dateParam(date)
+      sessionStorage.setItem(SELECTED_DATE_KEY, dateStr)
       window.history.replaceState(null, '', `/?date=${dateStr}`)
     }
   }

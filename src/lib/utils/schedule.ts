@@ -194,34 +194,22 @@ function lessonSlotKey(slot: LessonSlot): string {
 }
 
 /**
- * Recorded lessons are the source of truth for history. If a recorded lesson no
- * longer matches the group's current weekly slot, the schedule has changed; in
- * that case the current slot must only be projected from tomorrow onward.
+ * Recorded lessons are the only source of truth for dates before today. The
+ * current recurring schedule is projected from today onward.
  */
 export function mergeScheduledAndRecordedSlots(
   generated: LessonSlot[],
   recorded: LessonSlot[],
-  groups: GroupWithSchedules[],
   today: Date = new Date()
 ): LessonSlot[] {
   const cutoff = new Date(today)
   cutoff.setHours(0, 0, 0, 0)
 
-  const currentSlots = new Map(groups.map(group => [
-    group.id,
-    new Set(group.group_schedules.map(schedule => `${schedule.day_of_week}|${schedule.start_time.slice(0, 5)}`)),
-  ]))
-  const changedGroups = new Set<string>()
-
-  for (const slot of recorded) {
-    if (slot.isMakeup || slot.date > cutoff) continue
-    if (!currentSlots.get(slot.groupId)?.has(`${slot.dayOfWeek}|${slot.startTime.slice(0, 5)}`)) {
-      changedGroups.add(slot.groupId)
-    }
-  }
-
   const merged = [
-    ...generated.filter(slot => !changedGroups.has(slot.groupId) || slot.date > cutoff),
+    // The current recurring schedule is only a projection for today and the
+    // future. Past dates come exclusively from concrete lesson records; mixing
+    // both sources produced duplicate cards after students were rescheduled.
+    ...generated.filter(slot => slot.date >= cutoff),
     ...recorded,
   ]
   const byKey = new Map<string, LessonSlot>()
