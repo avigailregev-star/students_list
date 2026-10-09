@@ -2,7 +2,7 @@ import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { getGroupsWithSchedules } from '@/lib/queries/groups'
 import { getEventsForTeacher } from '@/lib/queries/events'
-import { getMakeupLessons } from '@/lib/queries/attendance'
+import { getCalendarLessonSlots } from '@/lib/queries/attendance'
 import DashboardClient from '@/components/dashboard/DashboardClient'
 
 export default async function HomePage({ searchParams }: { searchParams: Promise<{ date?: string }> }) {
@@ -19,10 +19,10 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
 
   const isAdmin = teacher?.role === 'admin'
 
-  const [groups, events, makeupSlots] = await Promise.all([
+  const [groups, events, recordedSlots] = await Promise.all([
     getGroupsWithSchedules(),
     getEventsForTeacher(),
-    getMakeupLessons(),
+    getCalendarLessonSlots(),
   ])
 
   return (
@@ -31,7 +31,7 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
       teacherName={teacher?.name ?? 'מורה'}
       events={events}
       isAdmin={isAdmin}
-      makeupSlots={makeupSlots}
+      recordedSlots={recordedSlots}
       userId={user.id}
       initialDate={date}
     />

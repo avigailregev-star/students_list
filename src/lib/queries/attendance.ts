@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
-import type { Attendance, AttendanceStatus, Lesson, Group } from '@/types/database'
+import type { Attendance, AttendanceStatus, Lesson, Group, LessonSlot } from '@/types/database'
 import type { SupabaseClient } from '@supabase/supabase-js'
+import { SCHOOL_YEAR_START } from '@/lib/utils/schedule'
 
 export async function getOrCreateLesson(
   groupId: string,
@@ -75,26 +76,24 @@ export async function getAttendanceForLesson(lessonId: string): Promise<Attendan
   return data ?? []
 }
 
-export async function getMakeupLessons(): Promise<import('@/types/database').LessonSlot[]> {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return []
+export type CalendarLessonRow = {
+  group_id: string
+  date: string
+  start_time: string
+  is_makeup: boolean
+  groups: Pick<Group, 'name' | 'lesson_type' | 'is_mangan_school' | 'school_name' | 'grade'> & {
+    students?: { name: string; is_active: boolean }[]
+  }
+}
 
-  const { data, error } = await supabase
-    .from('lessons')
-    .select('id, group_id, date, start_time, groups!inner(teacher_id, name, lesson_type, is_mangan_school, school_name, grade)')
-    .eq('is_makeup', true)
-    .eq('status', 'scheduled')
-    .eq('groups.teacher_id', user.id)
-
-  if (error || !data) return []
-
-  return data.map(row => {
-    const group = row.groups as unknown as Group
+export function calendarLessonRowsToSlots(rows: CalendarLessonRow[]): LessonSlot[] {
+  return rows.map(row => {
+    const group = row.groups
     const d = new Date(row.date + 'T12:00:00')
     return {
       groupId: row.group_id,
       groupName: group.name,
+      studentNames: group.students?.filter(student => student.is_active).map(student => student.name),
       lessonType: group.lesson_type,
       isMangan: group.is_mangan_school,
       schoolName: group.school_name,
@@ -102,9 +101,37 @@ export async function getMakeupLessons(): Promise<import('@/types/database').Les
       date: d,
       startTime: row.start_time.slice(0, 5),
       dayOfWeek: d.getDay(),
-      isMakeup: true,
+      isMakeup: row.is_makeup,
     }
   })
+}
+
+export async function getCalendarLessonSlots(): Promise<LessonSlot[]> {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return []
+
+  return getCalendarLessonSlotsForTeacher(supabase, user.id)
+}
+
+export async function getCalendarLessonSlotsForTeacher(supabase: SupabaseClient, teacherId: string): Promise<LessonSlot[]> {
+  const fromDate = `${SCHOOL_YEAR_START.getFullYear()}-${String(SCHOOL_YEAR_START.getMonth() + 1).padStart(2, '0')}-${String(SCHOOL_YEAR_START.getDate()).padStart(2, '0')}`
+  const rows: CalendarLessonRow[] = []
+  for (let from = 0; ; from += 1000) {
+    const { data, error } = await supabase
+      .from('lessons')
+      .select('group_id, date, start_time, is_makeup, groups!inner(teacher_id, name, lesson_type, is_mangan_school, school_name, grade, students(name, is_active))')
+      .eq('groups.teacher_id', teacherId)
+      .eq('is_holiday', false)
+      .gte('date', fromDate)
+      .order('date', { ascending: true })
+      .range(from, from + 999)
+    if (error) throw error
+    const page = (data ?? []) as unknown as CalendarLessonRow[]
+    rows.push(...page)
+    if (page.length < 1000) break
+  }
+  return calendarLessonRowsToSlots(rows)
 }
 
 export async function upsertAttendance(

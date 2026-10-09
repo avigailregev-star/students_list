@@ -1,9 +1,8 @@
 'use client'
 
 import { useState, useMemo } from 'react'
-import { getLessonSlotsForMonth } from '@/lib/utils/schedule'
 import { cancelsLessons } from '@/lib/utils/eventColors'
-import type { GroupWithSchedules, SchoolEvent, SchoolEventType } from '@/types/database'
+import type { LessonSlot, SchoolEvent, SchoolEventType } from '@/types/database'
 
 const MONTHS_HE = ['ינואר','פברואר','מרץ','אפריל','מאי','יוני','יולי','אוגוסט','ספטמבר','אוקטובר','נובמבר','דצמבר']
 const DAYS_HE   = ['א','ב','ג','ד','ה','ו','ש']
@@ -28,12 +27,12 @@ function toDateStr(d: Date) {
 }
 
 interface Props {
-  groups: GroupWithSchedules[]
+  allSlots: LessonSlot[]
   events: SchoolEvent[]
   onDayClick: (date: Date) => void
 }
 
-export default function MonthView({ groups, events, onDayClick }: Props) {
+export default function MonthView({ allSlots, events, onDayClick }: Props) {
   const today = new Date()
   const [year, setYear] = useState(today.getFullYear())
   const [month, setMonth] = useState(today.getMonth())
@@ -63,9 +62,9 @@ export default function MonthView({ groups, events, onDayClick }: Props) {
 
   // Map dateStr → groupIds with lessons
   const lessonMap = useMemo(() => {
-    const slots = getLessonSlotsForMonth(groups, year, month)
     const sets: Record<string, Set<string>> = {}
-    for (const slot of slots) {
+    for (const slot of allSlots) {
+      if (slot.date.getFullYear() !== year || slot.date.getMonth() !== month) continue
       const key = toDateStr(slot.date)
       if (!sets[key]) sets[key] = new Set()
       sets[key].add(slot.groupId)
@@ -73,14 +72,14 @@ export default function MonthView({ groups, events, onDayClick }: Props) {
     const m: Record<string, string[]> = {}
     for (const [key, set] of Object.entries(sets)) m[key] = Array.from(set)
     return m
-  }, [groups, year, month])
+  }, [allSlots, year, month])
 
   // Stable color index per groupId
   const groupColorIndex = useMemo(() => {
     const idx: Record<string, number> = {}
-    groups.forEach((g, i) => { idx[g.id] = i % DOT_COLORS.length })
+    Array.from(new Set(allSlots.map(slot => slot.groupId))).forEach((id, i) => { idx[id] = i % DOT_COLORS.length })
     return idx
-  }, [groups])
+  }, [allSlots])
 
   const daysInMonth = new Date(year, month + 1, 0).getDate()
   const firstDow    = new Date(year, month, 1).getDay()  // 0=Sun
@@ -186,7 +185,7 @@ export default function MonthView({ groups, events, onDayClick }: Props) {
               {cfg.label}
             </span>
           ))}
-        {groups.length > 0 && (
+        {allSlots.length > 0 && (
           <span className="flex items-center gap-1.5 text-[10px] font-semibold px-2.5 py-1 rounded-xl bg-gray-100 text-gray-600">
             ● שיעור
           </span>

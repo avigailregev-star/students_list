@@ -5,7 +5,7 @@ import DayView from './DayView'
 import WeekView from './WeekView'
 import MonthView from './MonthView'
 import BottomNav from '@/components/layout/BottomNav'
-import { getLessonSlotsForWeek, getWeekStart } from '@/lib/utils/schedule'
+import { getLessonSlotsForWeek, getWeekStart, mergeScheduledAndRecordedSlots, SCHOOL_YEAR_END, SCHOOL_YEAR_START } from '@/lib/utils/schedule'
 import type { GroupWithSchedules, LessonSlot, SchoolEvent } from '@/types/database'
 import logo from '@/app/icon.png'
 
@@ -14,14 +14,14 @@ interface Props {
   teacherName: string
   events: SchoolEvent[]
   isAdmin?: boolean
-  makeupSlots: LessonSlot[]
+  recordedSlots: LessonSlot[]
   userId?: string
   viewOnly?: boolean
   viewOnlyTeacherId?: string
   initialDate?: string
 }
 
-export default function DashboardClient({ groups, teacherName, events, isAdmin, makeupSlots, userId, viewOnly, viewOnlyTeacherId, initialDate }: Props) {
+export default function DashboardClient({ groups, teacherName, events, isAdmin, recordedSlots, userId, viewOnly, viewOnlyTeacherId, initialDate }: Props) {
   const [view, setView] = useState<'day' | 'week' | 'month'>('day')
   const [selectedDate, setSelectedDate] = useState<Date>(() => {
     if (!initialDate || !/^\d{4}-\d{2}-\d{2}$/.test(initialDate)) return new Date()
@@ -29,24 +29,15 @@ export default function DashboardClient({ groups, teacherName, events, isAdmin, 
     return Number.isNaN(parsed.getTime()) ? new Date() : parsed
   })
 
-  const weekSlots: LessonSlot[] = useMemo(() => {
+  const calendarSlots: LessonSlot[] = useMemo(() => {
     const slots: LessonSlot[] = []
-    // Generate slots for ~52 weeks: 4 past + current + 47 future (full school year)
-    for (let i = -4; i <= 47; i++) {
-      const weekStart = getWeekStart()
-      weekStart.setDate(weekStart.getDate() + i * 7)
+    const firstWeek = getWeekStart(SCHOOL_YEAR_START)
+    const lastWeek = getWeekStart(SCHOOL_YEAR_END)
+    for (let weekStart = new Date(firstWeek); weekStart <= lastWeek; weekStart.setDate(weekStart.getDate() + 7)) {
       slots.push(...getLessonSlotsForWeek(groups, weekStart))
     }
-    // Deduplicate: same group on same date (safety guard)
-    const seen = new Set<string>()
-    const deduped = slots.filter(s => {
-      const key = `${s.groupId}-${s.date.toDateString()}-${s.startTime}`
-      if (seen.has(key)) return false
-      seen.add(key)
-      return true
-    })
-    return [...deduped, ...makeupSlots]
-  }, [groups, makeupSlots])
+    return mergeScheduledAndRecordedSlots(slots, recordedSlots, groups)
+  }, [groups, recordedSlots])
 
   function handleDateChange(date: Date) {
     setSelectedDate(date)
@@ -100,11 +91,11 @@ export default function DashboardClient({ groups, teacherName, events, isAdmin, 
 
       {/* Content */}
       <div className="flex-1 px-4 py-5 pb-28 overflow-y-auto">
-        {view === 'day' && <DayView allSlots={weekSlots} selectedDate={selectedDate} onDateChange={handleDateChange} events={events} viewOnly={viewOnly} viewOnlyTeacherId={viewOnlyTeacherId} />}
-        {view === 'week' && <WeekView allSlots={weekSlots} events={events} viewOnly={viewOnly} viewOnlyTeacherId={viewOnlyTeacherId} />}
+        {view === 'day' && <DayView allSlots={calendarSlots} selectedDate={selectedDate} onDateChange={handleDateChange} events={events} viewOnly={viewOnly} viewOnlyTeacherId={viewOnlyTeacherId} />}
+        {view === 'week' && <WeekView allSlots={calendarSlots} events={events} viewOnly={viewOnly} viewOnlyTeacherId={viewOnlyTeacherId} />}
         {view === 'month' && (
           <MonthView
-            groups={groups}
+            allSlots={calendarSlots}
             events={events}
             onDayClick={handleMonthDayClick}
           />

@@ -187,3 +187,44 @@ export function getLessonSlotsForMonth(
 
   return slots
 }
+
+function lessonSlotKey(slot: LessonSlot): string {
+  const date = `${slot.date.getFullYear()}-${String(slot.date.getMonth() + 1).padStart(2, '0')}-${String(slot.date.getDate()).padStart(2, '0')}`
+  return `${slot.groupId}|${date}|${slot.startTime.slice(0, 5)}|${slot.isMakeup ? 'makeup' : 'regular'}`
+}
+
+/**
+ * Recorded lessons are the source of truth for history. If a recorded lesson no
+ * longer matches the group's current weekly slot, the schedule has changed; in
+ * that case the current slot must only be projected from tomorrow onward.
+ */
+export function mergeScheduledAndRecordedSlots(
+  generated: LessonSlot[],
+  recorded: LessonSlot[],
+  groups: GroupWithSchedules[],
+  today: Date = new Date()
+): LessonSlot[] {
+  const cutoff = new Date(today)
+  cutoff.setHours(0, 0, 0, 0)
+
+  const currentSlots = new Map(groups.map(group => [
+    group.id,
+    new Set(group.group_schedules.map(schedule => `${schedule.day_of_week}|${schedule.start_time.slice(0, 5)}`)),
+  ]))
+  const changedGroups = new Set<string>()
+
+  for (const slot of recorded) {
+    if (slot.isMakeup || slot.date > cutoff) continue
+    if (!currentSlots.get(slot.groupId)?.has(`${slot.dayOfWeek}|${slot.startTime.slice(0, 5)}`)) {
+      changedGroups.add(slot.groupId)
+    }
+  }
+
+  const merged = [
+    ...generated.filter(slot => !changedGroups.has(slot.groupId) || slot.date > cutoff),
+    ...recorded,
+  ]
+  const byKey = new Map<string, LessonSlot>()
+  for (const slot of merged) byKey.set(lessonSlotKey(slot), slot)
+  return [...byKey.values()].sort((a, b) => a.date.getTime() - b.date.getTime() || a.startTime.localeCompare(b.startTime))
+}
