@@ -2,10 +2,8 @@
 
 import { useState, useTransition, useRef } from 'react'
 import { createClient } from '@/lib/supabase/client'
+import { ADVANCE_NOTICE_LIMIT, ADVANCE_NOTICE_REASON } from '@/lib/attendance/advanceNotice'
 import { cancelLesson, restoreLesson } from './lessonActions'
-
-const ADVANCE_NOTICE_REASON = 'ביטול מוצדק של תלמיד (עד שניים בשנה)'
-const ADVANCE_NOTICE_LIMIT = 2
 
 const REASONS = [
   'מחלת מורה',

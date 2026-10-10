@@ -6,6 +6,8 @@ import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { redirect } from 'next/navigation'
 import { deleteGCalEvent, pushLesson } from '@/lib/googleCalendar'
+import { ADVANCE_NOTICE_LIMIT, ADVANCE_NOTICE_REASON, ADVANCE_NOTICE_REASONS } from '@/lib/attendance/advanceNotice'
+import { SCHOOL_YEAR_END, SCHOOL_YEAR_START } from '@/lib/utils/schedule'
 
 function computeMakeupEndTime(makeupStart: string, schedule: { start_time: string; end_time: string | null }): string {
   if (schedule.end_time) {
@@ -46,9 +48,26 @@ export async function cancelLesson(formData: FormData) {
     .single()
   if (!ownedGroup) throw new Error('אין הרשאה')
 
-  const ADVANCE_NOTICE_REASON = 'ביטול מוצדק של תלמיד (עד שניים בשנה)'
   const isAdvanceNotice = reason === ADVANCE_NOTICE_REASON
   const hasMakeup = (reason === 'ביטול מורה עם השלמה' || isAdvanceNotice) && notes && makeupStartTime
+
+  if (isAdvanceNotice) {
+    const formatDate = (date: Date) =>
+      `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
+    const { count, error: countError } = await admin
+      .from('lessons')
+      .select('id', { count: 'exact', head: true })
+      .in('teacher_absence_reason', [...ADVANCE_NOTICE_REASONS])
+      .eq('status', 'teacher_canceled')
+      .gte('date', formatDate(SCHOOL_YEAR_START))
+      .lte('date', formatDate(SCHOOL_YEAR_END))
+      .eq('group_id', lessonForAuth.group_id)
+
+    if (countError) throw new Error('שגיאה בבדיקת מכסת הביטולים')
+    if ((count ?? 0) >= ADVANCE_NOTICE_LIMIT) {
+      throw new Error('התלמיד/ה הגיע/ה למגבלת הביטולים המוצדקים לשנה')
+    }
+  }
 
   // Create the makeup lesson record first (so we have its ID for the update)
   let makeupLessonId: string | null = null

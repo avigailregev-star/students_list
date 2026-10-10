@@ -5,13 +5,13 @@ type Row = Record<string, any>
 function createFakeSupabase(tables: Record<string, Row[]>) {
   function from(table: string) {
     const rows = tables[table] ?? (tables[table] = [])
-    const filters: [string, any][] = []
+    const filters: ((row: Row) => boolean)[] = []
     let pendingUpdate: Row | null = null
     let pendingInsert: Row | null = null
     let isDelete = false
     let rowLimit = Infinity
 
-    const applyFilters = (list: Row[]) => list.filter((r) => filters.every(([k, v]) => r[k] === v))
+    const applyFilters = (list: Row[]) => list.filter((row) => filters.every((filter) => filter(row)))
 
     const builder: any = {
       select() { return builder },
@@ -20,7 +20,10 @@ function createFakeSupabase(tables: Record<string, Row[]>) {
         const matched = applyFilters(rows).slice(0, rowLimit)
         return matched.length > 1 ? { data: null, error: { message: 'multiple rows' } } : { data: matched[0] ?? null, error: null }
       },
-      eq(col: string, val: any) { filters.push([col, val]); return builder },
+      eq(col: string, val: any) { filters.push((row) => row[col] === val); return builder },
+      gte(col: string, val: any) { filters.push((row) => row[col] >= val); return builder },
+      lte(col: string, val: any) { filters.push((row) => row[col] <= val); return builder },
+      in(col: string, values: any[]) { filters.push((row) => values.includes(row[col])); return builder },
       update(obj: Row) { pendingUpdate = obj; return builder },
       insert(obj: Row) {
         pendingInsert = { id: obj.id ?? `generated-${rows.length + 1}`, ...obj }
@@ -34,7 +37,7 @@ function createFakeSupabase(tables: Record<string, Row[]>) {
         if (matched.length === 0) return { data: null, error: { message: 'not found' } }
         return { data: matched[0], error: null }
       },
-      then(resolve: (v: { error: null }) => void) {
+      then(resolve: (v: { data: Row[]; count: number; error: null }) => void) {
         if (pendingUpdate) {
           for (const r of applyFilters(rows)) Object.assign(r, pendingUpdate)
         }
@@ -44,7 +47,8 @@ function createFakeSupabase(tables: Record<string, Row[]>) {
             if (idx >= 0) rows.splice(idx, 1)
           }
         }
-        resolve({ error: null })
+        const matched = applyFilters(rows).slice(0, rowLimit)
+        resolve({ data: matched, count: matched.length, error: null })
       },
     }
     return builder
@@ -67,7 +71,8 @@ vi.mock('@/lib/googleCalendar', () => ({
   pushLesson: vi.fn(async () => null),
 }))
 
-import { restoreLesson } from './lessonActions'
+import { cancelLesson, restoreLesson } from './lessonActions'
+import { ADVANCE_NOTICE_REASON } from '@/lib/attendance/advanceNotice'
 
 beforeEach(() => {
   for (const key of Object.keys(tables)) delete tables[key]
@@ -77,6 +82,43 @@ beforeEach(() => {
     { id: 'makeup-1', group_id: 'group-1', status: 'scheduled', is_makeup: true },
   ]
   tables.attendance = []
+})
+
+describe('cancelLesson justified-cancellation quota', () => {
+  function cancellationForm(lessonId: string) {
+    const form = new FormData()
+    form.set('lesson_id', lessonId)
+    form.set('reason', ADVANCE_NOTICE_REASON)
+    form.set('notes', '2026-11-01')
+    form.set('makeup_start_time', '15:00')
+    form.set('is_sick_leave', 'false')
+    return form
+  }
+
+  beforeEach(() => {
+    tables.groups.push({ id: 'group-2', teacher_id: 'teacher-1' })
+    tables.lessons = [
+      { id: 'target-1', group_id: 'group-1', date: '2026-10-20', status: 'scheduled' },
+      { id: 'other-pupil-1', group_id: 'group-2', date: '2026-09-10', status: 'teacher_canceled', teacher_absence_reason: ADVANCE_NOTICE_REASON },
+      { id: 'other-pupil-2', group_id: 'group-2', date: '2026-09-17', status: 'teacher_canceled', teacher_absence_reason: ADVANCE_NOTICE_REASON },
+    ]
+  })
+
+  test('does not pool cancellations from a different pupil group', async () => {
+    await cancelLesson(cancellationForm('target-1'))
+
+    expect(tables.lessons.find((lesson) => lesson.id === 'target-1')?.status).toBe('teacher_canceled')
+  })
+
+  test('blocks a third cancellation for the same pupil group', async () => {
+    tables.lessons.push(
+      { id: 'same-pupil-1', group_id: 'group-1', date: '2026-09-10', status: 'teacher_canceled', teacher_absence_reason: ADVANCE_NOTICE_REASON },
+      { id: 'same-pupil-2', group_id: 'group-1', date: '2026-09-17', status: 'teacher_canceled', teacher_absence_reason: ADVANCE_NOTICE_REASON },
+    )
+
+    await expect(cancelLesson(cancellationForm('target-1'))).rejects.toThrow('מגבלת הביטולים')
+    expect(tables.lessons.find((lesson) => lesson.id === 'target-1')?.status).toBe('scheduled')
+  })
 })
 
 describe('restoreLesson', () => {

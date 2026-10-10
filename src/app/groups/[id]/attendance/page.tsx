@@ -10,6 +10,7 @@ import { getLastLessonDate, isHolidayDate, SCHOOL_YEAR_START, SCHOOL_YEAR_END } 
 import { formatDateHe } from '@/lib/utils/hebrew'
 import { addMinutesToTime, formatLessonTimeRange, getLessonDurationMinutes } from '@/lib/utils/lessonTimes'
 import { israelToday } from '@/lib/payroll/calculate'
+import { ADVANCE_NOTICE_REASONS } from '@/lib/attendance/advanceNotice'
 import type { Group, GroupSchedule, SchoolEvent, AttendanceStatus, Lesson } from '@/types/database'
 
 interface Props {
@@ -102,27 +103,19 @@ export default async function AttendancePage({ params, searchParams }: Props) {
     originalLessonDate = orig?.date ?? null
   }
 
-  // Count advance-notice cancellations for this teacher in the current school year
+  // An individual lesson belongs to one pupil's group. Keep the yearly quota
+  // scoped to that group instead of pooling every pupil taught by the teacher.
   const schoolYearStart = `${SCHOOL_YEAR_START.getFullYear()}-${String(SCHOOL_YEAR_START.getMonth() + 1).padStart(2, '0')}-${String(SCHOOL_YEAR_START.getDate()).padStart(2, '0')}`
   const schoolYearEnd = `${SCHOOL_YEAR_END.getFullYear()}-${String(SCHOOL_YEAR_END.getMonth() + 1).padStart(2, '0')}-${String(SCHOOL_YEAR_END.getDate()).padStart(2, '0')}`
 
-  const { data: teacherGroups } = await supabase.from('groups').select('id').eq('teacher_id', user.id)
-  const teacherGroupIds = (teacherGroups ?? []).map(g => g.id)
-
-  const { count: advanceNoticeUsed } = teacherGroupIds.length > 0
-    ? await supabase
-        .from('lessons')
-        .select('id', { count: 'exact', head: true })
-        .in('teacher_absence_reason', [
-          'ביטול מוצדק (עד פעמיים בשנה)',
-          'ביטול מוצד (עד פעמיים בשנה)',
-          'ביטול מוצדק של תלמיד (עד שניים בשנה)',
-        ])
-        .eq('status', 'teacher_canceled')
-        .gte('date', schoolYearStart)
-        .lte('date', schoolYearEnd)
-        .in('group_id', teacherGroupIds)
-    : { count: 0 }
+  const { count: advanceNoticeUsed } = await supabase
+    .from('lessons')
+    .select('id', { count: 'exact', head: true })
+    .in('teacher_absence_reason', [...ADVANCE_NOTICE_REASONS])
+    .eq('status', 'teacher_canceled')
+    .gte('date', schoolYearStart)
+    .lte('date', schoolYearEnd)
+    .eq('group_id', id)
 
   const isHistoricalLesson = dateStr < israelToday()
   const allowArchivedStudentFallback = isHistoricalLesson && new Set([
