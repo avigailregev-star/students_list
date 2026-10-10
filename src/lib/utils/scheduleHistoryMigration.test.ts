@@ -29,6 +29,22 @@ beforeAll(async () => {
   await db.exec(await readFile('supabase/migrations/20261009113000_prevent_and_hide_schedule_duplicates.sql', 'utf8'))
   await db.exec(await readFile('supabase/migrations/20261010191935_preserve_lessons_when_students_leave.sql', 'utf8'))
   await db.exec(`
+    insert into public.teachers values ('be8d46a4-1298-4c4e-9900-11b9fe7349ed','teacher');
+    insert into public.groups(id,teacher_id,name,lesson_type,created_at) values
+      ('a5e630fc-832c-4ff4-b230-1153fad678c1','be8d46a4-1298-4c4e-9900-11b9fe7349ed','פרטני 45 דקות - איתי-משה מיימרן','individual_45','2026-09-06'),
+      ('1f45f9fd-e380-4c8e-8763-c6b4ee4ef608','be8d46a4-1298-4c4e-9900-11b9fe7349ed','נתנאל יחיא','individual_60','2026-09-16');
+    insert into public.group_schedules(id,group_id,day_of_week,start_time,end_time) values
+      ('fa97bac6-7210-49a9-8a5a-49951e75ac2a','a5e630fc-832c-4ff4-b230-1153fad678c1',1,'17:00','17:45'),
+      ('0079d1f6-0607-4036-8c59-ead641e0a834','1f45f9fd-e380-4c8e-8763-c6b4ee4ef608',4,'18:30','19:15');
+    insert into public.students(id,group_id,name,is_active,created_at) values
+      ('d0fc1a29-96f5-4fbd-a7d1-0983b2565f22','a5e630fc-832c-4ff4-b230-1153fad678c1','איתי-משה מיימרן',true,'2026-09-06'),
+      ('493b2f3f-40ab-46c5-a684-02ef4fbc448e','1f45f9fd-e380-4c8e-8763-c6b4ee4ef608','נועה ביטון',true,'2026-09-16');
+    insert into public.lessons(id,group_id,date,start_time) values
+      ('47ee6d4d-96b9-49fc-9de8-14d25f99e90e','a5e630fc-832c-4ff4-b230-1153fad678c1','2026-09-07','17:00'),
+      ('6557970c-06dc-4709-a7f5-10c62bcc93dd','1f45f9fd-e380-4c8e-8763-c6b4ee4ef608','2026-09-17','18:30');
+  `)
+  await db.exec(await readFile('supabase/migrations/20261010195025_correct_remaining_duplicate_and_noa_duration.sql', 'utf8'))
+  await db.exec(`
     insert into public.teachers values ('${actor}','admin');
     insert into public.groups values ('${group}','${actor}','פסנתר','individual_45');
     insert into public.group_schedules values ('${schedule}','${group}',2,'10:00','10:45');
@@ -41,6 +57,23 @@ beforeAll(async () => {
 afterAll(async () => { await db.close() })
 
 describe('schedule history migration', () => {
+  test('hides the remaining duplicate and corrects Noa to 45 minutes', async () => {
+    const { rows: duplicate } = await db.query<{ is_holiday: boolean; holiday_name: string }>(
+      `select is_holiday,holiday_name from public.lessons where id='47ee6d4d-96b9-49fc-9de8-14d25f99e90e'`
+    )
+    expect(duplicate[0]).toMatchObject({ is_holiday: true, holiday_name: 'רשומה כפולה משינוי שיבוץ' })
+
+    const { rows: noaGroup } = await db.query<{ lesson_type: string }>(
+      `select lesson_type from public.groups where id='1f45f9fd-e380-4c8e-8763-c6b4ee4ef608'`
+    )
+    expect(noaGroup[0].lesson_type).toBe('individual_45')
+
+    const { rows: noaLesson } = await db.query<{ payroll_lesson_type: string }>(
+      `select payroll_lesson_type from public.lessons where id='6557970c-06dc-4709-a7f5-10c62bcc93dd'`
+    )
+    expect(noaLesson[0].payroll_lesson_type).toBe('individual_45')
+  })
+
   test('materializes the old recurring slot before moving it and preserves attendance', async () => {
     await db.exec(`select public.update_group_schedule_atomic(
       '${actor}','${group}','${actor}','${schedule}','פסנתר','individual_45',3,'11:00','11:45'

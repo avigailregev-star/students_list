@@ -81,6 +81,7 @@ export type CalendarLessonRow = {
   date: string
   start_time: string
   is_makeup: boolean
+  created_at?: string
   groups: Pick<Group, 'name' | 'lesson_type' | 'is_mangan_school' | 'school_name' | 'grade'> & {
     students?: { name: string; is_active: boolean }[]
   }
@@ -91,18 +92,41 @@ export function historicalStudentName(name: string): string {
 }
 
 export function calendarLessonRowsToSlots(rows: CalendarLessonRow[]): LessonSlot[] {
-  return rows.map(row => {
+  const privateLessonTypes = new Set(['individual_45', 'individual_60', 'melodies_individual'])
+  const seenPrivateOccurrences = new Set<string>()
+  const slots: LessonSlot[] = []
+
+  // Prefer the occurrence that was recorded first. Schedule migrations can
+  // recreate the same pupil under a newer group, and both copies may later
+  // receive attendance; the calendar must still show the real occurrence once.
+  const chronologicalRows = [...rows].sort((a, b) =>
+    (a.created_at ?? '').localeCompare(b.created_at ?? '')
+  )
+
+  for (const row of chronologicalRows) {
     const group = row.groups
     const d = new Date(row.date + 'T12:00:00')
-    return {
+    const studentNames = group.students
+      ? [...new Set(group.students.map(student => historicalStudentName(student.name)).filter(Boolean))].sort()
+      : undefined
+    if (privateLessonTypes.has(group.lesson_type) && studentNames?.length) {
+      const occurrenceKey = [
+        row.date,
+        row.start_time.slice(0, 5),
+        row.is_makeup ? 'makeup' : 'regular',
+        studentNames.join('|'),
+      ].join('::')
+      if (seenPrivateOccurrences.has(occurrenceKey)) continue
+      seenPrivateOccurrences.add(occurrenceKey)
+    }
+
+    slots.push({
       groupId: row.group_id,
       groupName: group.name,
       // Recorded lessons may belong to a retired group/student after a
       // reassignment. Keep the historical name visible, while collapsing the
       // inactive archival copy that is created during student moves.
-      studentNames: group.students
-        ? [...new Set(group.students.map(student => historicalStudentName(student.name)).filter(Boolean))]
-        : undefined,
+      studentNames,
       lessonType: group.lesson_type,
       isMangan: group.is_mangan_school,
       schoolName: group.school_name,
@@ -111,8 +135,9 @@ export function calendarLessonRowsToSlots(rows: CalendarLessonRow[]): LessonSlot
       startTime: row.start_time.slice(0, 5),
       dayOfWeek: d.getDay(),
       isMakeup: row.is_makeup,
-    }
-  })
+    })
+  }
+  return slots
 }
 
 export async function getCalendarLessonSlots(): Promise<LessonSlot[]> {
@@ -129,7 +154,7 @@ export async function getCalendarLessonSlotsForTeacher(supabase: SupabaseClient,
   for (let from = 0; ; from += 1000) {
     const { data, error } = await supabase
       .from('lessons')
-      .select('group_id, date, start_time, is_makeup, groups!inner(teacher_id, name, lesson_type, is_mangan_school, school_name, grade, students(name, is_active))')
+      .select('group_id, date, start_time, is_makeup, created_at, groups!inner(teacher_id, name, lesson_type, is_mangan_school, school_name, grade, students(name, is_active))')
       .eq('groups.teacher_id', teacherId)
       .eq('is_holiday', false)
       .gte('date', fromDate)

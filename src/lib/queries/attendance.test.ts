@@ -169,4 +169,51 @@ describe('calendarLessonRowsToSlots', () => {
 
     expect(slot.studentNames).toEqual(['ישי אברהם יפרח'])
   })
+
+  test('shows a private historical occurrence only once after a pupil was moved to a new group', () => {
+    const shared = {
+      date: '2026-09-10',
+      start_time: '14:45:00',
+      is_makeup: false,
+    }
+    const slots = calendarLessonRowsToSlots([
+      {
+        ...shared,
+        group_id: 'new-group',
+        created_at: '2026-10-09T06:18:00Z',
+        groups: {
+          name: 'פרטני 45 דקות', lesson_type: 'individual_45', is_mangan_school: false,
+          school_name: null, grade: null, students: [{ name: 'ישי אברהם יפרח', is_active: true }],
+        },
+      },
+      {
+        ...shared,
+        group_id: 'original-group',
+        created_at: '2026-09-10T00:13:12Z',
+        groups: {
+          name: 'פרטני 45 דקות - ישי אברהם יפרח', lesson_type: 'individual_45', is_mangan_school: false,
+          school_name: null, grade: null, students: [{ name: 'ישי אברהם יפרח', is_active: false }],
+        },
+      },
+    ])
+
+    expect(slots).toHaveLength(1)
+    expect(slots[0].groupId).toBe('original-group')
+  })
+
+  test('keeps different pupils who legitimately share a historical time', () => {
+    const rows = ['לירן בטלר', 'איתי-משה מיימרן'].map((name, index) => ({
+      group_id: `group-${index}`,
+      date: '2026-09-07',
+      start_time: '17:00:00',
+      is_makeup: false,
+      created_at: `2026-09-0${index + 1}T12:00:00Z`,
+      groups: {
+        name, lesson_type: 'individual_45', is_mangan_school: false,
+        school_name: null, grade: null, students: [{ name, is_active: index === 1 }],
+      },
+    }))
+
+    expect(calendarLessonRowsToSlots(rows)).toHaveLength(2)
+  })
 })
