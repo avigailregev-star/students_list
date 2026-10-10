@@ -1,14 +1,15 @@
 import { notFound, redirect } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
-import { getStudentsByGroup } from '@/lib/queries/students'
-import { getOrCreateLesson, getAttendanceForLesson, shouldDisplayAsHoliday } from '@/lib/queries/attendance'
+import { getStudentsByGroup, selectStudentsForAttendance } from '@/lib/queries/students'
+import { getOrCreateLesson, getAttendanceForLesson, historicalStudentName, shouldDisplayAsHoliday } from '@/lib/queries/attendance'
 import AttendanceSection from '@/components/attendance/AttendanceSection'
 import CancelLessonButton from './CancelLessonButton'
 import DeleteMakeupButton from './DeleteMakeupButton'
 import { getLastLessonDate, isHolidayDate, SCHOOL_YEAR_START, SCHOOL_YEAR_END } from '@/lib/utils/schedule'
 import { formatDateHe } from '@/lib/utils/hebrew'
 import { addMinutesToTime, formatLessonTimeRange, getLessonDurationMinutes } from '@/lib/utils/lessonTimes'
+import { israelToday } from '@/lib/payroll/calculate'
 import type { Group, GroupSchedule, SchoolEvent, AttendanceStatus, Lesson } from '@/types/database'
 
 interface Props {
@@ -123,10 +124,17 @@ export default async function AttendancePage({ params, searchParams }: Props) {
         .in('group_id', teacherGroupIds)
     : { count: 0 }
 
-  const [students, attendanceRows] = await Promise.all([
-    getStudentsByGroup(id),
+  const isHistoricalLesson = dateStr < israelToday()
+  const allowArchivedStudentFallback = isHistoricalLesson && new Set([
+    'individual_45',
+    'individual_60',
+    'melodies_individual',
+  ]).has(typedGroup.lesson_type)
+  const [groupStudents, attendanceRows] = await Promise.all([
+    getStudentsByGroup(id, isHistoricalLesson),
     getAttendanceForLesson(lesson.id),
   ])
+  const students = selectStudentsForAttendance(groupStudents, attendanceRows, allowArchivedStudentFallback)
 
   const attendanceMap = new Map(attendanceRows.map(a => [a.student_id, a]))
 
@@ -230,7 +238,7 @@ export default async function AttendancePage({ params, searchParams }: Props) {
                 const att = attendanceMap.get(student.id)
                 return {
                   id: student.id,
-                  name: student.name,
+                  name: historicalStudentName(student.name),
                   initialStatus: (att?.status as AttendanceStatus) ?? null,
                   initialBrought: att?.brought_instrument ?? false,
                 }

@@ -86,7 +86,7 @@ export type CalendarLessonRow = {
   }
 }
 
-function historicalStudentName(name: string): string {
+export function historicalStudentName(name: string): string {
   return name.replace(/\s*\(היסטורי [^)]+\)\s*$/, '').trim()
 }
 

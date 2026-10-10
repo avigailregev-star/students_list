@@ -63,7 +63,7 @@ vi.mock('@/lib/supabase/server', () => ({
   createClient: async () => createFakeSupabase(tables),
 }))
 
-import { calendarLessonRowsToSlots, getOrCreateLesson, shouldDisplayAsHoliday } from './attendance'
+import { calendarLessonRowsToSlots, getOrCreateLesson, historicalStudentName, shouldDisplayAsHoliday } from './attendance'
 
 beforeEach(() => {
   for (const key of Object.keys(tables)) delete tables[key]
@@ -125,6 +125,10 @@ describe('shouldDisplayAsHoliday', () => {
 })
 
 describe('calendarLessonRowsToSlots', () => {
+  test('removes the internal archival suffix from a student name', () => {
+    expect(historicalStudentName('ישי אברהם יפרח (היסטורי b314)')).toBe('ישי אברהם יפרח')
+  })
+
   test('keeps the historical student name without showing an archival duplicate', () => {
     const [slot] = calendarLessonRowsToSlots([{
       group_id: 'group-1',
