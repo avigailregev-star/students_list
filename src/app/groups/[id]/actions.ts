@@ -63,10 +63,10 @@ export async function removeStudent(studentId: string, groupId: string) {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   if (!student || (student.groups as any).teacher_id !== user.id) throw new Error('תלמיד לא נמצא')
 
-  const { error } = await supabase
-    .from('students')
-    .update({ is_active: false })
-    .eq('id', studentId)
+  const { error } = await createAdminClient().rpc('retire_student_atomic', {
+    p_actor_id: user.id,
+    p_student_id: studentId,
+  })
   if (error) throw new Error('שגיאה במחיקת התלמיד')
 
   if (student?.name) await syncStudentRemoved({ studentName: student.name, groupId })

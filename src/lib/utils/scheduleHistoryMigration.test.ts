@@ -14,19 +14,20 @@ beforeAll(async () => {
     create role anon; create role authenticated; create role service_role;
     create schema app_private;
     create table public.teachers(id uuid primary key, role text not null);
-    create table public.groups(id uuid primary key, teacher_id uuid, name text, lesson_type text not null);
+    create table public.groups(id uuid primary key, teacher_id uuid, name text, lesson_type text not null, created_at timestamptz default '2026-07-01');
     create table public.group_schedules(id uuid primary key, group_id uuid, day_of_week int, start_time text, end_time text);
     create table public.school_events(id uuid primary key default gen_random_uuid(), event_type text, name text, start_date date, end_date date);
     create table public.lessons(id uuid primary key default gen_random_uuid(), group_id uuid, date date, start_time text,
       is_makeup boolean default false, status text default 'scheduled', is_holiday boolean default false, holiday_name text,
       teacher_absence_reason text, admin_approval_status text, makeup_lesson_id uuid, created_at text default '2026-10-07',
       unique(group_id,date,start_time));
-    create table public.students(id uuid primary key,group_id uuid,name text);
+    create table public.students(id uuid primary key,group_id uuid,name text,is_active boolean default true,created_at timestamptz default '2026-07-01');
     create table public.attendance(id uuid default gen_random_uuid(),lesson_id uuid,student_id uuid,status text,brought_instrument boolean,unique(lesson_id,student_id));
   `)
   await db.exec(await readFile('supabase/migrations/20261007121945_payroll_lesson_snapshots.sql', 'utf8'))
   await db.exec(await readFile('supabase/migrations/20261009072208_preserve_past_schedule_occurrences.sql', 'utf8'))
   await db.exec(await readFile('supabase/migrations/20261009113000_prevent_and_hide_schedule_duplicates.sql', 'utf8'))
+  await db.exec(await readFile('supabase/migrations/20261010191935_preserve_lessons_when_students_leave.sql', 'utf8'))
   await db.exec(`
     insert into public.teachers values ('${actor}','admin');
     insert into public.groups values ('${group}','${actor}','פסנתר','individual_45');
@@ -85,7 +86,7 @@ describe('schedule history migration', () => {
     expect(rows[0].count).toBe('0')
   })
 
-  test('does not recreate an old slot that overlaps another lesson for the teacher', async () => {
+  test('keeps a legitimate historical slot even when another lesson overlaps', async () => {
     const sourceGroup = '00000000-0000-0000-0000-000000000021'
     const sourceSchedule = '00000000-0000-0000-0000-000000000022'
     const occupiedGroup = '00000000-0000-0000-0000-000000000023'
@@ -106,6 +107,31 @@ describe('schedule history migration', () => {
       select count(*)::text as count from public.lessons
       where group_id='${sourceGroup}' and date='2026-09-01'
     `)
-    expect(rows[0].count).toBe('0')
+    expect(rows[0].count).toBe('1')
+  })
+
+  test('freezes recurring history before archiving a pupil', async () => {
+    const retiredGroup = '00000000-0000-0000-0000-000000000031'
+    const retiredStudent = '00000000-0000-0000-0000-000000000032'
+    await db.exec(`
+      insert into public.groups(id,teacher_id,name,lesson_type,created_at)
+      values ('${retiredGroup}','${actor}','תלמיד שפרש','individual_45','2026-09-01');
+      insert into public.group_schedules values
+      ('00000000-0000-0000-0000-000000000033','${retiredGroup}',4,'12:00','12:45');
+      insert into public.students(id,group_id,name,is_active,created_at)
+      values ('${retiredStudent}','${retiredGroup}','תלמיד שפרש',true,'2026-09-01');
+      select public.retire_student_atomic('${actor}','${retiredStudent}');
+    `)
+
+    const { rows: retired } = await db.query<{ is_active: boolean }>(
+      `select is_active from public.students where id='${retiredStudent}'`
+    )
+    expect(retired[0].is_active).toBe(false)
+
+    const { rows: occurrences } = await db.query<{ count: string }>(`
+      select count(*)::text as count from public.lessons
+      where group_id='${retiredGroup}' and date='2026-09-03' and start_time='12:00'
+    `)
+    expect(occurrences[0].count).toBe('1')
   })
 })

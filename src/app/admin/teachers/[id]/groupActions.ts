@@ -141,12 +141,15 @@ export async function addStudentToGroup(groupId: string, teacherId: string, stud
 export async function removeStudentFromGroup(studentId: string, teacherId: string): Promise<{ error?: string }> {
   try {
     if (!UUID_RE.test(studentId)) return { error: 'מזהה תלמיד לא תקין' }
-    await requireAdmin()
+    const { user } = await requireAdmin()
     const supabase = createAdminClient()
     const { data: student } = await supabase.from('students').select('name, group_id').eq('id', studentId).single()
-    // Keep the student row so historical attendance continues to reference it.
-    // A hard delete can cascade into attendance rows and erase lessons from reports.
-    const { error } = await supabase.from('students').update({ is_active: false }).eq('id', studentId)
+    // Freeze prior recurring occurrences and keep the membership row so the
+    // historical calendar retains both the lesson and the pupil's name.
+    const { error } = await supabase.rpc('retire_student_atomic', {
+      p_actor_id: user.id,
+      p_student_id: studentId,
+    })
     if (error) {
       console.error('removeStudent error:', error)
       return { error: `שגיאה במחיקת תלמיד: ${error.message}` }
