@@ -2,6 +2,7 @@ import { createClient } from '@/lib/supabase/server'
 import type { Attendance, AttendanceStatus, Lesson, Group, LessonSlot } from '@/types/database'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { SCHOOL_YEAR_START } from '@/lib/utils/schedule'
+import { getLessonEndTime } from '@/lib/utils/lessonTimes'
 
 export async function getOrCreateLesson(
   groupId: string,
@@ -84,6 +85,7 @@ export type CalendarLessonRow = {
   created_at?: string
   groups: Pick<Group, 'name' | 'lesson_type' | 'is_mangan_school' | 'school_name' | 'grade'> & {
     students?: { name: string; is_active: boolean }[]
+    group_schedules?: { day_of_week: number; start_time: string; end_time: string | null }[]
   }
 }
 
@@ -106,6 +108,10 @@ export function calendarLessonRowsToSlots(rows: CalendarLessonRow[]): LessonSlot
   for (const row of chronologicalRows) {
     const group = row.groups
     const d = new Date(row.date + 'T12:00:00')
+    const matchingSchedule = group.group_schedules?.find(schedule =>
+      schedule.day_of_week === d.getDay()
+      && schedule.start_time.slice(0, 5) === row.start_time.slice(0, 5)
+    )
     const studentNames = group.students
       ? [...new Set(group.students.map(student => historicalStudentName(student.name)).filter(Boolean))].sort()
       : undefined
@@ -133,6 +139,7 @@ export function calendarLessonRowsToSlots(rows: CalendarLessonRow[]): LessonSlot
       grade: group.grade,
       date: d,
       startTime: row.start_time.slice(0, 5),
+      endTime: getLessonEndTime(row.start_time, group.lesson_type, matchingSchedule?.end_time),
       dayOfWeek: d.getDay(),
       isMakeup: row.is_makeup,
     })
@@ -154,7 +161,7 @@ export async function getCalendarLessonSlotsForTeacher(supabase: SupabaseClient,
   for (let from = 0; ; from += 1000) {
     const { data, error } = await supabase
       .from('lessons')
-      .select('group_id, date, start_time, is_makeup, created_at, groups!inner(teacher_id, name, lesson_type, is_mangan_school, school_name, grade, students(name, is_active))')
+      .select('group_id, date, start_time, is_makeup, created_at, groups!inner(teacher_id, name, lesson_type, is_mangan_school, school_name, grade, group_schedules(day_of_week, start_time, end_time), students(name, is_active))')
       .eq('groups.teacher_id', teacherId)
       .eq('is_holiday', false)
       .gte('date', fromDate)

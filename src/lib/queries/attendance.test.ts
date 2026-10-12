@@ -129,6 +129,46 @@ describe('calendarLessonRowsToSlots', () => {
     expect(historicalStudentName('ישי אברהם יפרח (היסטורי b314)')).toBe('ישי אברהם יפרח')
   })
 
+  test('includes both start and end time for recorded lessons', () => {
+    const [slot] = calendarLessonRowsToSlots([{
+      group_id: 'group-1',
+      date: '2026-09-07',
+      start_time: '16:30:00',
+      is_makeup: false,
+      groups: {
+        name: 'תזמורת',
+        lesson_type: 'orchestra',
+        is_mangan_school: false,
+        school_name: null,
+        grade: null,
+        students: [],
+        group_schedules: [{ day_of_week: 1, start_time: '16:30:00', end_time: '18:15:00' }],
+      },
+    }])
+
+    expect(slot.startTime).toBe('16:30')
+    expect(slot.endTime).toBe('18:15')
+  })
+
+  test('derives the end time when a recorded lesson has no matching current schedule', () => {
+    const [slot] = calendarLessonRowsToSlots([{
+      group_id: 'old-group',
+      date: '2026-09-10',
+      start_time: '14:45:00',
+      is_makeup: false,
+      groups: {
+        name: 'פרטני 45 דקות',
+        lesson_type: 'individual_45',
+        is_mangan_school: false,
+        school_name: null,
+        grade: null,
+        students: [],
+      },
+    }])
+
+    expect(slot.endTime).toBe('15:30')
+  })
+
   test('keeps the historical student name without showing an archival duplicate', () => {
     const [slot] = calendarLessonRowsToSlots([{
       group_id: 'group-1',
