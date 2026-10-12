@@ -4,6 +4,8 @@ import { useState, useTransition } from 'react'
 import type { LessonType, GroupWithSchedulesAndStudents } from '@/types/database'
 import { LESSON_TYPE_OPTIONS } from '@/lib/utils/lessonTypes'
 import { DAYS_HE } from '@/lib/utils/hebrew'
+import { getNextDateForDayOfWeek } from '@/lib/utils/schedule'
+import { scheduleRange, schedulesOverlap } from '@/lib/utils/scheduleValidation'
 import { createGroupForTeacher, updateGroup, addStudentToGroup, removeStudentFromGroup } from './groupActions'
 
 interface Props {
@@ -13,6 +15,8 @@ interface Props {
   onClose: () => void
   defaultDayOfWeek?: number
   defaultStartTime?: string
+  teacherGroups: GroupWithSchedulesAndStudents[]
+  availabilityRanges: { day_of_week: number; start_time: string; end_time: string }[]
 }
 
 interface PendingStudent {
@@ -22,7 +26,9 @@ interface PendingStudent {
   parentPhone: string
 }
 
-export default function AdminGroupSheet({ teacherId, group, isOpen, onClose, defaultDayOfWeek, defaultStartTime }: Props) {
+export default function AdminGroupSheet({
+  teacherId, group, isOpen, onClose, defaultDayOfWeek, defaultStartTime, teacherGroups, availabilityRanges,
+}: Props) {
   const isEdit = !!group
   const schedule = group?.group_schedules?.[0]
 
@@ -38,6 +44,33 @@ export default function AdminGroupSheet({ teacherId, group, isOpen, onClose, def
   const [isPending, startTransition] = useTransition()
   const [error, setError] = useState<string | null>(null)
   const requiresEndTime = lessonType === 'orchestra' || lessonType === 'choir'
+  const candidateSlot = { startTime, endTime: endTime || undefined, lessonType }
+  const conflictingGroup = startTime
+    ? teacherGroups.find(otherGroup => (
+        otherGroup.id !== group?.id
+        && (otherGroup.group_schedules ?? []).some(otherSchedule => (
+          otherSchedule.day_of_week === dayOfWeek
+          && schedulesOverlap(candidateSlot, {
+            startTime: otherSchedule.start_time,
+            endTime: otherSchedule.end_time ?? undefined,
+            lessonType: otherGroup.lesson_type,
+          })
+        ))
+      ))
+    : undefined
+  const dayAvailability = availabilityRanges.filter(range => range.day_of_week === dayOfWeek)
+  const candidateRange = scheduleRange(candidateSlot)
+  const isWithinAvailability = !candidateRange || dayAvailability.length === 0 || dayAvailability.some(range => {
+    const availableRange = scheduleRange({ startTime: range.start_time, endTime: range.end_time, lessonType: 'group' })
+    return !!availableRange && candidateRange[0] >= availableRange[0] && candidateRange[1] <= availableRange[1]
+  })
+  const scheduleChanged = !!schedule && (
+    schedule.day_of_week !== dayOfWeek
+    || schedule.start_time.slice(0, 5) !== startTime
+    || (schedule.end_time?.slice(0, 5) ?? '') !== endTime
+  )
+  const nextDate = getNextDateForDayOfWeek(dayOfWeek)
+  const nextDateLabel = nextDate.toLocaleDateString('he-IL', { day: '2-digit', month: '2-digit', year: 'numeric' })
 
   if (!isOpen) return null
 
@@ -150,6 +183,35 @@ export default function AdminGroupSheet({ teacherId, group, isOpen, onClose, def
             </div>
           </div>
 
+          {(isEdit || startTime) && (
+            <div className={`rounded-2xl border px-4 py-3 text-sm ${
+              conflictingGroup
+                ? 'border-red-200 bg-red-50 text-red-700'
+                : !isWithinAvailability
+                  ? 'border-amber-200 bg-amber-50 text-amber-700'
+                  : 'border-teal-200 bg-teal-50 text-teal-700'
+            }`} aria-live="polite">
+              {conflictingGroup ? (
+                <>
+                  <p className="font-bold">השעה תפוסה</p>
+                  <p className="mt-0.5 text-xs">חופף לשיעור: {conflictingGroup.name}</p>
+                </>
+              ) : !isWithinAvailability ? (
+                <>
+                  <p className="font-bold">המועד מחוץ לזמינות המורה</p>
+                  <p className="mt-0.5 text-xs">יש לבחור שעה שנמצאת בטווח הזמינות שהוגדר ליום {DAYS_HE[dayOfWeek]}.</p>
+                </>
+              ) : (
+                <>
+                  <p className="font-bold">המועד פנוי</p>
+                  <p className="mt-0.5 text-xs">
+                    {scheduleChanged ? `השינוי יחול מהשיעור הקרוב: ${DAYS_HE[dayOfWeek]}, ${nextDateLabel}` : `השיעור הקרוב: ${DAYS_HE[dayOfWeek]}, ${nextDateLabel}`}
+                  </p>
+                </>
+              )}
+            </div>
+          )}
+
           {/* Students */}
           <div>
             <label className="block text-sm font-semibold text-gray-700 mb-2">תלמידים</label>
@@ -204,7 +266,7 @@ export default function AdminGroupSheet({ teacherId, group, isOpen, onClose, def
           <button
             type="button"
             onClick={handleSave}
-            disabled={isPending || !name.trim() || !startTime || (requiresEndTime && !endTime)}
+            disabled={isPending || !name.trim() || !startTime || (requiresEndTime && !endTime) || !!conflictingGroup || !isWithinAvailability}
             className="flex-1 bg-teal-500 text-white font-bold py-3 rounded-2xl hover:bg-teal-600 transition-colors disabled:opacity-60 text-sm"
           >
             {isPending ? 'שומר...' : 'שמור'}

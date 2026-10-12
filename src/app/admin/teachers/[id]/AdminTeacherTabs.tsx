@@ -23,6 +23,15 @@ export default function AdminTeacherTabs({ teacherId, groups, ranges, completedL
   const [editingGroup, setEditingGroup] = useState<GroupWithSchedulesAndStudents | undefined>()
   const [isPending, startTransition] = useTransition()
   const [sheetDefaults, setSheetDefaults] = useState<{ dayOfWeek?: number; startTime?: string }>({})
+  const [groupSearch, setGroupSearch] = useState('')
+
+  const normalizedSearch = groupSearch.trim().toLocaleLowerCase('he')
+  const visibleGroups = normalizedSearch
+    ? groups.filter(group => (
+        group.name.toLocaleLowerCase('he').includes(normalizedSearch)
+        || (group.students ?? []).some(student => student.name.toLocaleLowerCase('he').includes(normalizedSearch))
+      ))
+    : groups
 
   function openCreate(defaults?: { dayOfWeek?: number; startTime?: string }) {
     setEditingGroup(undefined)
@@ -64,10 +73,26 @@ export default function AdminTeacherTabs({ teacherId, groups, ranges, completedL
       {/* Groups tab */}
       {activeTab === 'groups' && (
         <div className="flex flex-col gap-2">
+          <label className="relative block">
+            <span className="sr-only">חיפוש תלמיד או שיעור</span>
+            <input
+              type="search"
+              value={groupSearch}
+              onChange={event => setGroupSearch(event.target.value)}
+              placeholder="חיפוש תלמיד או שיעור"
+              className="w-full rounded-2xl border border-gray-200 bg-white px-4 py-3 pe-10 text-sm outline-none transition-colors focus:border-teal-400"
+            />
+            <svg className="absolute end-3 top-3.5" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+            </svg>
+          </label>
           {groups.length === 0 && (
             <p className="text-sm text-gray-400 text-center py-4">אין קבוצות עדיין</p>
           )}
-          {groups.map(g => {
+          {groups.length > 0 && visibleGroups.length === 0 && (
+            <p className="text-sm text-gray-400 text-center py-4">לא נמצאו תלמידים או שיעורים מתאימים</p>
+          )}
+          {visibleGroups.map(g => {
             const cfg = LESSON_TYPE_CONFIG[g.lesson_type]
             const schedule = g.group_schedules?.[0]
             const studentNames = (g.students ?? []).map(student => student.name).join(', ')
@@ -148,6 +173,8 @@ export default function AdminTeacherTabs({ teacherId, groups, ranges, completedL
         onClose={() => setSheetOpen(false)}
         defaultDayOfWeek={sheetDefaults.dayOfWeek}
         defaultStartTime={sheetDefaults.startTime}
+        teacherGroups={groups}
+        availabilityRanges={ranges}
       />
     </>
   )
